@@ -36,7 +36,7 @@ function threatJsFilesAsJsx() {
  * The details are here: https://dev.vk.ru/mini-apps/development/on-demand-resources.
  */
 export default defineConfig({
-  base: "/TravelDiary/",
+  base: "/",
 
   plugins: [
     react(),
