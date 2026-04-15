@@ -1,6 +1,7 @@
-const connectToDatabase = require('../index');
-const Post = require('../../server/models/Post');
-const auth = require('../../server/middleware/auth');
+import connectToDatabase from '../index.js';
+import Post from '../../server/models/Post.js';
+import jwt from 'jsonwebtoken';
+import User from '../../server/models/User.js';
 
 // Auth middleware for serverless
 const requireAuth = (handler) => async (req, res) => {
@@ -10,10 +11,7 @@ const requireAuth = (handler) => async (req, res) => {
       return res.status(401).json({ message: 'No token, authorization denied' });
     }
 
-    const jwt = require('jsonwebtoken');
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    const User = require('../../server/models/User');
-    
     const user = await User.findById(decoded.userId).select('-password');
     
     if (!user) {

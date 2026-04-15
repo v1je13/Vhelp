@@ -1,6 +1,8 @@
-const connectToDatabase = require('../../index');
-const Like = require('../../../server/models/Like');
-const Post = require('../../../server/models/Post');
+import connectToDatabase from '../../index.js';
+import Like from '../../../server/models/Like.js';
+import Post from '../../../server/models/Post.js';
+import jwt from 'jsonwebtoken';
+import User from '../../../server/models/User.js';
 
 const requireAuth = (handler) => async (req, res) => {
   try {
@@ -9,10 +11,7 @@ const requireAuth = (handler) => async (req, res) => {
       return res.status(401).json({ message: 'No token, authorization denied' });
     }
 
-    const jwt = require('jsonwebtoken');
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    const User = require('../../../server/models/User');
-    
     const user = await User.findById(decoded.userId).select('-password');
     
     if (!user) {

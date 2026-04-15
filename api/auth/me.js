@@ -1,6 +1,6 @@
-const jwt = require('jsonwebtoken');
-const connectToDatabase = require('../index');
-const User = require('../../server/models/User');
+import jwt from 'jsonwebtoken';
+import connectToDatabase from '../index.js';
+import User from '../../server/models/User.js';
 
 export default async function handler(req, res) {
   if (req.method !== 'GET') {

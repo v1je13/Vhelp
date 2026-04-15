@@ -1,8 +1,7 @@
-const jwt = require('jsonwebtoken');
-const connectToDatabase = require('../index');
-const User = require('../../server/models/User');
-
-const crypto = require('crypto');
+import jwt from 'jsonwebtoken';
+import connectToDatabase from '../index.js';
+import User from '../../server/models/User.js';
+import crypto from 'crypto';
 
 // Verify VK Bridge signature
 const verifyVKSignature = (params) => {

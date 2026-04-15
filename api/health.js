@@ -1,4 +1,4 @@
-const connectToDatabase = require('./index');
+import connectToDatabase from './index.js';
 
 export default async function handler(req, res) {
   try {
