@@ -10,7 +10,9 @@
     "preview": "vite preview",
     "tunnel": "vk-tunnel --http-protocol=http --host=localhost --port=5173",
     "deploy": "vite build && vk-miniapps-deploy",
-    "deploy-gh": "gh-pages -d build"
+    "deploy-gh": "gh-pages -d build",
+    "server": "cd server && npm install && node server.js",
+    "dev:server": "cd server && npm install && nodemon server.js"
   },
   "dependencies": {
     "@vkontakte/vk-bridge": "^2.15.11",
@@ -19,7 +21,11 @@
     "@vkontakte/vkui": "^7.0.0",
     "prop-types": "^15.8.1",
     "react": "^18.2.0",
-    "react-dom": "^18.2.0"
+    "react-dom": "^18.2.0",
+    "mongoose": "^8.0.0",
+    "jsonwebtoken": "^9.0.2",
+    "bcryptjs": "^2.4.3",
+    "crypto": "^1.0.1"
   },
   "devDependencies": {
     "@vitejs/plugin-legacy": "^5.3.1",
