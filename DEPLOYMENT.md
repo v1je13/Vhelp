@@ -23,8 +23,10 @@ Backend уже готов в папке `server/` со всеми необход
 5. Настройте:
 
 **Build & Deploy:**
-- Build Command: `cd server && npm install`
-- Start Command: `cd server && node server.js`
+- Root Directory: `server`
+- Build Command: `npm install`
+- Start Command: `node server.js`
+- Root Directory: `server`
 
 **Environment Variables:**
 - `MONGODB_URI` = `mongodb+srv://dwije48_db_user:TwViXE3tFtZqEOA2@travel-diary.ru6yi58.mongodb.net/?appName=travel-diary`
