@@ -1,4 +1,4 @@
-const mongoose = require('mongoose');
+import mongoose from 'mongoose';
 
 const postSchema = new mongoose.Schema({
   author: {
@@ -32,15 +32,9 @@ const postSchema = new mongoose.Schema({
   commentsCount: {
     type: Number,
     default: 0
-  },
-  createdAt: {
-    type: Date,
-    default: Date.now
-  },
-  updatedAt: {
-    type: Date,
-    default: Date.now
   }
+}, {
+  timestamps: true
 });
 
 postSchema.pre('save', function(next) {
@@ -48,4 +42,4 @@ postSchema.pre('save', function(next) {
   next();
 });
 
-module.exports = mongoose.model('Post', postSchema);
+export default mongoose.model('Post', postSchema);

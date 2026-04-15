@@ -1,4 +1,4 @@
-const mongoose = require('mongoose');
+import mongoose from 'mongoose';
 
 const userSchema = new mongoose.Schema({
   vkId: {
@@ -22,14 +22,8 @@ const userSchema = new mongoose.Schema({
     type: String,
     default: ''
   },
-  createdAt: {
-    type: Date,
-    default: Date.now
-  },
-  updatedAt: {
-    type: Date,
-    default: Date.now
-  }
+}, {
+  timestamps: true
 });
 
 userSchema.pre('save', function(next) {
@@ -37,4 +31,4 @@ userSchema.pre('save', function(next) {
   next();
 });
 
-module.exports = mongoose.model('User', userSchema);
+export default mongoose.model('User', userSchema);

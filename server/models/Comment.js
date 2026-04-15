@@ -1,4 +1,4 @@
-const mongoose = require('mongoose');
+import mongoose from 'mongoose';
 
 const commentSchema = new mongoose.Schema({
   post: {
@@ -22,14 +22,6 @@ const commentSchema = new mongoose.Schema({
   likesCount: {
     type: Number,
     default: 0
-  },
-  createdAt: {
-    type: Date,
-    default: Date.now
-  },
-  updatedAt: {
-    type: Date,
-    default: Date.now
   }
 });
 
@@ -38,4 +30,4 @@ commentSchema.pre('save', function(next) {
   next();
 });
 
-module.exports = mongoose.model('Comment', commentSchema);
+export default mongoose.model('Comment', commentSchema);
