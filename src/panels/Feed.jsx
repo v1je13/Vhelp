@@ -1,54 +1,54 @@
-import React, { useState } from "react";
-import { Panel, Avatar, HorizontalScroll } from "@vkontakte/vkui";
+import React, { useState, useEffect } from "react";
+import { Panel, HorizontalScroll, Button } from "@vkontakte/vkui";
 import Loader from "../components/Loader";
+import api from "../api";
+import { useAuth } from "../hooks/useAuth";
 
-// Данные постов
-const allPosts = [
-  {
-    id: 1,
-    author: "Снежана Зайкина",
-    avatar: "https://i.pravatar.cc/150?img=1",
-    description: "Описание",
-    further: "Далее",
-  },
-  {
-    id: 2,
-    author: "Дмитрий Волков",
-    avatar: "https://i.pravatar.cc/150?img=11",
-    description: "Описание",
-    further: "Далее",
-  },
-];
-
-// Истории
-const stories = [
-  { id: 1, type: "add", name: "" },
-  { id: 2, type: "initials", name: "ИИ", color: "#F4D03F" },
-  { id: 3, type: "initials", name: "РН", color: "#F4D03F" },
-  {
-    id: 4,
-    type: "photo",
-    name: "",
-    avatar: "https://i.pravatar.cc/150?img=12",
-  },
-  { id: 5, type: "photo", name: "", avatar: "https://i.pravatar.cc/150?img=5" },
-];
-
-export default function Feed({ nav, onOpenPost }) {
-  const [loading, setLoading] = useState(false);
+export default function Feed({ nav, onOpenPost, onCreatePost, onCreateStory }) {
+  const [loading, setLoading] = useState(true);
+  const [posts, setPosts] = useState([]);
+  const [stories, setStories] = useState([]);
   const [searchQuery, setSearchQuery] = useState("");
+  const { user } = useAuth();
 
-  if (loading) {
-    return (
-      <Panel nav={nav} filled={false}>
-        <Loader />
-      </Panel>
-    );
-  }
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setLoading(true);
+        const [postsData, storiesData] = await Promise.all([
+          api.getPosts(),
+          api.getStories()
+        ]);
+        setPosts(postsData.posts || []);
+        setStories(storiesData || []);
+      } catch (error) {
+        console.error('Error fetching data:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    if (user) {
+      fetchData();
+    }
+  }, [user]);
 
   const handleSearchChange = (e) => {
     setSearchQuery(e.target.value);
     console.log("Поиск:", e.target.value);
+  };
+
+  const handleLike = async (postId) => {
+    try {
+      const result = await api.likePost(postId);
+      setPosts(posts.map(post => 
+        post._id === postId 
+          ? { ...post, likesCount: result.likesCount }
+          : post
+      ));
+    } catch (error) {
+      console.error('Error liking post:', error);
+    }
   };
 
   return (
@@ -224,16 +224,22 @@ export default function Feed({ nav, onOpenPost }) {
           <div className="stories-wrapper">
             <HorizontalScroll>
               <div className="stories-scroll">
+                {/* Add story button */}
+                <div className="story-item" onClick={onCreateStory}>
+                  <div className="story-circle story-add" style={{ cursor: 'pointer' }}>+</div>
+                </div>
+                {/* Stories from backend */}
                 {stories.map((story) => (
-                  <div key={story.id} className="story-item">
-                    {story.type === "add" ? (
-                      <div className="story-circle story-add">+</div>
-                    ) : story.type === "initials" ? (
-                      <div className="story-circle story-initials">
-                        {story.name}
-                      </div>
+                  <div key={story._id} className="story-item">
+                    {story.images && story.images[0] ? (
+                      <img src={story.images[0]} alt="" className="story-photo" />
                     ) : (
-                      <img src={story.avatar} alt="" className="story-photo" />
+                      <div 
+                        className="story-circle story-initials"
+                        style={{ backgroundColor: '#F4D03F' }}
+                      >
+                        {story.author?.firstName?.[0]}{story.author?.lastName?.[0]}
+                      </div>
                     )}
                   </div>
                 ))}
@@ -243,20 +249,85 @@ export default function Feed({ nav, onOpenPost }) {
 
           {/* Посты */}
           <div className="posts-list">
-            {allPosts.map((post) => (
-              <div key={post.id} className="post-card">
+            {posts.map((post) => (
+              <div key={post._id} className="post-card">
                 <div className="post-header">
-                  <img src={post.avatar} alt="" className="post-avatar" />
-                  <div className="post-author-name">{post.author}</div>
+                  <img 
+                    src={post.author?.avatar || "https://i.pravatar.cc/150?img=1"} 
+                    alt="" 
+                    className="post-avatar" 
+                  />
+                  <div className="post-author-name">
+                    {post.author?.firstName} {post.author?.lastName}
+                  </div>
                 </div>
-                <div className="post-desc">{post.description}</div>
-                <div className="post-further">{post.further}</div>
-                <div className="post-images-block">
-                  <div className="post-img-large"></div>
-                  <div className="post-img-small"></div>
+                <div className="post-desc">{post.content}</div>
+                {post.location && (
+                  <div className="post-further">📍 {post.location}</div>
+                )}
+                {post.images && post.images.length > 0 && (
+                  <div className="post-images-block">
+                    <div className="post-img-large" style={{ backgroundImage: `url(${post.images[0]})`, backgroundSize: 'cover', backgroundPosition: 'center' }}></div>
+                    {post.images[1] && (
+                      <div className="post-img-small" style={{ backgroundImage: `url(${post.images[1]})`, backgroundSize: 'cover', backgroundPosition: 'center' }}></div>
+                    )}
+                  </div>
+                )}
+                <div style={{ display: 'flex', gap: '16px', marginTop: '12px', alignItems: 'center' }}>
+                  <button 
+                    onClick={() => handleLike(post._id)}
+                    style={{ 
+                      background: 'none', 
+                      border: 'none', 
+                      cursor: 'pointer', 
+                      fontSize: '16px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '4px'
+                    }}
+                  >
+                    ❤️ {post.likesCount || 0}
+                  </button>
+                  <button 
+                    onClick={() => onOpenPost && onOpenPost(post._id)}
+                    style={{ 
+                      background: 'none', 
+                      border: 'none', 
+                      cursor: 'pointer', 
+                      fontSize: '16px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '4px'
+                    }}
+                  >
+                    💬 {post.commentsCount || 0}
+                  </button>
                 </div>
               </div>
             ))}
+          </div>
+
+          {/* Floating create post button */}
+          <div style={{ 
+            position: 'fixed', 
+            bottom: '160px', 
+            right: '20px', 
+            zIndex: 1000 
+          }}>
+            <Button 
+              onClick={onCreatePost}
+              size="l"
+              style={{ 
+                borderRadius: '50%', 
+                width: '60px', 
+                height: '60px',
+                minWidth: '60px',
+                backgroundColor: '#c8d28c',
+                color: '#000'
+              }}
+            >
+              +
+            </Button>
           </div>
         </div>
       </Panel>

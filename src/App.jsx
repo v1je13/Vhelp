@@ -17,8 +17,11 @@ import Search from "./panels/Search";
 import Profile from "./panels/Profile";
 import TravelDetail from "./panels/TravelDetail";
 import PostDetail from "./panels/PostDetail";
+import CreatePost from "./panels/CreatePost";
+import CreateStory from "./panels/CreateStory";
+import { AuthProvider } from "./hooks/useAuth";
 
-export default function App() {
+function AppContent() {
   const [activePanel, setActivePanel] = useState("feed");
   const [selectedTravel, setSelectedTravel] = useState(null);
   const [selectedPost, setSelectedPost] = useState(null);
@@ -123,13 +126,26 @@ export default function App() {
 
           <div className="content-wrapper">
             {/* Feed Panel */}
-            {(activePanel === "feed" || activePanel === "postDetail") && (
+            {(activePanel === "feed" || activePanel === "postDetail" || activePanel === "createPost" || activePanel === "createStory") && (
               <View activePanel={activePanel}>
-                <Feed nav="feed" onOpenPost={handleOpenPost} />
+                <Feed 
+                  nav="feed" 
+                  onOpenPost={handleOpenPost}
+                  onCreatePost={() => setActivePanel("createPost")}
+                  onCreateStory={() => setActivePanel("createStory")}
+                />
                 <PostDetail
                   nav="postDetail"
                   post={selectedPost}
                   onBack={handleBackToFeed}
+                />
+                <CreatePost
+                  nav="createPost"
+                  onBack={() => setActivePanel("feed")}
+                />
+                <CreateStory
+                  nav="createStory"
+                  onBack={() => setActivePanel("feed")}
                 />
               </View>
             )}
@@ -185,5 +201,13 @@ export default function App() {
         </AppRoot>
       </AdaptivityProvider>
     </ConfigProvider>
+  );
+}
+
+export default function App() {
+  return (
+    <AuthProvider>
+      <AppContent />
+    </AuthProvider>
   );
 }
