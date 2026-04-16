@@ -1,4 +1,6 @@
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+// If Vite environment variable VITE_API_URL is not provided, default to relative API path
+// This ensures frontend works when deployed on Vercel (same-origin /api routes)
+const API_BASE_URL = import.meta.env.VITE_API_URL || '/api';
 
 class ApiClient {
   constructor() {
