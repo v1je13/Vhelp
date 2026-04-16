@@ -2,6 +2,8 @@ import { defineConfig, transformWithEsbuild } from "vite";
 import react from "@vitejs/plugin-react";
 import legacy from "@vitejs/plugin-legacy";
 
+import { cloudflare } from "@cloudflare/vite-plugin";
+
 function handleModuleDirectivesPlugin() {
   return {
     name: "handle-module-directives-plugin",
@@ -38,14 +40,9 @@ function threatJsFilesAsJsx() {
 export default defineConfig({
   base: "/",
 
-  plugins: [
-    react(),
-    threatJsFilesAsJsx(),
-    handleModuleDirectivesPlugin(),
-    legacy({
-      targets: ["defaults", "not IE 11"],
-    }),
-  ],
+  plugins: [react(), threatJsFilesAsJsx(), handleModuleDirectivesPlugin(), legacy({
+    targets: ["defaults", "not IE 11"],
+  }), cloudflare()],
 
 server: {
     port: 5173, // ← ДОБАВЬТЕ ЭТУ СТРОКУ (любой свободный порт)
