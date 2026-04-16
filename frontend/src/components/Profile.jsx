@@ -67,7 +67,7 @@ export function Profile({ userId, user, onBack, onOpenPost }) {
 
   if (loading) {
     return (
-      <Panel id="profile">
+      <Panel id="profile" style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
         <PanelHeader 
           left={<Button mode="secondary" onClick={onBack} size="s">← Назад</Button>}
         >
@@ -82,7 +82,7 @@ export function Profile({ userId, user, onBack, onOpenPost }) {
 
   if (!profileData) {
     return (
-      <Panel id="profile">
+      <Panel id="profile" style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
         <PanelHeader 
           left={<Button mode="secondary" onClick={onBack} size="s">← Назад</Button>}
         >
@@ -96,14 +96,20 @@ export function Profile({ userId, user, onBack, onOpenPost }) {
   const isOwnProfile = profileData.id === user?.id;
 
   return (
-    <Panel id="profile">
+    <Panel id="profile" style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
       <PanelHeader 
         left={<Button mode="secondary" onClick={onBack} size="s">← Назад</Button>}
       >
         {profileData.first_name} {profileData.last_name}
       </PanelHeader>
 
-      <div style={{ padding: 0 }}>
+      <div style={{ 
+        flex: 1, 
+        overflowY: 'auto',
+        overflowX: 'hidden',
+        paddingBottom: '80px',
+        padding: 0
+      }}>
         {/* Шапка профиля */}
         <div style={{ 
           background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',

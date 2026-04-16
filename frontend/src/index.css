@@ -55,3 +55,59 @@ html, body, #root {
     -webkit-overflow-scrolling: touch;
   }
 }
+
+/* Фикс для модальных окон */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.7);
+  z-index: 1000;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+}
+
+.modal-content {
+  background-color: var(--vkui--color_background);
+  border-radius: 16px 16px 0 0;
+  padding: 20px;
+  width: 100%;
+  max-width: 500px;
+  max-height: 80vh;
+  overflow: auto;
+  box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.3);
+}
+
+/* Для десктопа - центрированное модальное окно */
+@media (min-width: 768px) {
+  .modal-overlay {
+    align-items: center;
+  }
+  
+  .modal-content {
+    border-radius: 16px;
+    max-height: 90vh;
+  }
+}
+
+/* Input и textarea стили */
+.modal-input,
+.modal-textarea {
+  width: 100%;
+  padding: 10px 12px;
+  border-radius: 8px;
+  border: 1px solid var(--vkui--color_border_primary);
+  background-color: var(--vkui--color_background_content);
+  color: var(--vkui--color_text_primary);
+  font-size: 15px;
+  box-sizing: border-box;
+  font-family: inherit;
+}
+
+.modal-textarea {
+  resize: vertical;
+  min-height: 100px;
+}

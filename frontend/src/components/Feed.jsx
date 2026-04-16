@@ -1,6 +1,8 @@
 // src/components/Feed.jsx
 import { useState, useEffect } from 'react';
 import { 
+  Panel,
+  PanelHeader,
   Card, 
   Avatar, 
   Text, 
@@ -105,39 +107,56 @@ export function Feed({ user, onOpenPost }) {
 
   if (loading) {
     return (
-      <div style={{ padding: 20, textAlign: 'center' }}>
-        <Spinner size="large" />
-        <div style={{ marginTop: 10 }}>Загрузка...</div>
-      </div>
+      <Panel id="feed" style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+        <PanelHeader>Лента</PanelHeader>
+        <div style={{ padding: 20, textAlign: 'center' }}>
+          <Spinner size="large" />
+          <div style={{ marginTop: 10 }}>Загрузка...</div>
+        </div>
+      </Panel>
     );
   }
 
   if (error) {
     return (
-      <div style={{ padding: 20, color: 'red' }}>
-        Ошибка: {error}
-        <Button mode="secondary" onClick={() => window.location.reload()} style={{ marginTop: 10 }}>
-          Обновить
-        </Button>
-      </div>
+      <Panel id="feed" style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+        <PanelHeader>Лента</PanelHeader>
+        <div style={{ padding: 20, color: 'red' }}>
+          Ошибка: {error}
+          <Button mode="secondary" onClick={() => window.location.reload()} style={{ marginTop: 10 }}>
+            Обновить
+          </Button>
+        </div>
+      </Panel>
     );
   }
 
   if (posts.length === 0) {
     return (
-      <div style={{ padding: 20 }}>
-        <Placeholder 
-          header="Постов пока нет"
-          action={<Button mode="primary" onClick={() => window.location.reload()}>Обновить</Button>}
-        >
-          Будьте первым, кто создаст пост!
-        </Placeholder>
-      </div>
+      <Panel id="feed" style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+        <PanelHeader>Лента</PanelHeader>
+        <div style={{ padding: 20 }}>
+          <Placeholder 
+            header="Постов пока нет"
+            action={<Button mode="primary" onClick={() => window.location.reload()}>Обновить</Button>}
+          >
+            Будьте первым, кто создаст пост!
+          </Placeholder>
+        </div>
+      </Panel>
     );
   }
 
   return (
-    <div style={{ padding: 10 }}>
+    <Panel id="feed" style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+      <PanelHeader>Лента</PanelHeader>
+      <div style={{ 
+        flex: 1, 
+        overflowY: 'auto',
+        overflowX: 'hidden',
+        paddingBottom: '80px'
+      }}>
+        <div style={{ padding: 10 }}>
       <Card style={{ padding: 15, marginBottom: 20 }}>
         <Text weight="2" style={{ marginBottom: 8 }}>Что у вас новое?</Text>
         
@@ -255,6 +274,8 @@ export function Feed({ user, onOpenPost }) {
           </Card>
         );
       })}
+      </div>
     </div>
+  </Panel>
   );
 }

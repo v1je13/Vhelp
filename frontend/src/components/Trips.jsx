@@ -6,15 +6,9 @@ import {
   Button,
   Spinner,
   Placeholder,
-  Alert,
-  ModalRoot,
-  ModalPage,
-  ModalPageHeader,
-  FormItem,
-  Input,
-  Textarea
+  Alert
 } from '@vkontakte/vkui';
-import { Icon20Add, Icon20User, Icon20DeleteOutline } from '@vkontakte/icons';
+import { Icon24Add, Icon20User, Icon20DeleteOutline } from '@vkontakte/icons';
 import { api } from '../api/client';
 import { vk } from '../lib/vk';
 
@@ -95,7 +89,7 @@ export function Trips({ user, onOpenTrip }) {
 
   if (loading) {
     return (
-      <Panel id="trips">
+      <Panel id="trips" style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
         <PanelHeader>Дневник</PanelHeader>
         <div style={{ padding: 20, textAlign: 'center' }}>
           <Spinner size="large" />
@@ -105,13 +99,13 @@ export function Trips({ user, onOpenTrip }) {
   }
 
   return (
-    <Panel id="trips">
+    <Panel id="trips" style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
       <PanelHeader 
         right={
           <Button 
             mode="primary" 
             size="s"
-            before={<Icon20Add />}
+            before={<Icon24Add />}
             onClick={() => setShowCreateModal(true)}
           >
             Создать
@@ -121,18 +115,32 @@ export function Trips({ user, onOpenTrip }) {
         Дневник
       </PanelHeader>
 
-      <div style={{ padding: 10 }}>
+      <div style={{ padding: 10, minHeight: '100vh', paddingBottom: 80 }}>
         {trips.length === 0 ? (
-          <Placeholder
-            header="Пока нет путешествий"
-            action={
-              <Button mode="primary" onClick={() => setShowCreateModal(true)}>
-                Создать первое путешествие
-              </Button>
-            }
-          >
-            Создайте путешествие, чтобы начать вести дневник
-          </Placeholder>
+          <div style={{ 
+            display: 'flex', 
+            flexDirection: 'column', 
+            alignItems: 'center', 
+            justifyContent: 'center',
+            minHeight: '60vh',
+            padding: 20
+          }}>
+            <Placeholder
+              header="Пока нет путешествий"
+              action={
+                <Button 
+                  mode="primary" 
+                  size="m"
+                  onClick={() => setShowCreateModal(true)}
+                  style={{ marginTop: 15 }}
+                >
+                  Создать первое путешествие
+                </Button>
+              }
+            >
+              Создайте путешествие, чтобы начать вести дневник
+            </Placeholder>
+          </div>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
             {trips.map(trip => (
@@ -249,50 +257,141 @@ export function Trips({ user, onOpenTrip }) {
         )}
       </div>
 
-      {/* Модальное окно создания путешествия */}
-      <ModalRoot activeModal={showCreateModal ? 'create' : 'none'}>
-        <ModalPage
-          id="create"
-          header={
-            <ModalPageHeader>
-              <Button mode="secondary" size="s" onClick={() => setShowCreateModal(false)}>
-                Отмена
-              </Button>
-              <div style={{ flex: 1, textAlign: 'center', fontWeight: 600 }}>
-                Новое путешествие
-              </div>
-              <Button 
-                mode="primary" 
-                size="s" 
-                onClick={handleCreateTrip}
-                disabled={creating || !newTripName.trim()}
-              >
-                Создать
-              </Button>
-            </ModalPageHeader>
-          }
-          onClose={() => setShowCreateModal(false)}
+      {/* 🔥 Исправленное модальное окно */}
+      {showCreateModal && (
+        <div 
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: 'rgba(0, 0, 0, 0.7)',
+            zIndex: 1000,
+            display: 'flex',
+            alignItems: 'flex-end',
+            justifyContent: 'center'
+          }}
+          onClick={() => setShowCreateModal(false)}
         >
-          <div style={{ padding: 20 }}>
-            <FormItem top="Название *">
-              <Input
-                value={newTripName}
-                onChange={e => setNewTripName(e.target.value)}
-                placeholder="Например: Поездка в Сочи"
-              />
-            </FormItem>
-            
-            <FormItem top="Описание">
-              <Textarea
-                value={newTripDescription}
-                onChange={e => setNewTripDescription(e.target.value)}
-                placeholder="Расскажите о вашем путешествии..."
-                rows={3}
-              />
-            </FormItem>
+          <div 
+            style={{
+              backgroundColor: 'var(--vkui--color_background)',
+              borderRadius: '16px 16px 0 0',
+              padding: 20,
+              width: '100%',
+              maxWidth: 500,
+              maxHeight: '80vh',
+              overflow: 'auto',
+              boxShadow: '0 -4px 20px rgba(0, 0, 0, 0.3)'
+            }}
+            onClick={e => e.stopPropagation()}
+          >
+            {/* Заголовок модального окна */}
+            <div style={{ 
+              display: 'flex', 
+              justifyContent: 'space-between', 
+              alignItems: 'center',
+              marginBottom: 20,
+              paddingBottom: 15,
+              borderBottom: '1px solid var(--vkui--color_separator_primary)'
+            }}>
+              <h2 style={{ margin: 0, fontSize: 20, fontWeight: 600 }}>
+                Новое путешествие
+              </h2>
+              <Button
+                mode="secondary"
+                size="s"
+                onClick={() => setShowCreateModal(false)}
+              >
+                ✕
+              </Button>
+            </div>
+
+            {/* Форма */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+              <div>
+                <div style={{ 
+                  fontSize: 13, 
+                  color: 'var(--vkui--color_text_subhead)',
+                  marginBottom: 8 
+                }}>
+                  Название *
+                </div>
+                <input
+                  type="text"
+                  value={newTripName}
+                  onChange={e => setNewTripName(e.target.value)}
+                  placeholder="Например: Поездка в Сочи"
+                  style={{
+                    width: '100%',
+                    padding: '10px 12px',
+                    borderRadius: 8,
+                    border: '1px solid var(--vkui--color_border_primary)',
+                    backgroundColor: 'var(--vkui--color_background_content)',
+                    color: 'var(--vkui--color_text_primary)',
+                    fontSize: 15,
+                    boxSizing: 'border-box'
+                  }}
+                />
+              </div>
+
+              <div>
+                <div style={{ 
+                  fontSize: 13, 
+                  color: 'var(--vkui--color_text_subhead)',
+                  marginBottom: 8 
+                }}>
+                  Описание
+                </div>
+                <textarea
+                  value={newTripDescription}
+                  onChange={e => setNewTripDescription(e.target.value)}
+                  placeholder="Расскажите о вашем путешествии..."
+                  rows={4}
+                  style={{
+                    width: '100%',
+                    padding: '10px 12px',
+                    borderRadius: 8,
+                    border: '1px solid var(--vkui--color_border_primary)',
+                    backgroundColor: 'var(--vkui--color_background_content)',
+                    color: 'var(--vkui--color_text_primary)',
+                    fontSize: 15,
+                    resize: 'vertical',
+                    boxSizing: 'border-box',
+                    fontFamily: 'inherit'
+                  }}
+                />
+              </div>
+
+              {/* Кнопки */}
+              <div style={{ 
+                display: 'flex', 
+                gap: 10, 
+                marginTop: 10,
+                paddingTop: 15,
+                borderTop: '1px solid var(--vkui--color_separator_primary)'
+              }}>
+                <Button
+                  mode="secondary"
+                  onClick={() => setShowCreateModal(false)}
+                  style={{ flex: 1 }}
+                >
+                  Отмена
+                </Button>
+                <Button
+                  mode="primary"
+                  onClick={handleCreateTrip}
+                  disabled={creating || !newTripName.trim()}
+                  style={{ flex: 2 }}
+                >
+                  {creating ? 'Создание...' : 'Создать'}
+                </Button>
+              </div>
+            </div>
           </div>
-        </ModalPage>
-      </ModalRoot>
+        </div>
+      )}
     </Panel>
   );
 }
