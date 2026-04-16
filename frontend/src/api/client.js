@@ -3,31 +3,35 @@ const API_BASE = import.meta.env.VITE_API_URL; // "https://.../api"
 
 export const api = {
   async request(endpoint, options = {}) {
+    const API_BASE = import.meta.env.VITE_API_URL;
     const token = localStorage.getItem('vhelp_token');
-    const headers = {
-      'Content-Type': 'application/json',
-      ...(token && { 'Authorization': `Bearer ${token}` }),
-      ...options.headers
-    };
     
     const res = await fetch(`${API_BASE}${endpoint}`, {
       ...options,
-      headers
+      headers: {
+        'Content-Type': 'application/json',
+        ...(token && { 'Authorization': `Bearer ${token}` }),
+        ...options.headers
+      }
     });
     
+    // 🔥 Парсим ответ
+    const data = await res.json();
+    
     if (!res.ok) {
-      const err = await res.json().catch(() => ({}));
-      throw new Error(err.error || `Request failed: ${res.status}`);
+      throw new Error(data.error || 'Request failed');
     }
-    return res.json();
+    
+    return data;  // ← Возвращаем данные, а не Response
   },
   
   // 🔐 Авторизация через VK
   async vkAuth(vkData) {
-    return this.request('/auth/vk', {
+    const res = await this.request('/api/auth/vk', {
       method: 'POST',
       body: JSON.stringify(vkData)
     });
+    return res;  // ← Обязательно return!
   },
   
   // 👤 Профиль

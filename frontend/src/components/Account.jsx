@@ -11,92 +11,65 @@ export function Account({ user, onUserUpdate, onLogout }) {
 
   useEffect(() => {
     let unsubscribe;
-    let timeoutId;  // 🔥 объявление timeoutId в начале useEffect
     
     const initAuth = async () => {
-      setDebugInfo('🔍 Проверка сохранённого токена...');
-      
-      // Если пользователь уже есть — проверяем токен
       if (user?.token) {
         try {
-          setDebugInfo('✅ Токен найден, проверяем валидность...');
           const userData = await api.getMe();
           onUserUpdate?.(userData);
           setLoading(false);
-          setDebugInfo('✅ Профиль загружен из API');
           return;
         } catch (err) {
-          console.warn('⚠️ Токен невалиден, очищаем:', err);
           localStorage.removeItem('vhelp_token');
           localStorage.removeItem('vhelp_user');
-          // Продолжаем авто-авторизацию
         }
       }
       
-      setDebugInfo('🔄 Инициализация VK Bridge...');
-      
-      // Если пользователя нет — инициализируем авто-авторизацию
       unsubscribe = vk.init(async (authData) => {
-        setDebugInfo('📥 Получены данные от VK Bridge');
-        console.log('VK Auth Data:', authData);
-        
         if (!authData.vk_user_id) {
-          setDebugInfo('❌ Нет vk_user_id в данных VK');
-          setError('Не удалось получить данные из VK');
+          setError('Нет vk_user_id');
           setLoading(false);
           return;
         }
         
         try {
-          setDebugInfo('🔐 Отправка данных на бэкенд...');
           setLoading(true);
-          setError(null);
           
-          // Отправляем данные на бэкенд
+          // 🔥 КЛЮЧЕВОЙ МОМЕНТ: логируем ответ
+          console.log('📡 Отправляем vkAuth с данными:', { vk_user_id: authData.vk_user_id });
           const response = await api.vkAuth(authData);
+          console.log('✅ Ответ от бэкенда:', response);
           
-          // Сохраняем токен и пользователя
+          // 🔥 Проверяем, что в ответе есть token
+          if (!response?.token) {
+            throw new Error('No token in response: ' + JSON.stringify(response));
+          }
+          
+          // 🔥 Сохраняем и проверяем
+          console.log('💾 Сохраняем токен...');
           localStorage.setItem('vhelp_token', response.token);
           localStorage.setItem('vhelp_user', JSON.stringify(response.user));
           
-          // Обновляем состояние в приложении
+          // 🔥 Мгновенная проверка
+          console.log('🔍 Проверка localStorage:', {
+            token: localStorage.getItem('vhelp_token') ? '✓' : '✗',
+            user: localStorage.getItem('vhelp_user') ? '✓' : '✗'
+          });
+          
           onUserUpdate?.(response.user);
-          setDebugInfo('✅ Авторизация успешна!');
+          
         } catch (err) {
-          console.error('❌ Auto-auth error:', err);
-          setError(err.message || 'Не удалось авторизоваться');
-          setDebugInfo('❌ Ошибка: ' + err.message);
+          console.error('❌ ОШИБКА АВТОРИЗАЦИИ:', err);
+          setError(err.message);
         } finally {
           setLoading(false);
         }
       });
-
-      // Таймаут 10 секунд (больше времени для VK Bridge)
-      const timeoutId = setTimeout(() => {
-        if (loading) {
-          console.error('⏱ VK Bridge timeout после 10 секунд');
-          console.log('🔍 Проверьте:');
-          console.log('  1. Приложение настроено в VK Developers?');
-          console.log('  2. Базовый доверенный URL совпадает с Vercel URL?');
-          console.log('  3. Откройте консоль (F12) и посмотрите логи VK Bridge');
-          
-          setDebugInfo('⏱ VK Bridge не ответил');
-          setError(
-            'VK Bridge не ответил. Проверьте настройки приложения в VK Developers.'
-          );
-          setLoading(false);
-        }
-      }, 10000); // 10 секунд вместо 5
     };
     
     initAuth();
-    
-    // Cleanup
-    return () => {
-      unsubscribe?.();
-      clearTimeout(timeoutId);
-    };
-  }, [user, onUserUpdate, loading]);
+    return () => unsubscribe?.();
+  }, [user, onUserUpdate]);
 
   // 📋 Состояния отображения
   

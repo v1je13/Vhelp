@@ -132,4 +132,115 @@ app.post('/api/posts/:id/like', auth, async (c) => {
   }
 });
 
+// 💬 Получить комментарии к посту
+app.get('/api/posts/:id/comments', async (c) => {
+  try {
+    const db = c.env.DB;
+    const postId = c.req.param('id');
+    
+    const { results } = await db.prepare(`
+      SELECT c.*, u.first_name, u.last_name, u.avatar
+      FROM comments c
+      JOIN users u ON c.user_id = u.id
+      WHERE c.post_id = ?
+      ORDER BY c.created_at ASC
+    `).bind(postId).all();
+    
+    return c.json({ comments: results });
+  } catch (err) {
+    console.error('Fetch comments error:', err);
+    return c.json({ error: 'Failed to fetch comments' }, 500);
+  }
+});
+
+// ✨ Создать комментарий
+app.post('/api/posts/:id/comments', auth, async (c) => {
+  try {
+    const db = c.env.DB;
+    const postId = c.req.param('id');
+    const { text } = await c.req.json();
+    
+    if (!text || text.trim().length < 1) {
+      return c.json({ error: 'Comment text required' }, 400);
+    }
+    
+    const commentId = crypto.randomUUID();
+    await db.prepare(`
+      INSERT INTO comments (id, post_id, user_id, text)
+      VALUES (?, ?, ?, ?)
+    `).bind(commentId, postId, c.get('user').userId, text.trim()).run();
+    
+    const comment = await db.prepare(`
+      SELECT c.*, u.first_name, u.last_name, u.avatar
+      FROM comments c
+      JOIN users u ON c.user_id = u.id
+      WHERE c.id = ?
+    `).bind(commentId).first();
+    
+    return c.json({ comment }, 201);
+  } catch (err) {
+    return c.json({ error: 'Failed to create comment' }, 500);
+  }
+});
+
+// 👥 Поиск пользователей (по имени/фамилии)
+app.get('/api/users/search', async (c) => {
+  try {
+    const db = c.env.DB;
+    const query = c.req.query('q')?.trim();
+    
+    if (!query || query.length < 2) {
+      return c.json({ users: [], message: 'Query too short (min 2 chars)' });
+    }
+    
+    const { results } = await db.prepare(`
+      SELECT id, vk_id, first_name, last_name, avatar
+      FROM users
+      WHERE first_name LIKE ? OR last_name LIKE ?
+      LIMIT 20
+    `).bind(`%${query}%`, `%${query}%`).all();
+    
+    return c.json({ users: results });
+  } catch (err) {
+    return c.json({ error: 'Search failed' }, 500);
+  }
+});
+
+// 🔎 Поиск постов (по тексту)
+app.get('/api/posts/search', async (c) => {
+  try {
+    const db = c.env.DB;
+    const query = c.req.query('q')?.trim();
+    
+    if (!query || query.length < 2) {
+      return c.json({ posts: [], message: 'Query too short (min 2 chars)' });
+    }
+    
+    // Вариант 1: Простой LIKE-поиск
+    const { results } = await db.prepare(`
+      SELECT p.*, u.first_name, u.last_name, u.avatar
+      FROM posts p
+      JOIN users u ON p.user_id = u.id
+      WHERE p.text LIKE ?
+      ORDER BY p.created_at DESC
+      LIMIT 20
+    `).bind(`%${query}%`).all();
+    
+    // Вариант 2 (опционально): Полнотекстовый поиск через FTS
+    // const { results } = await db.prepare(`
+    //   SELECT p.*, u.first_name, u.last_name, u.avatar
+    //   FROM posts p
+    //   JOIN posts_fts f ON p.rowid = f.rowid
+    //   JOIN users u ON p.user_id = u.id
+    //   WHERE posts_fts MATCH ?
+    //   ORDER BY p.created_at DESC
+    //   LIMIT 20
+    // `).bind(query).all();
+    
+    return c.json({ posts: results });
+  } catch (err) {
+    return c.json({ error: 'Search failed' }, 500);
+  }
+});
+
 export default app;
