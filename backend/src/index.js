@@ -159,23 +159,21 @@ app.get('/api/users/:id/posts', async (c) => {
   }
 });
 
-// 🌍 Получить путешествия пользователя
 app.get('/api/trips', auth, async (c) => {
   try {
     const db = c.env.DB;
     const userId = c.get('user').userId;
-
+    
     const { results } = await db.prepare(`
-      SELECT t.*,
+      SELECT t.*, 
              (SELECT COUNT(*) FROM posts WHERE trip_id = t.id) as notes_count
       FROM trips t
       WHERE t.user_id = ?
       ORDER BY t.created_at DESC
     `).bind(userId).all();
-
+    
     return c.json({ trips: results });
   } catch (err) {
-    console.error('Fetch trips error:', err);
     return c.json({ error: 'Failed to fetch trips' }, 500);
   }
 });
@@ -235,23 +233,20 @@ app.delete('/api/trips/:id', auth, async (c) => {
   }
 });
 
-// 🔥 Получить заметки путешествия (обновлённый)
 app.get('/api/trips/:id/notes', auth, async (c) => {
   try {
     const db = c.env.DB;
     const tripId = c.req.param('id');
     const userId = c.get('user').userId;
-
-    // Проверяем, что путешествие принадлежит пользователю
+    
+    // Проверка прав
     const trip = await db.prepare(`
-      SELECT * FROM trips WHERE id = ? AND user_id = ?
+      SELECT id FROM trips WHERE id = ? AND user_id = ?
     `).bind(tripId, userId).first();
-
-    if (!trip) {
-      return c.json({ error: 'Trip not found' }, 404);
-    }
-
-    // 🔥 Получаем посты с trip_id
+    
+    if (!trip) return c.json({ error: 'Trip not found' }, 404);
+    
+    // Получаем посты с trip_id
     const { results } = await db.prepare(`
       SELECT p.*, u.first_name, u.last_name, u.avatar
       FROM posts p
@@ -259,10 +254,9 @@ app.get('/api/trips/:id/notes', auth, async (c) => {
       WHERE p.trip_id = ?
       ORDER BY p.created_at DESC
     `).bind(tripId).all();
-
+    
     return c.json({ notes: results, posts: results });
   } catch (err) {
-    console.error('Fetch trip notes error:', err);
     return c.json({ error: 'Failed to fetch notes' }, 500);
   }
 });

@@ -7,16 +7,20 @@ import {
   Placeholder,
   Avatar,
   Text,
-  Textarea
+  Textarea,
+  Card
 } from '@vkontakte/vkui';
+import { Icon24Add, Icon24Camera } from '@vkontakte/icons';
 import { api } from '../api/client';
 import { vk } from '../lib/vk';
 
-export function TripNotes({ tripId, onBack, user }) {
+export function TripNotes({ tripId, onBack, user, onOpenPost }) {
   const [notes, setNotes] = useState([]);
   const [loading, setLoading] = useState(true);
   const [newNote, setNewNote] = useState('');
+  const [selectedPhoto, setSelectedPhoto] = useState(null);
   const [creating, setCreating] = useState(false);
+  const [tripName, setTripName] = useState('');
 
   useEffect(() => {
     loadNotes();
@@ -27,6 +31,11 @@ export function TripNotes({ tripId, onBack, user }) {
       setLoading(true);
       const data = await api.getTripNotes(tripId);
       setNotes(data.notes || data.posts || []);
+      
+      // Получаем название путешествия
+      const tripsData = await api.getUserTrips();
+      const trip = tripsData.trips?.find(t => t.id === tripId);
+      if (trip) setTripName(trip.name);
     } catch (err) {
       console.error('Failed to load notes:', err);
     } finally {
@@ -34,17 +43,32 @@ export function TripNotes({ tripId, onBack, user }) {
     }
   };
 
+  // 🔥 Загрузка фото
+  const handlePhotoUpload = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setSelectedPhoto(reader.result);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  // 🔥 Создание заметки с фото
   const handleCreateNote = async () => {
-    if (!newNote.trim()) return;
+    if (!newNote.trim() && !selectedPhoto) return;
     
     try {
       setCreating(true);
       await api.createPost({
         text: newNote,
+        images: selectedPhoto ? [selectedPhoto] : [],
         trip_id: tripId // ← Привязываем к путешествию
       });
       
       setNewNote('');
+      setSelectedPhoto(null);
       await loadNotes();
       await vk.showNotification('✅', 'Заметка добавлена', 'success');
     } catch (err) {
@@ -71,46 +95,90 @@ export function TripNotes({ tripId, onBack, user }) {
   return (
     <Panel id="trip-notes">
       <PanelHeader left={<Button mode="secondary" onClick={onBack} size="s">← Назад</Button>}>
-        Заметки
+        {tripName || 'Путешествие'}
       </PanelHeader>
       
       <div style={{ padding: 10, paddingBottom: 100 }}>
-        {/* Форма создания заметки */}
-        <div style={{ marginBottom: 20, padding: 15, background: 'var(--vkui--color_background_content)', borderRadius: 12 }}>
+        {/* 🔥 Форма создания заметки (как в ленте) */}
+        <Card style={{ padding: 15, marginBottom: 20 }}>
           <Text weight="2" style={{ marginBottom: 8 }}>Новая заметка</Text>
+          
           <Textarea
             value={newNote}
             onChange={e => setNewNote(e.target.value)}
             placeholder="Расскажите о своём путешествии..."
             rows={3}
-            style={{ marginBottom: 10 }}
+            style={{ marginBottom: 12 }}
           />
+          
+          {/* 🔥 Превью фото */}
+          {selectedPhoto && (
+            <div style={{ position: 'relative', marginBottom: 12 }}>
+              <img 
+                src={selectedPhoto} 
+                alt="Preview" 
+                style={{ width: '100%', maxHeight: 300, objectFit: 'cover', borderRadius: 8 }}
+              />
+              <Button
+                mode="secondary"
+                size="s"
+                onClick={() => setSelectedPhoto(null)}
+                style={{ position: 'absolute', top: 8, right: 8, background: 'rgba(0,0,0,0.7)' }}
+              >
+                ✕
+              </Button>
+            </div>
+          )}
+          
+          {/* 🔥 Кнопка загрузки фото */}
+          <div style={{ marginBottom: 12 }}>
+            <input
+              type="file"
+              accept="image/*"
+              onChange={handlePhotoUpload}
+              style={{ display: 'none' }}
+              id="trip-photo-upload"
+            />
+            <Button
+              mode="secondary"
+              size="s"
+              onClick={() => document.getElementById('trip-photo-upload')?.click()}
+              before={<Icon24Camera />}
+            >
+              Добавить фото
+            </Button>
+          </div>
+          
           <Button
             mode="primary"
             onClick={handleCreateNote}
-            disabled={creating || !newNote.trim()}
+            disabled={creating || (!newNote.trim() && !selectedPhoto)}
             stretched
           >
             {creating ? <Spinner size="small" /> : 'Добавить'}
           </Button>
-        </div>
+        </Card>
 
-        {/* Список заметок */}
+        {/* 🔥 Список заметок */}
         {notes.length === 0 ? (
-          <Placeholder header="Пока нет заметок">
+          <Placeholder
+            header="Пока нет заметок"
+            action={<Button mode="primary" onClick={() => document.getElementById('trip-photo-upload')?.click()}>Добавить первую заметку</Button>}
+          >
             Добавьте первую заметку об этом путешествии
           </Placeholder>
         ) : (
           notes.map(note => (
-            <div
+            <Card
               key={note.id}
-              style={{
-                background: 'var(--vkui--color_background_content)',
-                borderRadius: 12,
-                padding: 15,
-                marginBottom: 12
+              onClick={() => onOpenPost?.(note.id)}
+              style={{ 
+                padding: 15, 
+                marginBottom: 12,
+                cursor: 'pointer'
               }}
             >
+              {/* Шапка заметки */}
               <div style={{ display: 'flex', gap: 10, marginBottom: 10 }}>
                 <Avatar src={note.avatar} size={40} />
                 <div>
@@ -120,8 +188,51 @@ export function TripNotes({ tripId, onBack, user }) {
                   </Text>
                 </div>
               </div>
-              <Text style={{ whiteSpace: 'pre-wrap' }}>{note.text}</Text>
-            </div>
+
+              {/* Текст */}
+              {note.text && (
+                <Text style={{ whiteSpace: 'pre-wrap', marginBottom: 10 }}>
+                  {note.text}
+                </Text>
+              )}
+
+              {/* 🔥 Фото */}
+              {note.images && note.images !== '[]' && (
+                <div style={{ marginTop: 10 }}>
+                  {(() => {
+                    try {
+                      const urls = typeof note.images === 'string' 
+                        ? JSON.parse(note.images) 
+                        : note.images;
+                      if (Array.isArray(urls) && urls.length > 0) {
+                        return urls.slice(0, 3).map((url, idx) => (
+                          <img
+                            key={idx}
+                            src={url}
+                            alt=""
+                            style={{
+                              width: '100%',
+                              maxHeight: 300,
+                              objectFit: 'cover',
+                              borderRadius: 8,
+                              marginBottom: idx < urls.length - 1 ? 8 : 0
+                            }}
+                          />
+                        ));
+                      }
+                    } catch { return null; }
+                  })()}
+                </div>
+              )}
+
+              {/* Лайки (если есть) */}
+              {note.likes_count !== undefined && (
+                <div style={{ marginTop: 10, display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <span>❤️</span>
+                  <Text caption>{note.likes_count}</Text>
+                </div>
+              )}
+            </Card>
           ))
         )}
       </div>
