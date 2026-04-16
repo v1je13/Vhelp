@@ -119,6 +119,29 @@ app.get('/api/posts', async (c) => {
   }
 });
 
+// 🔥 Получить один пост по ID
+app.get('/api/posts/:id', async (c) => {
+  try {
+    const db = c.env.DB;
+    const postId = c.req.param('id');
+    
+    const post = await db.prepare(`
+      SELECT p.*, u.first_name, u.last_name, u.avatar
+      FROM posts p
+      JOIN users u ON p.user_id = u.id
+      WHERE p.id = ?
+    `).bind(postId).first();
+    
+    if (!post) {
+      return c.json({ error: 'Post not found' }, 404);
+    }
+    
+    return c.json({ post });
+  } catch (err) {
+    return c.json({ error: 'Failed to fetch post' }, 500);
+  }
+});
+
 // ✨ Создать пост
 app.post('/api/posts', auth, async (c) => {
   try {

@@ -9,11 +9,13 @@ import '@vkontakte/vkui/dist/vkui.css';
 import { Account } from './components/Account';
 import { Feed } from './components/Feed';
 import { SearchBar } from './components/SearchBar';
+import { PostDetail } from './components/PostDetail';
 import { api } from './api/client';
 
 function App() {
   const [activePanel, setActivePanel] = useState('account');
   const [selectedPost, setSelectedPost] = useState(null);
+  const [selectedPostId, setSelectedPostId] = useState(null);
   const [user, setUser] = useState(null);
   const [isReady, setIsReady] = useState(false);
   
@@ -29,6 +31,19 @@ function App() {
   
   const handleUserUpdate = (userData) => setUser(userData);
   const handleLogout = () => { setUser(null); api.logout(); };
+  
+  // 🔥 Открыть пост
+  const handleOpenPost = (postId) => {
+    console.log('📱 Opening post:', postId);
+    setSelectedPostId(postId);
+    setActivePanel('post-detail');
+  };
+  
+  // 🔥 Закрыть пост (вернуться к ленте)
+  const handleClosePost = () => {
+    setSelectedPostId(null);
+    setActivePanel('feed');
+  };
   
   if (!isReady) {
     return (
@@ -91,9 +106,23 @@ function App() {
               {user && (
                 <Panel id="feed">
                   <PanelHeader>Лента</PanelHeader>
-                  <Feed user={user} />
+                  <Feed 
+                    user={user} 
+                    onOpenPost={handleOpenPost}
+                  />
                 </Panel>
               )}
+              
+              {/* 🔥 Панель детального просмотра поста */}
+              <Panel id="post-detail">
+                {selectedPostId && (
+                  <PostDetail 
+                    id={selectedPostId}
+                    onBack={handleClosePost}
+                    user={user}
+                  />
+                )}
+              </Panel>
             </View>
             
             {/* 🔥 Нижняя навигация */}

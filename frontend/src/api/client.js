@@ -53,6 +53,10 @@ export const api = {
   async getPosts(page = 1) {
     return this.request(`/api/posts?page=${page}`);
   },
+
+  async getPostById(postId) {
+    return this.request(`/api/posts/${postId}`);
+  },
   
   async createPost(data) {
     return this.request('/api/posts', {

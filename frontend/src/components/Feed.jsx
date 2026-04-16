@@ -13,7 +13,7 @@ import {
 import { api } from '../api/client';
 import { vk } from '../lib/vk';
 
-export function Feed({ user }) {
+export function Feed({ user, onOpenPost }) {
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -359,7 +359,11 @@ export function Feed({ user }) {
         });
         
         return (
-          <Card key={post.id} style={{ padding: 15, marginBottom: 15 }}>
+          <Card 
+            key={post.id} 
+            style={{ padding: 15, marginBottom: 15 }}
+            onClick={() => onOpenPost?.(post.id)}
+          >
             {/* 🔥 Шапка поста: автор и дата */}
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
               {/* Аватар автора */}
