@@ -29,16 +29,21 @@ export const vk = {
         
         if (data?.viewer_id || data?.uuid || data?.id) {
           console.log('✅ Найдены данные для авторизации');
-          onAuthData?.({
+          
+          // Создаём базовый объект
+          const authData = {
             vk_user_id: String(data.viewer_id || data.uuid || data.id),
-            ...(data.sign && { sign: data.sign }),
             first_name: data.first_name,
             last_name: data.last_name,
-            photo: data.photo_200 || data.photo_100 || data.photo_max_orig,
-            city: data.city,
-            country: data.country,
-            sex: data.sex,
-          });
+            photo: data.photo_200 || data.photo_100,
+          };
+
+          // Добавляем sign ТОЛЬКО если он есть
+          if (data.sign) {
+            authData.sign = data.sign;
+          }
+
+          onAuthData?.(authData);
         }
       }
       
