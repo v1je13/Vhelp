@@ -7,7 +7,7 @@ import { vk } from '../lib/vk';
 export function Feed({ user }) {
   const [posts, setPosts] = useState([]);
   const [comments, setComments] = useState({}); // postId -> comments array
-  const [commentText, setCommentText] = useState('');
+  const [commentTexts, setCommentTexts] = useState({}); // { postId: text }
   const [newPost, setNewPost] = useState('');
   const [newImage, setNewImage] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -90,11 +90,18 @@ export function Feed({ user }) {
     }
   };
 
+  // Helper functions for per-post comment text
+  const getCommentText = (postId) => commentTexts[postId] || '';
+  const setCommentTextForPost = (postId, text) => {
+    setCommentTexts(prev => ({ ...prev, [postId]: text }));
+  };
+
   const handleAddComment = async (postId, text) => {
     if (!text.trim()) return;
     try {
       const { comment } = await api.addComment(postId, text);
       setComments(prev => ({ ...prev, [postId]: [...(prev[postId] || []), comment] }));
+      setCommentTextForPost(postId, ''); // Clear comment text for this post
       await vk.showNotification('✅ Готово', 'Комментарий добавлен', 'success');
     } catch (err) {
       console.error('Add comment error:', err);
@@ -162,7 +169,42 @@ export function Feed({ user }) {
             </div>
           </div>
           <Text>{post.text}</Text>
-          {post.images?.[0] && <img src={post.images[0]} style={{ width: '100%', borderRadius: 8, marginTop: 10 }} />}
+          {post.images && post.images !== '[]' && post.images !== 'null' && (
+            <div style={{ marginTop: 10 }}>
+              {(() => {
+                try {
+                  const imageUrls = typeof post.images === 'string' 
+                    ? JSON.parse(post.images) 
+                    : post.images;
+                  
+                  if (Array.isArray(imageUrls) && imageUrls.length > 0) {
+                    return imageUrls.map((url, idx) => (
+                      <img
+                        key={idx}
+                        src={url}
+                        alt={`Post image ${idx + 1}`}
+                        style={{
+                          width: '100%',
+                          maxHeight: 400,
+                          objectFit: 'cover',
+                          borderRadius: 8,
+                          marginTop: idx > 0 ? 8 : 0
+                        }}
+                        onError={(e) => {
+                          console.error('❌ Failed to load image:', url);
+                          e.target.style.display = 'none';
+                        }}
+                      />
+                    ));
+                  }
+                  return null;
+                } catch (err) {
+                  console.error('Error parsing images:', err);
+                  return null;
+                }
+              })()}
+            </div>
+          )}
           <div style={{ marginTop: 10, display: 'flex', gap: 20 }}>
             <Button 
               mode={post.likes?.includes(user?.id) ? 'primary' : 'secondary'}
@@ -200,14 +242,13 @@ export function Feed({ user }) {
             <form 
               onSubmit={async (e) => {
                 e.preventDefault();
-                await handleAddComment(post.id, commentText);
-                setCommentText('');
+                await handleAddComment(post.id, getCommentText(post.id));
               }}
               style={{ display: 'flex', gap: 8 }}
             >
               <Input
-                value={commentText}
-                onChange={e => setCommentText(e.target.value)}
+                value={getCommentText(post.id)}
+                onChange={e => setCommentTextForPost(post.id, e.target.value)}
                 placeholder="Написать комментарий..."
                 style={{ flex: 1 }}
               />
@@ -215,7 +256,7 @@ export function Feed({ user }) {
                 type="submit" 
                 mode="primary" 
                 size="s"
-                disabled={!commentText.trim()}
+                disabled={!getCommentText(post.id)?.trim()}
               >
                 ➤
               </Button>
