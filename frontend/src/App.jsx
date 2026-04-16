@@ -2,10 +2,11 @@
 import { useState, useEffect } from 'react';
 import { 
   AdaptivityProvider, AppRoot, SplitLayout, SplitCol, 
-  View, Panel, PanelHeader, ConfigProvider, ruRU 
+  View, Panel, PanelHeader 
 } from '@vkontakte/vkui';
+
 import { Account } from './components/Account';
-import { Feed } from './components/Feed'; // если есть лента
+import { Feed } from './components/Feed'; // если есть
 import { api } from './api/client';
 import '@vkontakte/vkui/dist/vkui.css';
 
@@ -14,86 +15,61 @@ function App() {
   const [user, setUser] = useState(null);
   const [isReady, setIsReady] = useState(false);
   
-  // 🔁 Проверяем сохранённый токен при старте
   useEffect(() => {
     const token = localStorage.getItem('vhelp_token');
     const savedUser = localStorage.getItem('vhelp_user');
-    
     if (token && savedUser) {
-      try {
-        const parsed = JSON.parse(savedUser);
-        setUser(parsed);
-      } catch (e) {
-        localStorage.removeItem('vhelp_user');
-      }
+      try { setUser(JSON.parse(savedUser)); } 
+      catch (e) { localStorage.removeItem('vhelp_user'); }
     }
     setIsReady(true);
   }, []);
   
-  // 🔄 Обновление данных пользователя
-  const handleUserUpdate = (userData) => {
-    setUser(userData);
-  };
+  const handleUserUpdate = (userData) => setUser(userData);
+  const handleLogout = () => { setUser(null); api.logout(); };
   
-  // 🚪 Выход из аккаунта
-  const handleLogout = () => {
-    setUser(null);
-    setActivePanel('account'); // остаёмся на том же экране
-  };
-  
-  // Пока приложение не готово — показываем загрузку
   if (!isReady) {
     return (
-      <ConfigProvider locale={ruRU}>
-        <AdaptivityProvider>
-          <AppRoot mode="embedded">
-            <SplitLayout>
-              <SplitCol>
-                <View activePanel="loading">
-                  <Panel id="loading" centered>
-                    Загрузка...
-                  </Panel>
-                </View>
-              </SplitCol>
-            </SplitLayout>
-          </AppRoot>
-        </AdaptivityProvider>
-      </ConfigProvider>
+      <AppRoot mode="embedded">
+        <SplitLayout>
+          <SplitCol>
+            <View activePanel="loading">
+              <Panel id="loading" centered>Загрузка...</Panel>
+            </View>
+          </SplitCol>
+        </SplitLayout>
+      </AppRoot>
     );
   }
   
   return (
-    <ConfigProvider locale={ruRU}>
-      <AdaptivityProvider>
-        <AppRoot mode="embedded">
-          <SplitLayout header={false}>
-            <SplitCol>
-              <View activePanel={activePanel}>
-                
-                {/* 🔹 Панель: Аккаунт (автоматическая авторизация) */}
-                <Panel id="account">
-                  <PanelHeader>Аккаунт</PanelHeader>
-                  <Account 
-                    user={user} 
-                    onUserUpdate={handleUserUpdate}
-                    onLogout={handleLogout}
-                  />
+    <AdaptivityProvider>
+      <AppRoot mode="embedded">
+        <SplitLayout header={false}>
+          <SplitCol>
+            <View activePanel={activePanel}>
+              
+              <Panel id="account">
+                <PanelHeader>Аккаунт</PanelHeader>
+                <Account 
+                  user={user} 
+                  onUserUpdate={handleUserUpdate}
+                  onLogout={handleLogout}
+                />
+              </Panel>
+              
+              {user && (
+                <Panel id="feed">
+                  <PanelHeader>Лента</PanelHeader>
+                  <Feed user={user} />
                 </Panel>
-                
-                {/* 🔹 Панель: Лента (если есть) */}
-                {user && (
-                  <Panel id="feed">
-                    <PanelHeader>Лента</PanelHeader>
-                    <Feed user={user} />
-                  </Panel>
-                )}
-                
-              </View>
-            </SplitCol>
-          </SplitLayout>
-        </AppRoot>
-      </AdaptivityProvider>
-    </ConfigProvider>
+              )}
+              
+            </View>
+          </SplitCol>
+        </SplitLayout>
+      </AppRoot>
+    </AdaptivityProvider>
   );
 }
 
