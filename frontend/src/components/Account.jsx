@@ -1,7 +1,7 @@
 // src/components/Account.jsx
 import { useState, useEffect } from 'react';
 import { 
-  Card, Avatar, Text, Button, Spinner, 
+  Card, Avatar, Button, Spinner, 
   Separator, Group, InfoRow, Cell, Placeholder 
 } from '@vkontakte/vkui';
 import { Icon28UserOutline, Icon28SettingsOutline } from '@vkontakte/icons';
@@ -89,7 +89,7 @@ export function Account({ user, onUserUpdate, onLogout }) {
     return (
       <Group style={{ minHeight: '60vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
         <Spinner size="large" />
-        <Text style={{ marginLeft: 10 }}>Загрузка профиля...</Text>
+        <div style={{ marginLeft: 10 }}>Загрузка профиля...</div>
       </Group>
     );
   }
@@ -118,7 +118,7 @@ export function Account({ user, onUserUpdate, onLogout }) {
   
   // ✅ Отображение профиля
   return (
-    <Group header={<Text weight="2">Мой профиль</Text>}>
+    <Group header={<div style={{ fontWeight: 600 }}>Мой профиль</div>}>
       {/* Аватар и имя */}
       <Card style={{ padding: 20, textAlign: 'center', marginBottom: 15 }}>
         <Avatar 
@@ -127,20 +127,20 @@ export function Account({ user, onUserUpdate, onLogout }) {
           mode={user.avatar ? 'image' : 'image'}
           fallbackIcon={<Icon28UserOutline />}
         />
-        <Text weight="1" style={{ marginTop: 12, fontSize: 18 }}>
+        <div style={{ marginTop: 12, fontSize: 18, fontWeight: 500 }}>
           {user.firstName} {user.lastName}
-        </Text>
-        {user.bio && <Text caption style={{ marginTop: 4, color: '#818c99' }}>{user.bio}</Text>}
+        </div>
+        {user.bio && <div style={{ marginTop: 4, color: '#818c99', fontSize: 13 }}>{user.bio}</div>}
       </Card>
       
       {/* Информация */}
       <Card mode="shadow" style={{ marginBottom: 15 }}>
         <InfoRow header="ID ВКонтакте">
-          <Text>{user.vkId}</Text>
+          <div>{user.vkId}</div>
         </InfoRow>
         <Separator />
         <InfoRow header="Дата регистрации">
-          <Text>{user.createdAt ? new Date(user.createdAt).toLocaleDateString('ru-RU') : '—'}</Text>
+          <div>{user.createdAt ? new Date(user.createdAt).toLocaleDateString('ru-RU') : '—'}</div>
         </InfoRow>
       </Card>
       
