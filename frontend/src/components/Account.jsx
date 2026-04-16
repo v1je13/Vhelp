@@ -12,6 +12,14 @@ export function Account({ user, onUserUpdate, onLogout }) {
   useEffect(() => {
     let unsubscribe;
     
+    // Проверка токена при загрузке
+    const token = localStorage.getItem('vhelp_token');
+    
+    if (!token) {
+      console.log('⚠️ Token not found, initializing VK Bridge...');
+      setDebugInfo('Инициализация VK Bridge...');
+    }
+    
     const initAuth = async () => {
       if (user?.token) {
         try {
@@ -115,19 +123,60 @@ export function Account({ user, onUserUpdate, onLogout }) {
   if (!user) {
     return (
       <Card style={{ padding: 20, textAlign: 'center' }}>
-        <Text weight="2" style={{ marginBottom: 10 }}>
-          Профиль не загружен
+        <Text weight="2" style={{ marginBottom: 10, fontSize: 20 }}>
+          Добро пожаловать!
         </Text>
-        <Text caption style={{ display: 'block', marginBottom: 15, color: '#818c99' }}>
-          {debugInfo}
+        <Text style={{ marginBottom: 15, color: '#818c99' }}>
+          Для доступа к приложению необходимо авторизоваться
         </Text>
         <Button 
-          mode="secondary" 
-          onClick={() => window.location.reload()}
+          mode="primary" 
+          size="l"
+          onClick={() => {
+            // Принудительная авторизация
+            vk.init(async (authData) => {
+              if (!authData.vk_user_id) {
+                setError('Нет vk_user_id');
+                return;
+              }
+              
+              try {
+                setLoading(true);
+                console.log('📡 Отправляем vkAuth с данными:', { vk_user_id: authData.vk_user_id });
+                const response = await api.vkAuth(authData);
+                console.log('✅ Ответ от бэкенда:', response);
+                
+                if (!response?.token) {
+                  throw new Error('No token in response: ' + JSON.stringify(response));
+                }
+                
+                console.log('💾 Сохраняем токен...');
+                localStorage.setItem('vhelp_token', response.token);
+                localStorage.setItem('vhelp_user', JSON.stringify(response.user));
+                
+                console.log('🔍 Проверка localStorage:', {
+                  token: localStorage.getItem('vhelp_token') ? '✓' : '✗',
+                  user: localStorage.getItem('vhelp_user') ? '✓' : '✗'
+                });
+                
+                onUserUpdate?.(response.user);
+              } catch (err) {
+                console.error('❌ ОШИБКА АВТОРИЗАЦИИ:', err);
+                setError(err.message);
+              } finally {
+                setLoading(false);
+              }
+            });
+          }}
           stretched
         >
-          Обновить страницу
+          Войти через VK
         </Button>
+        {debugInfo && (
+          <Text caption style={{ display: 'block', marginTop: 15, color: '#818c99' }}>
+            {debugInfo}
+          </Text>
+        )}
       </Card>
     );
   }

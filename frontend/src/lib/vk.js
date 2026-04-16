@@ -6,10 +6,10 @@ export const vk = {
     console.log('🌉 VK Bridge init started...');
     
     try {
-      // Добавь таймаут для мобильных
+      // Увеличенный таймаут для мобильных (15 секунд)
       const initPromise = bridge.send('VKWebAppInit');
       const timeoutPromise = new Promise((_, reject) => 
-        setTimeout(() => reject(new Error('VK Bridge timeout')), 10000)
+        setTimeout(() => reject(new Error('VK Bridge timeout')), 15000)
       );
       
       await Promise.race([initPromise, timeoutPromise]);
