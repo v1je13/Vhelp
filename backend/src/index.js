@@ -124,14 +124,47 @@ app.post('/api/posts', auth, async (c) => {
   try {
     const db = c.env.DB;
     const { text, images, location } = await c.req.json();
-    if (!text || text.trim().length < 3) return c.json({ error: 'Text required (min 3 chars)' }, 400);
+    
+    console.log('📥 Create post request:', { text, images, location });
+    
+    if (!text || text.trim().length < 3) {
+      return c.json({ error: 'Text required (min 3 chars)' }, 400);
+    }
+    
     const postId = crypto.randomUUID();
-    await db.prepare('INSERT INTO posts (id, user_id, text, images, location) VALUES (?, ?, ?, ?, ?)')
-      .bind(postId, c.get('user').userId, text.trim(), JSON.stringify(images || []), JSON.stringify(location || null)).run();
-    const post = await db.prepare('SELECT p.*, u.first_name, u.last_name, u.avatar FROM posts p JOIN users u ON p.user_id = u.id WHERE p.id = ?').bind(postId).first();
+    
+    // 🔥 Сохраняем images как JSON строку
+    const imagesJson = images && images.length > 0 
+      ? JSON.stringify(images) 
+      : '[]';
+    
+    console.log('💾 Saving images:', imagesJson);
+    
+    await db.prepare(`
+      INSERT INTO posts (id, user_id, text, images, location, likes_count)
+      VALUES (?, ?, ?, ?, ?, 0)
+    `).bind(
+      postId, 
+      c.get('user').userId, 
+      text.trim(), 
+      imagesJson,  // ← JSON строка
+      JSON.stringify(location || null)
+    ).run();
+    
+    // Получаем созданный пост
+    const post = await db.prepare(`
+      SELECT p.*, u.first_name, u.last_name, u.avatar
+      FROM posts p
+      JOIN users u ON p.user_id = u.id
+      WHERE p.id = ?
+    `).bind(postId).first();
+    
+    console.log('✅ Post created:', post);
+    
     return c.json({ post }, 201);
   } catch (err) {
-    return c.json({ error: 'Failed to create post' }, 500);
+    console.error('❌ Create post error:', err);
+    return c.json({ error: 'Failed to create post: ' + err.message }, 500);
   }
 });
 

@@ -18,6 +18,8 @@ export function Feed({ user }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [newPost, setNewPost] = useState('');
+  const [selectedPhoto, setSelectedPhoto] = useState(null);
+  const [uploading, setUploading] = useState(false);
   const [commentTexts, setCommentTexts] = useState({});
   const [comments, setComments] = useState({});
   const [creating, setCreating] = useState(false);
@@ -103,6 +105,25 @@ export function Feed({ user }) {
       }
     });
   }, [posts]);
+
+  // 🔥 Функция загрузки фото (через VK Upload API или просто URL):
+  const handlePhotoUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    
+    // 🔥 Простой вариант: используем FileReader для локального превью
+    // (в продакшене нужно загружать на сервер или использовать VK Upload API)
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setSelectedPhoto(reader.result);  // base64 data URL
+    };
+    reader.readAsDataURL(file);
+    
+    // В реальном приложении здесь нужно:
+    // 1. Загрузить фото на сервер (VK Upload API или Cloudflare R2)
+    // 2. Получить URL
+    // 3. Сохранить URL в selectedPhoto
+  };
 
   // Создание поста
   const handleCreatePost = async () => {
@@ -226,6 +247,7 @@ export function Feed({ user }) {
       {/* Форма создания поста */}
       <Card style={{ padding: 15, marginBottom: 20 }}>
         <Text weight="2" style={{ marginBottom: 8 }}>Что у вас новое?</Text>
+        
         <Textarea 
           value={newPost}
           onChange={e => setNewPost(e.target.value)}
@@ -233,10 +255,89 @@ export function Feed({ user }) {
           rows={3}
           style={{ marginBottom: 12 }}
         />
+        
+        {/* 🔥 Превью выбранного фото */}
+        {selectedPhoto && (
+          <div style={{ position: 'relative', marginBottom: 12 }}>
+            <img 
+              src={selectedPhoto} 
+              alt="Preview" 
+              style={{
+                width: '100%',
+                maxHeight: 300,
+                objectFit: 'cover',
+                borderRadius: 8
+              }}
+            />
+            <Button
+              mode="secondary"
+              size="s"
+              onClick={() => setSelectedPhoto(null)}
+              style={{
+                position: 'absolute',
+                top: 8,
+                right: 8,
+                background: 'rgba(0,0,0,0.7)'
+              }}
+            >
+              ✕
+            </Button>
+          </div>
+        )}
+        
+        {/* 🔥 Кнопки действий */}
+        <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
+          {/* Скрытый input для выбора файла */}
+          <input
+            type="file"
+            accept="image/*"
+            onChange={handlePhotoUpload}
+            style={{ display: 'none' }}
+            id="photo-upload"
+          />
+          
+          {/* Кнопка выбора фото */}
+          <Button
+            mode="secondary"
+            size="s"
+            onClick={() => document.getElementById('photo-upload')?.click()}
+            before={<span>📷</span>}
+          >
+            Добавить фото
+          </Button>
+        </div>
+        
+        {/* Кнопка публикации */}
         <Button 
           mode="primary" 
-          onClick={handleCreatePost}
-          disabled={creating || !newPost.trim()}
+          onClick={async () => {
+            if (!newPost.trim()) return;
+            
+            try {
+              setCreating(true);
+              
+              // 🔥 Создаём пост с фото (если есть)
+              await api.createPost({ 
+                text: newPost,
+                images: selectedPhoto ? [selectedPhoto] : []  // ← отправляем фото
+              });
+              
+              setNewPost('');
+              setSelectedPhoto(null);
+              
+              // Перезагружаем посты
+              const data = await api.getPosts(1);
+              setPosts(data.posts || []);
+              
+              await vk.showNotification('✅', 'Пост опубликован', 'success');
+            } catch (err) {
+              console.error('Create post error:', err);
+              await vk.showNotification('❌', 'Не удалось создать пост', 'error');
+            } finally {
+              setCreating(false);
+            }
+          }}
+          disabled={creating || (!newPost.trim() && !selectedPhoto)}
           stretched
         >
           {creating ? <Spinner size="small" /> : 'Опубликовать'}
@@ -285,42 +386,65 @@ export function Feed({ user }) {
               {post.text}
             </Text>
 
-            {/* 🔥 Картинки поста */}
+            {/* 🔥 Отображение фото поста */}
             {post.images && post.images !== '[]' && post.images !== 'null' && (
               <div style={{ marginTop: 10 }}>
                 {(() => {
                   try {
-                    const imageUrls = typeof post.images === 'string' 
-                      ? JSON.parse(post.images) 
-                      : post.images;
+                    // 🔥 Пробуем распарсить JSON строку
+                    let imageUrls = [];
                     
-                    if (Array.isArray(imageUrls) && imageUrls.length > 0) {
-                      return imageUrls.map((url, idx) => (
-                        <img
-                          key={idx}
-                          src={url}
-                          alt={`Post image ${idx + 1}`}
-                          style={{
-                            width: '100%',
-                            maxHeight: 400,
-                            objectFit: 'cover',
-                            borderRadius: 8,
-                            marginTop: idx > 0 ? 8 : 0,
-                            display: 'block'
-                          }}
-                          onError={(e) => {
-                            console.error('❌ Failed to load image:', url);
-                            e.target.style.display = 'none';
-                          }}
-                          onLoad={() => {
-                            console.log('✅ Image loaded:', url);
-                          }}
-                        />
-                      ));
+                    if (typeof post.images === 'string') {
+                      // Это JSON строка: "[\"url1\",\"url2\"]"
+                      imageUrls = JSON.parse(post.images);
+                    } else if (Array.isArray(post.images)) {
+                      // Это уже массив
+                      imageUrls = post.images;
+                    }
+                    
+                    // 🔥 Фильтруем пустые URL
+                    imageUrls = imageUrls.filter(url => url && url.trim());
+                    
+                    if (imageUrls.length > 0) {
+                      return (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                          {imageUrls.map((url, idx) => {
+                            // 🔥 Проверяем, base64 это или URL
+                            const isBase64 = url.startsWith('data:image');
+                            
+                            return (
+                              <div key={idx} style={{ position: 'relative' }}>
+                                <img
+                                  src={url}
+                                  alt={`Post image ${idx + 1}`}
+                                  style={{
+                                    width: '100%',
+                                    maxHeight: 400,
+                                    objectFit: 'cover',
+                                    borderRadius: 8,
+                                    display: 'block',
+                                    background: '#f0f2f5'
+                                  }}
+                                  onLoad={() => {
+                                    console.log('✅ Image loaded:', url.substring(0, 50) + '...');
+                                  }}
+                                  onError={(e) => {
+                                    console.error('❌ Failed to load image:', url);
+                                    // Показываем заглушку для base64
+                                    if (isBase64) {
+                                      e.target.style.display = 'none';
+                                    }
+                                  }}
+                                />
+                              </div>
+                            );
+                          })}
+                        </div>
+                      );
                     }
                     return null;
                   } catch (err) {
-                    console.error('Error parsing images:', err, post.images);
+                    console.error('Error parsing images:', err, 'Raw value:', post.images);
                     return null;
                   }
                 })()}
