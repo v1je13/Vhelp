@@ -47,8 +47,15 @@ export default defineConfig({
     }),
   ],
 
-  server: {
+server: {
     port: 5173, // ← ДОБАВЬТЕ ЭТУ СТРОКУ (любой свободный порт)
+    proxy: {
+      '/api': {
+        target: 'http://localhost:5000',
+        changeOrigin: true,
+        secure: false
+      }
+    },
     allowedHosts: [
       "localhost",
       ".cloudpub.ru", // ← добавьте эту строку

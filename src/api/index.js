@@ -33,8 +33,20 @@ class ApiClient {
       });
 
       if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.message || 'API request failed');
+        let message = `Request failed with status ${response.status}`;
+        try {
+          const error = await response.json();
+          message = error.message || message;
+        } catch (e) {
+          // If response is not JSON (e.g., HTML 404), capture raw text for debugging
+          try {
+            const text = await response.text();
+            if (text?.trim()) message = text.trim();
+          } catch (_) {
+            // ignore
+          }
+        }
+        throw new Error(message);
       }
 
       return await response.json();
