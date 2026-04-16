@@ -14,7 +14,7 @@ import {
   Input,
   Textarea
 } from '@vkontakte/vkui';
-import { Icon28Add, Icon28User, Icon28DeleteOutline } from '@vkontakte/icons';
+import { Icon29Add, Icon29User, Icon29DeleteOutline } from '@vkontakte/icons';
 import { api } from '../api/client';
 import { vk } from '../lib/vk';
 
@@ -111,7 +111,7 @@ export function Trips({ user, onOpenTrip }) {
           <Button 
             mode="primary" 
             size="s"
-            before={<Icon28Add />}
+            before={<Icon29Add />}
             onClick={() => setShowCreateModal(true)}
           >
             Создать
@@ -217,7 +217,7 @@ export function Trips({ user, onOpenTrip }) {
                     <Button
                       mode="secondary"
                       size="s"
-                      before={<Icon28User />}
+                      before={<Icon29User />}
                       onClick={(e) => {
                         e.stopPropagation();
                         // Поделиться с другом
@@ -227,7 +227,7 @@ export function Trips({ user, onOpenTrip }) {
                     <Button
                       mode="secondary"
                       size="s"
-                      before={<Icon28DeleteOutline />}
+                      before={<Icon29DeleteOutline />}
                       onClick={(e) => handleDeleteTrip(trip.id, e)}
                       style={{ background: 'rgba(255,255,255,0.9)' }}
                     />
