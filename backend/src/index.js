@@ -164,17 +164,18 @@ app.get('/api/trips', auth, async (c) => {
   try {
     const db = c.env.DB;
     const userId = c.get('user').userId;
-    
+
     const { results } = await db.prepare(`
-      SELECT t.*, 
-             (SELECT COUNT(*) FROM notes WHERE trip_id = t.id) as notes_count
+      SELECT t.*,
+             (SELECT COUNT(*) FROM posts WHERE trip_id = t.id) as notes_count
       FROM trips t
       WHERE t.user_id = ?
       ORDER BY t.created_at DESC
     `).bind(userId).all();
-    
+
     return c.json({ trips: results });
   } catch (err) {
+    console.error('Fetch trips error:', err);
     return c.json({ error: 'Failed to fetch trips' }, 500);
   }
 });
@@ -240,25 +241,25 @@ app.get('/api/trips/:id/notes', auth, async (c) => {
     const db = c.env.DB;
     const tripId = c.req.param('id');
     const userId = c.get('user').userId;
-    
+
     // Проверяем, что путешествие принадлежит пользователю
     const trip = await db.prepare(`
       SELECT * FROM trips WHERE id = ? AND user_id = ?
     `).bind(tripId, userId).first();
-    
+
     if (!trip) {
       return c.json({ error: 'Trip not found' }, 404);
     }
-    
-    // Получаем заметки с информацией о пользователе
+
+    // 🔥 Получаем посты с trip_id
     const { results } = await db.prepare(`
-      SELECT n.*, u.first_name, u.last_name, u.avatar
-      FROM notes n
-      JOIN users u ON n.user_id = u.id
-      WHERE n.trip_id = ?
-      ORDER BY n.created_at DESC
+      SELECT p.*, u.first_name, u.last_name, u.avatar
+      FROM posts p
+      JOIN users u ON p.user_id = u.id
+      WHERE p.trip_id = ?
+      ORDER BY p.created_at DESC
     `).bind(tripId).all();
-    
+
     return c.json({ notes: results, posts: results });
   } catch (err) {
     console.error('Fetch trip notes error:', err);
@@ -346,22 +347,23 @@ app.get('/api/posts', async (c) => {
 app.post('/api/posts', auth, async (c) => {
   try {
     const db = c.env.DB;
-    const { text, images, tags = [] } = await c.req.json();
-    
+    const { text, images, tags = [], trip_id = null } = await c.req.json();
+
     if (!text || text.trim().length < 3) {
       return c.json({ error: 'Text required (min 3 chars)' }, 400);
     }
-    
+
     const postId = crypto.randomUUID();
     await db.prepare(`
-      INSERT INTO posts (id, user_id, text, images, tags, location, likes_count)
-      VALUES (?, ?, ?, ?, ?, ?, 0)
+      INSERT INTO posts (id, user_id, text, images, tags, trip_id, location, likes_count)
+      VALUES (?, ?, ?, ?, ?, ?, ?, 0)
     `).bind(
-      postId, 
-      c.get('user').userId, 
-      text.trim(), 
-      JSON.stringify(images || []), 
-      JSON.stringify(tags), // ← Сохраняем тэги
+      postId,
+      c.get('user').userId,
+      text.trim(),
+      JSON.stringify(images || []),
+      JSON.stringify(tags),
+      trip_id, // ← Привязка к путешествию
       JSON.stringify(null)
     ).run();
     

@@ -72,10 +72,11 @@ export function Feed({ user, onOpenPost }) {
     
     try {
       setCreating(true);
-      await api.createPost({ 
+      await api.createPost({
         text: newPost,
         images: selectedPhoto ? [selectedPhoto] : [],
-        tags: postTags.split(',').map(t => t.trim()).filter(t => t)
+        tags: postTags.split(',').map(t => t.trim()).filter(t => t),
+        // trip_id: selectedTripId || null  // ← Если создаёшь из путешествия
       });
       
       setNewPost('');

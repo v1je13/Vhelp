@@ -11,6 +11,7 @@ import { PostDetail } from './components/PostDetail';
 import { Profile } from './components/Profile';
 import { Trips } from './components/Trips';
 import { TripPosts } from './components/TripPosts';
+import { TripNotes } from './components/TripNotes';
 import { api } from './api/client';
 
 function App() {
@@ -45,7 +46,7 @@ function App() {
 
   const handleOpenTrip = (tripId) => {
     setSelectedTripId(tripId);
-    setActivePanel('trip-posts');
+    setActivePanel('trip-notes');
   };
 
   const handleCloseTrip = () => {
@@ -115,13 +116,16 @@ function App() {
                 />
               </Panel>
               
-              {/* 🔥 TripPosts с onOpenPost */}
-              <Panel id="trip-posts">
+              {/* TripNotes - заметки путешествия */}
+              <Panel id="trip-notes">
                 {selectedTripId && (
-                  <TripPosts 
+                  <TripNotes 
                     tripId={selectedTripId}
-                    onBack={handleCloseTrip}
-                    onOpenPost={handleOpenPost}
+                    onBack={() => {
+                      setSelectedTripId(null);
+                      setActivePanel('trips');
+                    }}
+                    user={user}
                   />
                 )}
               </Panel>
