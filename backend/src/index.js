@@ -99,6 +99,8 @@ app.get('/api/users/:id', async (c) => {
     const db = c.env.DB;
     const userId = c.req.param('id');
     
+    console.log('📥 Fetching user profile:', userId);
+    
     const user = await db.prepare(`
       SELECT id, vk_id, first_name, last_name, avatar, bio, created_at
       FROM users
@@ -106,28 +108,27 @@ app.get('/api/users/:id', async (c) => {
     `).bind(userId).first();
     
     if (!user) {
+      console.warn('⚠️ User not found:', userId);
       return c.json({ error: 'User not found' }, 404);
     }
     
-    // Считаем друзей и подписчиков (заглушки)
-    const friendsCount = await db.prepare(`
-      SELECT COUNT(*) as count FROM friendships 
-      WHERE (user_id = ? OR friend_id = ?) AND status = 'accepted'
-    `).bind(userId, userId).first();
-    
-    const subscribersCount = await db.prepare(`
-      SELECT COUNT(*) as count FROM followers WHERE following_id = ?
+    // Считаем количество постов пользователя
+    const postsCount = await db.prepare(`
+      SELECT COUNT(*) as count FROM posts WHERE user_id = ?
     `).bind(userId).first();
     
+    // Заглушки для друзей/подписчиков (можно расширить позже)
     return c.json({ 
       user: {
         ...user,
-        friends_count: friendsCount?.count || 0,
-        subscribers_count: subscribersCount?.count || 0
+        friends_count: 0,  // ← Пока 0, можно добавить таблицу friends
+        subscribers_count: postsCount?.count || 0  // ← Используем количество постов
       }
     });
+    
   } catch (err) {
-    return c.json({ error: 'Failed to fetch user' }, 500);
+    console.error('❌ Error fetching user:', err);
+    return c.json({ error: 'Failed to fetch user: ' + err.message }, 500);
   }
 });
 
@@ -137,17 +138,24 @@ app.get('/api/users/:id/posts', async (c) => {
     const db = c.env.DB;
     const userId = c.req.param('id');
     
+    console.log('📥 Fetching user posts:', userId);
+    
     const { results } = await db.prepare(`
       SELECT p.*, u.first_name, u.last_name, u.avatar
       FROM posts p
       JOIN users u ON p.user_id = u.id
       WHERE p.user_id = ?
       ORDER BY p.created_at DESC
+      LIMIT 50
     `).bind(userId).all();
     
+    console.log('✅ Found posts:', results.length);
+    
     return c.json({ posts: results });
+    
   } catch (err) {
-    return c.json({ error: 'Failed to fetch posts' }, 500);
+    console.error('❌ Error fetching user posts:', err);
+    return c.json({ error: 'Failed to fetch posts: ' + err.message }, 500);
   }
 });
 
