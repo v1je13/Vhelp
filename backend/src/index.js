@@ -93,7 +93,36 @@ app.get('/api/auth/me', auth, async (c) => {
   }
 });
 
-// 📰 Лента постов
+// � Получить один пост по ID (добавлен ПЕРЕД /api/posts)
+app.get('/api/posts/:id', async (c) => {
+  try {
+    const db = c.env.DB;
+    const postId = c.req.param('id');
+    
+    console.log('📥 Fetching post:', postId);
+    
+    const post = await db.prepare(`
+      SELECT p.*, u.first_name, u.last_name, u.avatar
+      FROM posts p
+      JOIN users u ON p.user_id = u.id
+      WHERE p.id = ?
+    `).bind(postId).first();
+    
+    if (!post) {
+      console.warn('⚠️ Post not found:', postId);
+      return c.json({ error: 'Post not found' }, 404);
+    }
+    
+    console.log('✅ Post found:', post.id);
+    return c.json({ post });
+    
+  } catch (err) {
+    console.error('❌ Error fetching post:', err);
+    return c.json({ error: 'Failed to fetch post: ' + err.message }, 500);
+  }
+});
+
+// � Лента постов
 app.get('/api/posts', async (c) => {
   try {
     const db = c.env.DB;
@@ -116,29 +145,6 @@ app.get('/api/posts', async (c) => {
     return c.json({ posts: postsWithDetails, page, hasMore: results.length === limit });
   } catch (err) {
     return c.json({ error: 'Failed to fetch posts' }, 500);
-  }
-});
-
-// 🔥 Получить один пост по ID
-app.get('/api/posts/:id', async (c) => {
-  try {
-    const db = c.env.DB;
-    const postId = c.req.param('id');
-    
-    const post = await db.prepare(`
-      SELECT p.*, u.first_name, u.last_name, u.avatar
-      FROM posts p
-      JOIN users u ON p.user_id = u.id
-      WHERE p.id = ?
-    `).bind(postId).first();
-    
-    if (!post) {
-      return c.json({ error: 'Post not found' }, 404);
-    }
-    
-    return c.json({ post });
-  } catch (err) {
-    return c.json({ error: 'Failed to fetch post' }, 500);
   }
 });
 
