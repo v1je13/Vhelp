@@ -93,6 +93,64 @@ app.get('/api/auth/me', auth, async (c) => {
   }
 });
 
+// Получить профиль пользователя
+app.get('/api/users/:id', async (c) => {
+  try {
+    const db = c.env.DB;
+    const userId = c.req.param('id');
+    
+    const user = await db.prepare(`
+      SELECT id, vk_id, first_name, last_name, avatar, bio, created_at
+      FROM users
+      WHERE id = ?
+    `).bind(userId).first();
+    
+    if (!user) {
+      return c.json({ error: 'User not found' }, 404);
+    }
+    
+    // Считаем друзей и подписчиков (заглушки)
+    const friendsCount = await db.prepare(`
+      SELECT COUNT(*) as count FROM friendships 
+      WHERE (user_id = ? OR friend_id = ?) AND status = 'accepted'
+    `).bind(userId, userId).first();
+    
+    const subscribersCount = await db.prepare(`
+      SELECT COUNT(*) as count FROM followers WHERE following_id = ?
+    `).bind(userId).first();
+    
+    return c.json({ 
+      user: {
+        ...user,
+        friends_count: friendsCount?.count || 0,
+        subscribers_count: subscribersCount?.count || 0
+      }
+    });
+  } catch (err) {
+    return c.json({ error: 'Failed to fetch user' }, 500);
+  }
+});
+
+// Получить посты пользователя
+app.get('/api/users/:id/posts', async (c) => {
+  try {
+    const db = c.env.DB;
+    const userId = c.req.param('id');
+    
+    const { results } = await db.prepare(`
+      SELECT p.*, u.first_name, u.last_name, u.avatar
+      FROM posts p
+      JOIN users u ON p.user_id = u.id
+      WHERE p.user_id = ?
+      ORDER BY p.created_at DESC
+    `).bind(userId).all();
+    
+    return c.json({ posts: results });
+  } catch (err) {
+    return c.json({ error: 'Failed to fetch posts' }, 500);
+  }
+});
+
 // � Получить один пост по ID (добавлен ПЕРЕД /api/posts)
 app.get('/api/posts/:id', async (c) => {
   try {

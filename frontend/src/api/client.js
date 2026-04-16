@@ -48,6 +48,14 @@ export const api = {
   async getMe() {
     return this.request('/api/auth/me');
   },
+
+  async getUserProfile(userId) {
+    return this.request(`/api/users/${userId}`);
+  },
+
+  async getUserPosts(userId) {
+    return this.request(`/api/users/${userId}/posts`);
+  },
   
   // 📰 Посты
   async getPosts(page = 1) {

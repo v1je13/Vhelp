@@ -10,6 +10,7 @@ import { Account } from './components/Account';
 import { Feed } from './components/Feed';
 import { SearchBar } from './components/SearchBar';
 import { PostDetail } from './components/PostDetail';
+import { Profile } from './components/Profile';
 import { api } from './api/client';
 
 function App() {
@@ -18,6 +19,7 @@ function App() {
   const [selectedPostId, setSelectedPostId] = useState(null);
   const [user, setUser] = useState(null);
   const [isReady, setIsReady] = useState(false);
+  const [profileUserId, setProfileUserId] = useState(null);
   
   useEffect(() => {
     const token = localStorage.getItem('vhelp_token');
@@ -32,16 +34,28 @@ function App() {
   const handleUserUpdate = (userData) => setUser(userData);
   const handleLogout = () => { setUser(null); api.logout(); };
   
-  // 🔥 Открыть пост
+  // Открыть пост
   const handleOpenPost = (postId) => {
     console.log('📱 Opening post:', postId);
     setSelectedPostId(postId);
     setActivePanel('post-detail');
   };
   
-  // 🔥 Закрыть пост (вернуться к ленте)
+  // Закрыть пост (вернуться к ленте или профилю)
   const handleClosePost = () => {
     setSelectedPostId(null);
+    setActivePanel(profileUserId ? 'profile' : 'feed');
+  };
+
+  // Открыть профиль пользователя
+  const handleOpenProfile = (userId) => {
+    setProfileUserId(userId);
+    setActivePanel('profile');
+  };
+
+  // Закрыть профиль
+  const handleCloseProfile = () => {
+    setProfileUserId(null);
     setActivePanel('feed');
   };
   
@@ -101,6 +115,7 @@ function App() {
                   user={user} 
                   onUserUpdate={handleUserUpdate}
                   onLogout={handleLogout}
+                  onOpenProfile={handleOpenProfile}
                 />
               </Panel>
               {user && (
@@ -112,8 +127,23 @@ function App() {
                   />
                 </Panel>
               )}
-              
-              {/* 🔥 Панель детального просмотра поста */}
+
+              {/* Profile */}
+              <Panel id="profile">
+                {profileUserId && (
+                  <Profile 
+                    userId={profileUserId}
+                    user={user}
+                    onBack={handleCloseProfile}
+                    onOpenPost={(postId) => {
+                      setSelectedPostId(postId);
+                      setActivePanel('post-detail');
+                    }}
+                  />
+                )}
+              </Panel>
+
+              {/* Панель детального просмотра поста */}
               <Panel id="post-detail">
                 {selectedPostId && (
                   <PostDetail 
