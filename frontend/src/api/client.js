@@ -55,5 +55,16 @@ export const api = {
   logout() {
     localStorage.removeItem('vhelp_token');
     localStorage.removeItem('vhelp_user');
+  },
+  
+  // 🔁 Проверка токена (опционально, для надёжности)
+  async validateToken() {
+    try {
+      await this.request('/auth/me');
+      return true;
+    } catch {
+      this.logout();
+      return false;
+    }
   }
 };
