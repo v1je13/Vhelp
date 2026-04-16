@@ -9,7 +9,7 @@ export default function Feed({ nav, onOpenPost, onCreatePost, onCreateStory }) {
   const [posts, setPosts] = useState([]);
   const [stories, setStories] = useState([]);
   const [searchQuery, setSearchQuery] = useState("");
-  const { user } = useAuth();
+  const { user, login } = useAuth();
 
   useEffect(() => {
     const fetchData = async () => {
@@ -209,6 +209,23 @@ export default function Feed({ nav, onOpenPost, onCreatePost, onCreateStory }) {
         <div className="feed-page">
           {/* Шапка с панелью поиска */}
           <div className="search-header">
+            {!user && (
+              <div style={{ padding: '10px', marginBottom: '10px', backgroundColor: '#fff', borderRadius: '8px' }}>
+                <Button 
+                  onClick={() => login({
+                    vk_user_id: 'test_user_123',
+                    vk_first_name: 'Test',
+                    vk_last_name: 'User',
+                    vk_avatar: '',
+                    sign: 'test_sign'
+                  })}
+                  size="s"
+                  style={{ backgroundColor: '#c8d28c', color: '#000' }}
+                >
+                  Тестовая авторизация
+                </Button>
+              </div>
+            )}
             <div className="search-panel">
               <input
                 type="text"
