@@ -36,53 +36,53 @@ export const api = {
   
   // 👤 Профиль
   async getMe() {
-    return this.request('/auth/me');
+    return this.request('/api/auth/me');
   },
   
   // 📰 Посты
   async getPosts(page = 1) {
-    return this.request(`/posts?page=${page}`);
+    return this.request(`/api/posts?page=${page}`);
   },
   
   async createPost(data) {
-    return this.request('/posts', {
+    return this.request('/api/posts', {
       method: 'POST',
       body: JSON.stringify(data)
     });
   },
   
   async toggleLike(postId) {
-    return this.request(`/posts/${postId}/like`, { method: 'POST' });
+    return this.request(`/api/posts/${postId}/like`, { method: 'POST' });
   },
 
-  // � Комментарии
+  // 
   async getComments(postId) {
-    return this.request(`/posts/${postId}/comments`);
+    return this.request(`/api/posts/${postId}/comments`);
   },
 
   async addComment(postId, text) {
-    return this.request(`/posts/${postId}/comments`, {
+    return this.request(`/api/posts/${postId}/comments`, {
       method: 'POST',
       body: JSON.stringify({ text })
     });
   },
 
-  // � Поиск
+  // 
   async searchUsers(query) {
-    return this.request(`/users/search?q=${encodeURIComponent(query)}`);
+    return this.request(`/api/users/search?q=${encodeURIComponent(query)}`);
   },
 
   async searchPosts(query) {
-    return this.request(`/posts/search?q=${encodeURIComponent(query)}`);
+    return this.request(`/api/posts/search?q=${encodeURIComponent(query)}`);
   },
 
-  // 📤 Загрузка фото (для R2)
+  // 
   async uploadPhoto(file) {
     const formData = new FormData();
     formData.append('image', file);
     
     const token = localStorage.getItem('vhelp_token');
-    const res = await fetch(`${API_BASE}/upload`, {
+    const res = await fetch(`${API_BASE}/api/upload`, {
       method: 'POST',
       headers: {
         ...(token && { 'Authorization': `Bearer ${token}` })
@@ -103,7 +103,7 @@ export const api = {
   // 🔁 Проверка токена (опционально, для надёжности)
   async validateToken() {
     try {
-      await this.request('/auth/me');
+      await this.request('/api/auth/me');
       return true;
     } catch {
       this.logout();
