@@ -18,6 +18,7 @@ function App() {
   const [user, setUser] = useState(null);
   const [isReady, setIsReady] = useState(false);
   const [selectedTripId, setSelectedTripId] = useState(null);
+  const [showBottomNav, setShowBottomNav] = useState(true);
   
   useEffect(() => {
     const token = localStorage.getItem('vhelp_token');
@@ -72,10 +73,19 @@ function App() {
   
   return (
     <AdaptivityProvider>
-      <AppRoot mode="embedded">
-        <SplitLayout header={false}>
-          <SplitCol>
-            <View activePanel={activePanel}>
+      <AppRoot mode="embedded" style={{ height: '100vh' }}>
+        <SplitLayout 
+          header={false}
+          style={{ height: '100%' }}
+        >
+          <SplitCol 
+            style={{ 
+              height: '100%',
+              display: 'flex',
+              flexDirection: 'column'
+            }}
+          >
+            <View activePanel={activePanel} style={{ flex: 1 }}>
               {/* Профиль (заменил Account на Profile) */}
               <Panel id="account">
                 <PanelHeader>Профиль</PanelHeader>
@@ -119,17 +129,17 @@ function App() {
             </View>
             
             {/* Нижняя навигация */}
-            {user && (
+            {showBottomNav && (
               <div style={{
                 position: 'fixed',
                 bottom: 0,
                 left: 0,
                 right: 0,
-                background: 'white',
-                borderTop: '1px solid #e7e8ec',
+                background: 'var(--vkui--color_background)',
+                borderTop: '1px solid var(--vkui--color_separator_primary)',
                 display: 'flex',
                 justifyContent: 'space-around',
-                padding: '8px 0 12px',
+                padding: '8px 0 calc(8px + env(safe-area-inset-bottom))',
                 zIndex: 100
               }}>
                 <button

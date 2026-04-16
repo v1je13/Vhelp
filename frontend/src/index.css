@@ -1,74 +1,57 @@
-/* =========================================
-   БЕЖЕВЫЙ ФОН #F6F2E9 — АГРЕССИВНОЕ ПЕРЕОПРЕДЕЛЕНИЕ
-   ========================================= */
+/* src/index.css */
 
-/* 1. Глобальные переменные для всех схем */
-:root,
-:root.vkui--scheme-light,
-:root.vkui--scheme-dark,
-:root.vkui--scheme-space {
-  --vkui--background_content: #F6F2E9 !important;
-  --vkui--background_page: #F6F2E9 !important;
-  --vkui--color_background_content: #F6F2E9 !important;
-  --vkui--color_background_page: #F6F2E9 !important;
-  --vkui--color_background: #F6F2E9 !important;
-  --vkui--color_panel_header: #F6F2E9 !important;
+/* Сброс отступов и полная высота */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
 }
 
-/* 2. Корневые элементы — максимально специфичные селекторы */
-#root,
-#root > *,
+html, body, #root {
+  height: 100%;
+  width: 100%;
+  overflow: hidden; /* Предотвращаем скролл всей страницы */
+}
+
+/* VKUI компоненты на всю высоту */
 .vkui__root,
-.vkui__root *,
-.vkui__view,
-.vkui__view > *,
-.vkui__panel,
-.vkui__panel > *,
-.vkui__panel__in,
-.vkui__fixed-layout,
-.vkui__fixed-layout > * {
-  background-color: #F6F2E9 !important;
+.vkui__root--embedded {
+  height: 100% !important;
 }
 
-/* 3. Группы, карточки, ячейки */
-.vkui__group,
-.vkui__group__inner,
-.vkui__group__header,
-.vkui__group__content,
-.vkui__cell,
-.vkui__cell__content,
-.vkui__card,
-.vkui__card__content {
-  background-color: #F6F2E9 !important;
+/* SplitLayout и SplitCol на всю высоту */
+.vkui__split-layout,
+.vkui__split-col {
+  height: 100% !important;
 }
 
-/* 4. PanelHeader и другие заголовки */
-.vkui__panel-header,
-.vkui__panel-header__in,
-.vkui__panel-header--vis,
-.vkui__panel-header--sep {
-  background-color: #F6F2E9 !important;
+/* View на всю высоту */
+.vkui__view {
+  height: 100% !important;
 }
 
-/* 5. Tabs, HorizontalScroll и другие контейнеры */
-.vkui__tabs,
-.vkui__horizontal-scroll,
-.vkui__horizontal-scroll__in {
-  background-color: #F6F2E9 !important;
+/* Panel на всю высоту */
+.vkui__panel {
+  height: 100% !important;
+  display: flex;
+  flex-direction: column;
 }
 
-/* 6. Убираем белые фоны у элементов с mode="none" или shadow="none" */
-.vkui__group--mode-none,
-.vkui__group--shadow-none,
-.vkui__panel--in {
-  background-color: transparent !important;
+/* PanelHeader */
+.vkui__panel-header {
+  flex-shrink: 0;
 }
 
-/* 7. Твои анимации (оставляем как было) */
-@keyframes fadeIn {
-  from { opacity: 0; transform: translateY(10px); }
-  to { opacity: 1; transform: translateY(0); }
+/* Panel content должен занимать всё доступное место */
+.vkui__panel__in {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
 }
-.post-card { animation: fadeIn 0.3s ease-out; }
-.comment-enter { opacity: 0; transform: translateY(-10px); }
-.comment-enter-active { opacity: 1; transform: translateY(0); transition: all 0.2s ease-out; }
+
+/* Адаптивность для мобильных */
+@media (max-width: 768px) {
+  .vkui__panel__in {
+    -webkit-overflow-scrolling: touch;
+  }
+}
