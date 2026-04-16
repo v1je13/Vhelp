@@ -105,7 +105,15 @@ app.get('/api/posts', async (c) => {
     // 🔥 Проверяем, что images есть в результате
     console.log('📋 Post images:', results[0]?.images);
     
-    return c.json({ posts: results, page, hasMore: results.length === limit });
+    // 🔥 Приводим поля к единому формату
+    const postsWithDetails = results.map(post => ({
+      ...post,
+      first_name: post.first_name || post.firstName,
+      last_name: post.last_name || post.lastName,
+      avatar: post.avatar || post.photo
+    }));
+    
+    return c.json({ posts: postsWithDetails, page, hasMore: results.length === limit });
   } catch (err) {
     return c.json({ error: 'Failed to fetch posts' }, 500);
   }
