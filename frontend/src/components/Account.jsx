@@ -70,21 +70,31 @@ export function Account({ user, onUserUpdate, onLogout }) {
         }
       });
 
-      // Таймаут 5 секунд для локальной разработки
-      setTimeout(() => {
+      // Таймаут 10 секунд (больше времени для VK Bridge)
+      const timeoutId = setTimeout(() => {
         if (loading) {
-          setDebugInfo('⏱ Таймаут VK Bridge (нормально для локальной разработки)');
-          console.warn('⏱ VK Bridge не ответил за 5 секунд - это нормально при запуске вне VK');
+          console.error('⏱ VK Bridge timeout после 10 секунд');
+          console.log('🔍 Проверьте:');
+          console.log('  1. Приложение настроено в VK Developers?');
+          console.log('  2. Базовый доверенный URL совпадает с Vercel URL?');
+          console.log('  3. Откройте консоль (F12) и посмотрите логи VK Bridge');
+          
+          setDebugInfo('⏱ VK Bridge не ответил');
+          setError(
+            'VK Bridge не ответил. Проверьте настройки приложения в VK Developers.'
+          );
           setLoading(false);
-          setError('VK Bridge не ответил. Откройте приложение внутри VK для авторизации.');
         }
-      }, 5000);
+      }, 10000); // 10 секунд вместо 5
     };
     
     initAuth();
     
     // Cleanup
-    return () => unsubscribe?.();
+    return () => {
+      unsubscribe?.();
+      clearTimeout(timeoutId);
+    };
   }, [user, onUserUpdate, loading]);
 
   // 📋 Состояния отображения
