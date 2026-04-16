@@ -15,11 +15,10 @@ import { api } from './api/client';
 
 function App() {
   const [activePanel, setActivePanel] = useState('account');
-  const [selectedPostId, setSelectedPostId] = useState(null);
   const [user, setUser] = useState(null);
   const [isReady, setIsReady] = useState(false);
+  const [selectedPostId, setSelectedPostId] = useState(null);
   const [selectedTripId, setSelectedTripId] = useState(null);
-  const [selectedTag, setSelectedTag] = useState(null);
   const [showBottomNav, setShowBottomNav] = useState(true);
   
   useEffect(() => {
@@ -38,21 +37,19 @@ function App() {
   // Открыть пост из профиля
   const handleOpenPost = (postId) => {
     setSelectedPostId(postId);
-    setActivePanel('post-detail');
-  };
-  
-  const handleClosePost = () => {
-    setSelectedPostId(null);
-    setActivePanel('feed');
   };
 
-  const handleOpenTrip = (tripName) => {
-    setSelectedTag(tripName);
+  const handleClosePost = () => {
+    setSelectedPostId(null);
+  };
+
+  const handleOpenTrip = (tripId) => {
+    setSelectedTripId(tripId);
     setActivePanel('trip-posts');
   };
 
   const handleCloseTrip = () => {
-    setSelectedTag(null);
+    setSelectedTripId(null);
     setActivePanel('trips');
   };
 
@@ -118,23 +115,29 @@ function App() {
                 />
               </Panel>
               
-              {/* 🔥 Новая панель с постами по тэгу */}
+              {/* 🔥 TripPosts с onOpenPost */}
               <Panel id="trip-posts">
-                {selectedTag && <TripPosts tag={selectedTag} onBack={handleCloseTrip} />}
-              </Panel>
-              
-              {/* Детальный просмотр поста */}
-              <Panel id="post-detail">
-                {selectedPostId && (
-                  <PostDetail 
-                    id={selectedPostId}
-                    onBack={handleClosePost}
-                    user={user}
+                {selectedTripId && (
+                  <TripPosts 
+                    tripId={selectedTripId}
+                    onBack={handleCloseTrip}
+                    onOpenPost={handleOpenPost}
                   />
                 )}
               </Panel>
             </View>
-            
+
+            {/* PostDetail - условный рендеринг */}
+            {selectedPostId && (
+              <Panel id="post-detail" style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, zIndex: 100 }}>
+                <PostDetail 
+                  id={selectedPostId}
+                  onBack={handleClosePost}
+                  user={user}
+                />
+              </Panel>
+            )}
+
             {/* Нижняя навигация */}
             {showBottomNav && (
               <div style={{

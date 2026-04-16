@@ -234,12 +234,23 @@ app.delete('/api/trips/:id', auth, async (c) => {
   }
 });
 
-// 🌍 Получить заметки путешествия
+// 🔥 Получить заметки путешествия (обновлённый)
 app.get('/api/trips/:id/notes', auth, async (c) => {
   try {
     const db = c.env.DB;
     const tripId = c.req.param('id');
+    const userId = c.get('user').userId;
     
+    // Проверяем, что путешествие принадлежит пользователю
+    const trip = await db.prepare(`
+      SELECT * FROM trips WHERE id = ? AND user_id = ?
+    `).bind(tripId, userId).first();
+    
+    if (!trip) {
+      return c.json({ error: 'Trip not found' }, 404);
+    }
+    
+    // Получаем заметки с информацией о пользователе
     const { results } = await db.prepare(`
       SELECT n.*, u.first_name, u.last_name, u.avatar
       FROM notes n
@@ -248,8 +259,9 @@ app.get('/api/trips/:id/notes', auth, async (c) => {
       ORDER BY n.created_at DESC
     `).bind(tripId).all();
     
-    return c.json({ notes: results });
+    return c.json({ notes: results, posts: results });
   } catch (err) {
+    console.error('Fetch trip notes error:', err);
     return c.json({ error: 'Failed to fetch notes' }, 500);
   }
 });

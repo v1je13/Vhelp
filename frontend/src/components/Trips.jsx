@@ -160,7 +160,7 @@ export function Trips({ user, onOpenTrip }) {
                   
                   <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
                     <Button mode="secondary" size="s" before={<Icon24DeleteOutline />} onClick={(e) => { e.stopPropagation(); handleDeleteTrip(trip.id, e); }} style={{ background: 'rgba(255,255,255,0.9)' }} />
-                    <Button mode="primary" size="s" onClick={(e) => { e.stopPropagation(); onOpenTrip?.(trip.name); }}>Далее</Button>
+                    <Button mode="primary" size="s" onClick={(e) => { e.stopPropagation(); onOpenTrip?.(trip.id); }}>Далее</Button>
                   </div>
                 </div>
               </div>
