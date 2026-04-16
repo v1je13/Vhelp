@@ -15,7 +15,7 @@
     "dev:server": "cd server && npm install && nodemon server.js"
   },
   "dependencies": {
-    "@vitejs/plugin-legacy": "^5.3.1",
+    "@vitejs/plugin-legacy": "^6.0.0",
     "@vitejs/plugin-react": "^4.2.1",
     "@vkontakte/vk-bridge": "^2.15.11",
     "@vkontakte/vk-bridge-react": "^1.0.1",
