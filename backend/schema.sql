@@ -51,6 +51,37 @@ CREATE INDEX IF NOT EXISTS idx_comments_created_at ON comments(created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_users_name ON users(first_name, last_name);
 CREATE INDEX IF NOT EXISTS idx_posts_text ON posts(text);
 
+-- 🌍 Путешествия
+CREATE TABLE IF NOT EXISTS trips (
+  id TEXT PRIMARY KEY,
+  user_id TEXT NOT NULL,
+  name TEXT NOT NULL,
+  description TEXT,
+  cover_image TEXT,
+  created_at INTEGER DEFAULT (strftime('%s', 'now') * 1000),
+  updated_at INTEGER DEFAULT (strftime('%s', 'now') * 1000),
+  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+-- 🌍 Заметки путешествий
+CREATE TABLE IF NOT EXISTS notes (
+  id TEXT PRIMARY KEY,
+  trip_id TEXT NOT NULL,
+  user_id TEXT NOT NULL,
+  title TEXT,
+  content TEXT NOT NULL,
+  images TEXT,
+  location TEXT,
+  created_at INTEGER DEFAULT (strftime('%s', 'now') * 1000),
+  FOREIGN KEY (trip_id) REFERENCES trips(id) ON DELETE CASCADE,
+  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+-- Индексы
+CREATE INDEX IF NOT EXISTS idx_trips_user_id ON trips(user_id);
+CREATE INDEX IF NOT EXISTS idx_notes_trip_id ON notes(trip_id);
+CREATE INDEX IF NOT EXISTS idx_notes_created_at ON notes(created_at DESC);
+
 -- 🔥 Полнотекстовый поиск по постам (опционально, для больших объёмов)
 CREATE VIRTUAL TABLE IF NOT EXISTS posts_fts USING fts5(
   text, content='posts', content_rowid='rowid'

@@ -159,6 +159,101 @@ app.get('/api/users/:id/posts', async (c) => {
   }
 });
 
+// 🌍 Получить путешествия пользователя
+app.get('/api/trips', auth, async (c) => {
+  try {
+    const db = c.env.DB;
+    const userId = c.get('user').userId;
+    
+    const { results } = await db.prepare(`
+      SELECT t.*, 
+             (SELECT COUNT(*) FROM notes WHERE trip_id = t.id) as notes_count
+      FROM trips t
+      WHERE t.user_id = ?
+      ORDER BY t.created_at DESC
+    `).bind(userId).all();
+    
+    return c.json({ trips: results });
+  } catch (err) {
+    return c.json({ error: 'Failed to fetch trips' }, 500);
+  }
+});
+
+// 🌍 Создать путешествие
+app.post('/api/trips', auth, async (c) => {
+  try {
+    const db = c.env.DB;
+    const userId = c.get('user').userId;
+    const { name, description, cover_image } = await c.req.json();
+    
+    if (!name || name.trim().length < 3) {
+      return c.json({ error: 'Name required (min 3 chars)' }, 400);
+    }
+    
+    const tripId = crypto.randomUUID();
+    await db.prepare(`
+      INSERT INTO trips (id, user_id, name, description, cover_image)
+      VALUES (?, ?, ?, ?, ?)
+    `).bind(tripId, userId, name.trim(), description || '', cover_image || '').run();
+    
+    const trip = await db.prepare(`
+      SELECT * FROM trips WHERE id = ?
+    `).bind(tripId).first();
+    
+    return c.json({ trip }, 201);
+  } catch (err) {
+    return c.json({ error: 'Failed to create trip' }, 500);
+  }
+});
+
+// 🌍 Удалить путешествие
+app.delete('/api/trips/:id', auth, async (c) => {
+  try {
+    const db = c.env.DB;
+    const tripId = c.req.param('id');
+    const userId = c.get('user').userId;
+    
+    // Проверяем, что путешествие принадлежит пользователю
+    const trip = await db.prepare(`
+      SELECT * FROM trips WHERE id = ? AND user_id = ?
+    `).bind(tripId, userId).first();
+    
+    if (!trip) {
+      return c.json({ error: 'Trip not found' }, 404);
+    }
+    
+    // Удаляем все заметки путешествия
+    await db.prepare(`DELETE FROM notes WHERE trip_id = ?`).bind(tripId).run();
+    
+    // Удаляем путешествие
+    await db.prepare(`DELETE FROM trips WHERE id = ?`).bind(tripId).run();
+    
+    return c.json({ success: true });
+  } catch (err) {
+    return c.json({ error: 'Failed to delete trip' }, 500);
+  }
+});
+
+// 🌍 Получить заметки путешествия
+app.get('/api/trips/:id/notes', auth, async (c) => {
+  try {
+    const db = c.env.DB;
+    const tripId = c.req.param('id');
+    
+    const { results } = await db.prepare(`
+      SELECT n.*, u.first_name, u.last_name, u.avatar
+      FROM notes n
+      JOIN users u ON n.user_id = u.id
+      WHERE n.trip_id = ?
+      ORDER BY n.created_at DESC
+    `).bind(tripId).all();
+    
+    return c.json({ notes: results });
+  } catch (err) {
+    return c.json({ error: 'Failed to fetch notes' }, 500);
+  }
+});
+
 // � Получить один пост по ID (добавлен ПЕРЕД /api/posts)
 app.get('/api/posts/:id', async (c) => {
   try {
