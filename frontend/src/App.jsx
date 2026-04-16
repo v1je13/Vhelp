@@ -1,14 +1,13 @@
-// src/App.jsx — ФИНАЛЬНАЯ ВЕРСИЯ (совместима с VKUI 7.x)
+// src/App.jsx — для VKUI 7.8.0
 import { useState, useEffect } from 'react';
 import { 
   AdaptivityProvider, AppRoot, SplitLayout, SplitCol, 
-  View, Panel, PanelHeader, Spinner
-  // ❌ Убрали Text — он может не существовать в вашей версии
+  View, Panel, PanelHeader, Text, Spinner
 } from '@vkontakte/vkui';
 import '@vkontakte/vkui/dist/vkui.css';
 
 import { Account } from './components/Account';
-// import { Feed } from './components/Feed';  // ← пока закомментируйте
+// import { Feed } from './components/Feed';  // пока закомментируйте
 import { api } from './api/client';
 
 function App() {
@@ -36,7 +35,8 @@ function App() {
           <SplitCol>
             <View activePanel="loading">
               <Panel id="loading" centered>
-                <div style={{ padding: 20, textAlign: 'center' }}>Загрузка...</div>
+                <Spinner size="large" />
+                <Text style={{ marginTop: 10 }}>Загрузка...</Text>
               </Panel>
             </View>
           </SplitCol>
@@ -53,22 +53,12 @@ function App() {
             <View activePanel={activePanel}>
               <Panel id="account">
                 <PanelHeader>Аккаунт</PanelHeader>
-                {/* 🔥 Передаём user и хендлеры в Account */}
                 <Account 
                   user={user} 
                   onUserUpdate={handleUserUpdate}
                   onLogout={handleLogout}
                 />
               </Panel>
-              
-              {/* Feed пока закомментирован — раскомментируйте, когда почините FormItem */}
-              {/* {user && (
-                <Panel id="feed">
-                  <PanelHeader>Лента</PanelHeader>
-                  <Feed user={user} />
-                </Panel>
-              )} */}
-              
             </View>
           </SplitCol>
         </SplitLayout>
