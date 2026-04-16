@@ -44,13 +44,20 @@ export function Feed({ user }) {
   };
   
   const handleLike = async (postId) => {
+    console.log('❤️ Like post:', postId);  // ← добавь лог
+    
+    if (!postId) {
+      console.error('❌ handleLike: postId is undefined!');
+      return;
+    }
+    
     try {
-      const { liked, count } = await api.toggleLike(postId);
+      const { liked, count } = await api.toggleLike(postId);  // ← убедись, что postId передаётся
       setPosts(prev => prev.map(p => 
         p._id === postId ? { ...p, likes: liked ? [...(p.likes||[]), user.id] : p.likes.filter(id => id !== user.id), likesCount: count } : p
       ));
     } catch (err) {
-      console.error('Like error:', err);
+      console.error('❌ Like failed:', err);
     }
   };
 
@@ -140,7 +147,14 @@ export function Feed({ user }) {
             <Button 
               mode={post.likes?.includes(user?.id) ? 'primary' : 'secondary'}
               size="s"
-              onClick={() => handleLike(post._id)}
+              onClick={(e) => {
+                e.stopPropagation(); // предотврати всплытие, если нужно
+                if (!post?._id) {
+                  console.error('❌ Like: post._id is undefined', post);
+                  return;
+                }
+                handleLike(post._id);
+              }}
             >
               ❤️ {post.likes?.length || 0}
             </Button>
