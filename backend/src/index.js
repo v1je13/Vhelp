@@ -1,108 +1,54 @@
+// backend/src/index.js
 import { Hono } from 'hono';
-import { cors } from 'hono/cors';
-import mongoose from 'mongoose';
-import jwt from 'jsonwebtoken';
-import bcrypt from 'bcryptjs';
-// 🔥 Исправленный импорт:
-import crypto from 'node:crypto';
 
 const app = new Hono();
 
-// 🔐 CORS — разрешаем только ваш фронтенд и VK
-app.use('/*', cors({
-  origin: ['https://vk.com', 'https://*.vk.com', process.env.FRONTEND_URL],
-  allowMethods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowHeaders: ['Content-Type', 'Authorization'],
-  credentials: true,
-}));
-
-// 🗄 MongoDB connection (кэшируем)
-let mongoClient = null;
-async function getDB() {
-  if (mongoClient) return mongoClient;
-  mongoClient = await mongoose.connect(process.env.MONGODB_URI, { bufferCommands: false });
-  console.log('MongoDB connected');
-  return mongoClient;
-}
-
-// Функция проверки подписи VK (использует crypto)
-function verifyVKSignature(params, clientSecret) {
-  const { sign, ...data } = params;
-  const sorted = Object.keys(data).sort().map(k => `${k}=${data[k]}`).join('');
-  // � Теперь crypto работает корректно:
-  const hash = crypto.createHmac('sha256', clientSecret).update(sorted).digest('hex');
-  return hash === sign;
-}
-
-// �🔐 VK Auth middleware (упрощённая версия)
-const vkAuth = async (c, next) => {
-  const { vk_user_id, sign } = await c.req.json();
-  if (!vk_user_id || !sign) return c.json({ message: 'VK auth data required' }, 401);
+// � Ручной CORS middleware (работает всегда)
+app.use('*', async (c, next) => {
+  // Разрешённые источники
+  const allowedOrigins = [
+    'https://vhelp.vercel.app',
+    'https://vk.com',
+    'https://*.vk.com',
+    'https://vk.ru',
+    'https://*.vk.ru'
+  ];
   
-  // В production добавьте проверку подписи через crypto
-  if (process.env.NODE_ENV === 'production' && !verifyVKSignature({ vk_user_id, sign }, process.env.VK_CLIENT_SECRET)) {
-    return c.json({ message: 'Invalid VK signature' }, 401);
+  const origin = c.req.header('Origin') || '';
+  const isAllowed = allowedOrigins.some(pattern => 
+    origin === pattern || 
+    (pattern.includes('*') && new RegExp('^' + pattern.replace(/\*/g, '.*') + '$').test(origin))
+  );
+  
+  if (isAllowed || process.env.NODE_ENV !== 'production') {
+    c.header('Access-Control-Allow-Origin', origin === '' ? '*' : origin);
+    c.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+    c.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With');
+    c.header('Access-Control-Allow-Credentials', 'true');
+    c.header('Access-Control-Max-Age', '86400'); // кэш preflight на 24 часа
   }
   
-  const db = await getDB();
-  let user = await db.model('User').findOne({ vkId: vk_user_id });
-  if (!user) {
-    // Создаём нового пользователя (упрощённо)
-    user = new db.model('User')({ vkId: vk_user_id, firstName: 'User', lastName: '' });
-    await user.save();
+  // Обработка preflight-запроса
+  if (c.req.method === 'OPTIONS') {
+    return c.text('', 204);
   }
-  c.set('user', user);
+  
   await next();
-};
+});
 
 // 🏥 Health check
-app.get('/api/health', (c) => c.json({ status: 'ok' }));
-
-// 🔐 VK авторизация
-app.post('/api/auth/vk', vkAuth, async (c) => {
-  const user = c.get('user');
-  const token = jwt.sign({ userId: user._id }, process.env.JWT_SECRET, { expiresIn: '30d' });
-  return c.json({
-    token,
-    user: {
-      id: user._id,
-      vkId: user.vkId,
-      firstName: user.firstName,
-      lastName: user.lastName,
-      avatar: user.avatar,
-      bio: user.bio
-    }
+app.get('/api/health', (c) => {
+  return c.json({ 
+    status: 'ok', 
+    worker: 'vhelp-api',
+    timestamp: new Date().toISOString()
   });
 });
 
-// 👤 Получение текущего пользователя
-app.get('/api/auth/me', async (c) => {
-  const token = c.req.header('Authorization')?.replace('Bearer ', '');
-  if (!token) return c.json({ message: 'No token' }, 401);
-  
-  try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    const db = await getDB();
-    const user = await db.model('User').findById(decoded.userId).select('-password');
-    if (!user) return c.json({ message: 'User not found' }, 404);
-    return c.json({
-      id: user._id,
-      vkId: user.vkId,
-      firstName: user.firstName,
-      lastName: user.lastName,
-      avatar: user.avatar,
-      bio: user.bio
-    });
-  } catch {
-    return c.json({ message: 'Invalid token' }, 401);
-  }
-});
-
-// 📦 Пример: получение постов (адаптируйте под вашу логику)
-app.get('/api/posts', async (c) => {
-  const db = await getDB();
-  const posts = await db.model('Post').find().sort({ createdAt: -1 }).limit(50);
-  return c.json({ posts });
+// � Пример: авторизация (заглушка)
+app.post('/api/auth/vk', async (c) => {
+  // Ваша логика авторизации здесь
+  return c.json({ message: 'Auth endpoint ready' });
 });
 
 // 🔁 Экспорт для Cloudflare Workers
