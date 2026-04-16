@@ -44,17 +44,19 @@ export function Feed({ user }) {
   };
   
   const handleLike = async (postId) => {
-    console.log('❤️ Like post:', postId);  // ← добавь лог
-    
+    // 🔥 Проверка перед запросом
     if (!postId) {
-      console.error('❌ handleLike: postId is undefined!');
+      console.error('❌ Like error: postId is missing');
+      await vk.showNotification('Ошибка', 'Не удалось лайкнуть', 'error');
       return;
     }
+    
+    console.log('❤️ Like post:', postId);  // ← добавь лог
     
     try {
       const { liked, count } = await api.toggleLike(postId);  // ← убедись, что postId передаётся
       setPosts(prev => prev.map(p => 
-        p._id === postId ? { ...p, likes: liked ? [...(p.likes||[]), user.id] : p.likes.filter(id => id !== user.id), likesCount: count } : p
+        p.id === postId ? { ...p, likes: liked ? [...(p.likes||[]), user.id] : p.likes.filter(id => id !== user.id), likesCount: count } : p
       ));
     } catch (err) {
       console.error('❌ Like failed:', err);
@@ -133,7 +135,7 @@ export function Feed({ user }) {
       
       {/* Лента постов */}
       {posts.map(post => (
-        <Card key={post._id} style={{ padding: 15, marginBottom: 10 }}>
+        <Card key={post.id} style={{ padding: 15, marginBottom: 10 }}>
           <div style={{ display: 'flex', alignItems: 'center', marginBottom: 10 }}>
             <Avatar src={post.userId?.avatar} size={40} />
             <div style={{ marginLeft: 10 }}>
@@ -149,11 +151,11 @@ export function Feed({ user }) {
               size="s"
               onClick={(e) => {
                 e.stopPropagation(); // предотврати всплытие, если нужно
-                if (!post?._id) {
-                  console.error('❌ Like: post._id is undefined', post);
+                if (!post?.id) {
+                  console.error('❌ Like: post.id is undefined', post);
                   return;
                 }
-                handleLike(post._id);
+                handleLike(post.id);
               }}
             >
               ❤️ {post.likes?.length || 0}
@@ -163,7 +165,7 @@ export function Feed({ user }) {
           {/* Комментарии */}
           <div style={{ marginTop: 15, borderTop: '1px solid #eee', paddingTop: 10 }}>
             <div style={{ marginBottom: 10 }}>
-              {comments[post._id]?.map(comment => (
+              {comments[post.id]?.map(comment => (
                 <div key={comment.id} style={{ display: 'flex', gap: 10, marginBottom: 8 }}>
                   <Avatar src={comment.avatar} size={32} />
                   <div>
@@ -180,7 +182,7 @@ export function Feed({ user }) {
             <form onSubmit={async (e) => {
               e.preventDefault();
               if (!commentText.trim()) return;
-              await handleAddComment(post._id, commentText);
+              await handleAddComment(post.id, commentText);
               setCommentText('');
             }}>
               <input 
