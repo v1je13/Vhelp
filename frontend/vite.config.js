@@ -6,8 +6,7 @@ export default defineConfig({
   plugins: [react()],
   build: {
     outDir: 'build',
-    target: 'esnext', // Современные браузеры (VK Mini Apps)
-    minify: 'terser'
+    target: 'esnext'
   },
   server: {
     port: 5173,
