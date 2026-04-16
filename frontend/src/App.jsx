@@ -2,7 +2,7 @@
 import { useState, useEffect } from 'react';
 import { 
   AdaptivityProvider, AppRoot, SplitLayout, SplitCol, 
-  View, Panel, PanelHeader, Text, Spinner
+  View, Panel, PanelHeader, Text, Spinner, Button
 } from '@vkontakte/vkui';
 import '@vkontakte/vkui/dist/vkui.css';
 
@@ -66,6 +66,39 @@ function App() {
                 </Panel>
               )}
             </View>
+            
+            {/* 🔥 Нижняя навигация */}
+            {user && (
+              <div style={{ 
+                position: 'fixed', 
+                bottom: 0, 
+                left: 0, 
+                right: 0, 
+                background: '#fff', 
+                borderTop: '1px solid #eee',
+                display: 'flex',
+                justifyContent: 'space-around',
+                padding: '8px 0',
+                zIndex: 100
+              }}>
+                <Button 
+                  mode={activePanel === 'account' ? 'primary' : 'secondary'} 
+                  size="s"
+                  onClick={() => setActivePanel('account')}
+                  style={{ width: '45%' }}
+                >
+                  👤 Аккаунт
+                </Button>
+                <Button 
+                  mode={activePanel === 'feed' ? 'primary' : 'secondary'} 
+                  size="s"
+                  onClick={() => setActivePanel('feed')}
+                  style={{ width: '45%' }}
+                >
+                  📰 Лента
+                </Button>
+              </div>
+            )}
           </SplitCol>
         </SplitLayout>
       </AppRoot>
