@@ -10,7 +10,7 @@ import {
   Input,
   Avatar
 } from '@vkontakte/vkui';
-import { Icon24Add, Icon24User, Icon24DeleteOutline, Icon24Camera } from '@vkontakte/icons';
+import { Icon24DeleteOutline, Icon24Add, Icon24Camera } from '@vkontakte/icons';
 import { api } from '../api/client';
 import { vk } from '../lib/vk';
 
@@ -115,61 +115,16 @@ export function Trips({ user, onOpenTrip }) {
   return (
     <Panel id="trips">
       <PanelHeader 
-        right={
-          <Button 
-            mode="primary" 
-            size="s"
-            before={<Icon24Add />}
-            onClick={() => setShowCreateModal(true)}
-          >
-            Создать
-          </Button>
-        }
-      >
-        Дневник
-      </PanelHeader>
+        right={<Button mode="primary" size="s" before={<Icon24Add />} onClick={() => setShowCreateModal(true)}>Создать</Button>}
+      >Дневник</PanelHeader>
 
       <div style={{ padding: 10, minHeight: '100vh', paddingBottom: 80 }}>
         {trips.length === 0 ? (
-          <div style={{ 
-            display: 'flex', 
-            flexDirection: 'column', 
-            alignItems: 'center', 
-            justifyContent: 'center',
-            minHeight: '60vh',
-            padding: 20
-          }}>
-            <Placeholder
-              header="Пока нет путешествий"
-              action={
-                <Button 
-                  mode="primary" 
-                  size="m"
-                  onClick={() => setShowCreateModal(true)}
-                  style={{ marginTop: 15 }}
-                >
-                  Создать первое путешествие
-                </Button>
-              }
-            >
-              Создайте путешествие, чтобы начать вести дневник
-            </Placeholder>
-          </div>
+          <Placeholder header="Пока нет путешествий" action={<Button mode="primary" onClick={() => setShowCreateModal(true)}>Создать первое путешествие</Button>}>Создайте путешествие, чтобы начать вести дневник</Placeholder>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
             {trips.map(trip => (
-              <div
-                key={trip.id}
-                onClick={() => onOpenTrip?.(trip.id)}
-                style={{
-                  position: 'relative',
-                  borderRadius: 12,
-                  overflow: 'hidden',
-                  cursor: 'pointer',
-                  boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
-                  minHeight: 150
-                }}
-              >
+              <div key={trip.id} style={{ position: 'relative', borderRadius: 12, overflow: 'hidden', cursor: 'pointer', boxShadow: '0 2px 8px rgba(0,0,0,0.15)', minHeight: 150 }}>
                 {/* Фон (если есть) */}
                 {trip.cover_image ? (
                   <img
@@ -200,15 +155,12 @@ export function Trips({ user, onOpenTrip }) {
                 }}>
                   <div>
                     <div style={{ fontSize: 20, fontWeight: 600, marginBottom: 4 }}>{trip.name}</div>
-                    <div style={{ fontSize: 13, opacity: 0.8 }}>
-                      {trip.notes_count || 0} {trip.notes_count === 1 ? 'заметка' : trip.notes_count < 5 ? 'заметки' : 'заметок'}
-                    </div>
+                    <div style={{ fontSize: 13, opacity: 0.8 }}>{trip.notes_count || 0} заметок</div>
                   </div>
                   
                   <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
-                    <Button mode="secondary" size="s" before={<Icon24User />} style={{ background: 'rgba(255,255,255,0.9)' }} />
-                    <Button mode="secondary" size="s" before={<Icon24DeleteOutline />} onClick={(e) => handleDeleteTrip(trip.id, e)} style={{ background: 'rgba(255,255,255,0.9)' }} />
-                    <Button mode="primary" size="s" onClick={(e) => { e.stopPropagation(); onOpenTrip?.(trip.id); }}>Далее</Button>
+                    <Button mode="secondary" size="s" before={<Icon24DeleteOutline />} onClick={(e) => { e.stopPropagation(); handleDeleteTrip(trip.id, e); }} style={{ background: 'rgba(255,255,255,0.9)' }} />
+                    <Button mode="primary" size="s" onClick={(e) => { e.stopPropagation(); onOpenTrip?.(trip.name); }}>Далее</Button>
                   </div>
                 </div>
               </div>

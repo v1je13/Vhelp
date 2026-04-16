@@ -123,6 +123,12 @@ export const api = {
     return this.request(`/api/posts/search?q=${encodeURIComponent(query)}`);
   },
 
+  // 🔍 Посты по тэгу
+  async getPostsByTag(tag) {
+    const res = await this.request(`/api/tags/${encodeURIComponent(tag)}/posts`);
+    return res;
+  },
+
   // 
   async uploadPhoto(file) {
     const formData = new FormData();

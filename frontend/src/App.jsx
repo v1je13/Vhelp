@@ -10,6 +10,7 @@ import { Feed } from './components/Feed';
 import { PostDetail } from './components/PostDetail';
 import { Profile } from './components/Profile';
 import { Trips } from './components/Trips';
+import { TripPosts } from './components/TripPosts';
 import { api } from './api/client';
 
 function App() {
@@ -18,6 +19,7 @@ function App() {
   const [user, setUser] = useState(null);
   const [isReady, setIsReady] = useState(false);
   const [selectedTripId, setSelectedTripId] = useState(null);
+  const [selectedTag, setSelectedTag] = useState(null);
   const [showBottomNav, setShowBottomNav] = useState(true);
   
   useEffect(() => {
@@ -44,13 +46,13 @@ function App() {
     setActivePanel('feed');
   };
 
-  const handleOpenTrip = (tripId) => {
-    setSelectedTripId(tripId);
-    setActivePanel('trips');
+  const handleOpenTrip = (tripName) => {
+    setSelectedTag(tripName);
+    setActivePanel('trip-posts');
   };
 
   const handleCloseTrip = () => {
-    setSelectedTripId(null);
+    setSelectedTag(null);
     setActivePanel('trips');
   };
 
@@ -114,6 +116,11 @@ function App() {
                   user={user}
                   onOpenTrip={handleOpenTrip}
                 />
+              </Panel>
+              
+              {/* 🔥 Новая панель с постами по тэгу */}
+              <Panel id="trip-posts">
+                {selectedTag && <TripPosts tag={selectedTag} onBack={handleCloseTrip} />}
               </Panel>
               
               {/* Детальный просмотр поста */}

@@ -9,7 +9,8 @@ import {
   Button, 
   Spinner, 
   Textarea,
-  Placeholder
+  Placeholder,
+  Input
 } from '@vkontakte/vkui';
 import { api } from '../api/client';
 import { vk } from '../lib/vk';
@@ -20,6 +21,7 @@ export function Feed({ user, onOpenPost }) {
   const [error, setError] = useState(null);
   const [newPost, setNewPost] = useState('');
   const [selectedPhoto, setSelectedPhoto] = useState(null);
+  const [postTags, setPostTags] = useState('');
   const [creating, setCreating] = useState(false);
 
   const formatDate = (dateValue) => {
@@ -72,11 +74,13 @@ export function Feed({ user, onOpenPost }) {
       setCreating(true);
       await api.createPost({ 
         text: newPost,
-        images: selectedPhoto ? [selectedPhoto] : []
+        images: selectedPhoto ? [selectedPhoto] : [],
+        tags: postTags.split(',').map(t => t.trim()).filter(t => t)
       });
       
       setNewPost('');
       setSelectedPhoto(null);
+      setPostTags('');
       
       const data = await api.getPosts(1);
       setPosts(data.posts || []);
@@ -191,6 +195,14 @@ export function Feed({ user, onOpenPost }) {
           <Button mode="secondary" size="s" onClick={() => document.getElementById('photo-upload')?.click()} before={<span>📷</span>}>
             Добавить фото
           </Button>
+        </div>
+        
+        <div style={{ marginBottom: 12 }}>
+          <Input 
+            value={postTags} 
+            onChange={e => setPostTags(e.target.value)} 
+            placeholder="Тэги через запятую (например: Сочи, Лето)" 
+          />
         </div>
         
         <Button 

@@ -283,7 +283,28 @@ app.get('/api/posts/:id', async (c) => {
   }
 });
 
-// � Лента постов
+// 🔍 Получить посты по тэгу
+app.get('/api/tags/:tag/posts', auth, async (c) => {
+  try {
+    const db = c.env.DB;
+    const tag = c.req.param('tag');
+    
+    // Ищем тэг внутри JSON-строки (безопасный LIKE)
+    const { results } = await db.prepare(`
+      SELECT p.*, u.first_name, u.last_name, u.avatar
+      FROM posts p
+      JOIN users u ON p.user_id = u.id
+      WHERE p.tags LIKE ?
+      ORDER BY p.created_at DESC
+    `).bind(`%"${tag}"%`).all();
+    
+    return c.json({ posts: results });
+  } catch (err) {
+    return c.json({ error: 'Failed to fetch posts by tag' }, 500);
+  }
+});
+
+// Лента постов
 app.get('/api/posts', async (c) => {
   try {
     const db = c.env.DB;
@@ -313,48 +334,33 @@ app.get('/api/posts', async (c) => {
 app.post('/api/posts', auth, async (c) => {
   try {
     const db = c.env.DB;
-    const { text, images, location } = await c.req.json();
-    
-    console.log('📥 Create post request:', { text, images, location });
+    const { text, images, tags = [] } = await c.req.json();
     
     if (!text || text.trim().length < 3) {
       return c.json({ error: 'Text required (min 3 chars)' }, 400);
     }
     
     const postId = crypto.randomUUID();
-    
-    // 🔥 Сохраняем images как JSON строку
-    const imagesJson = images && images.length > 0 
-      ? JSON.stringify(images) 
-      : '[]';
-    
-    console.log('💾 Saving images:', imagesJson);
-    
     await db.prepare(`
-      INSERT INTO posts (id, user_id, text, images, location, likes_count)
-      VALUES (?, ?, ?, ?, ?, 0)
+      INSERT INTO posts (id, user_id, text, images, tags, location, likes_count)
+      VALUES (?, ?, ?, ?, ?, ?, 0)
     `).bind(
       postId, 
       c.get('user').userId, 
       text.trim(), 
-      imagesJson,  // ← JSON строка
-      JSON.stringify(location || null)
+      JSON.stringify(images || []), 
+      JSON.stringify(tags), // ← Сохраняем тэги
+      JSON.stringify(null)
     ).run();
     
-    // Получаем созданный пост
     const post = await db.prepare(`
       SELECT p.*, u.first_name, u.last_name, u.avatar
-      FROM posts p
-      JOIN users u ON p.user_id = u.id
-      WHERE p.id = ?
+      FROM posts p JOIN users u ON p.user_id = u.id WHERE p.id = ?
     `).bind(postId).first();
-    
-    console.log('✅ Post created:', post);
     
     return c.json({ post }, 201);
   } catch (err) {
-    console.error('❌ Create post error:', err);
-    return c.json({ error: 'Failed to create post: ' + err.message }, 500);
+    return c.json({ error: 'Failed to create post' }, 500);
   }
 });
 
