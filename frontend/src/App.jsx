@@ -6,20 +6,16 @@ import {
 } from '@vkontakte/vkui';
 import '@vkontakte/vkui/dist/vkui.css';
 
-import { Account } from './components/Account';
 import { Feed } from './components/Feed';
-import { SearchBar } from './components/SearchBar';
 import { PostDetail } from './components/PostDetail';
 import { Profile } from './components/Profile';
 import { api } from './api/client';
 
 function App() {
   const [activePanel, setActivePanel] = useState('account');
-  const [selectedPost, setSelectedPost] = useState(null);
   const [selectedPostId, setSelectedPostId] = useState(null);
   const [user, setUser] = useState(null);
   const [isReady, setIsReady] = useState(false);
-  const [profileUserId, setProfileUserId] = useState(null);
   
   useEffect(() => {
     const token = localStorage.getItem('vhelp_token');
@@ -34,28 +30,14 @@ function App() {
   const handleUserUpdate = (userData) => setUser(userData);
   const handleLogout = () => { setUser(null); api.logout(); };
   
-  // Открыть пост
+  // Открыть пост из профиля
   const handleOpenPost = (postId) => {
-    console.log('📱 Opening post:', postId);
     setSelectedPostId(postId);
     setActivePanel('post-detail');
   };
   
-  // Закрыть пост (вернуться к ленте или профилю)
   const handleClosePost = () => {
     setSelectedPostId(null);
-    setActivePanel(profileUserId ? 'profile' : 'feed');
-  };
-
-  // Открыть профиль пользователя
-  const handleOpenProfile = (userId) => {
-    setProfileUserId(userId);
-    setActivePanel('profile');
-  };
-
-  // Закрыть профиль
-  const handleCloseProfile = () => {
-    setProfileUserId(null);
     setActivePanel('feed');
   };
   
@@ -82,68 +64,29 @@ function App() {
         <SplitLayout header={false}>
           <SplitCol>
             <View activePanel={activePanel}>
-              {/* 🔍 Панель поиска */}
-              <Panel id="search">
-                <PanelHeader>
-                  <Button size="s" mode="secondary" onClick={() => setActivePanel('account')}>← Назад</Button>
-                  Поиск
-                </PanelHeader>
-                <SearchBar 
-                  onUserSelect={(user) => {
-                    console.log('Выбран пользователь:', user);
-                  }}
-                  onPostSelect={(post) => {
-                    setSelectedPost(post);
-                    setActivePanel('feed');
-                  }}
-                />
-              </Panel>
-              
+              {/* Профиль (заменил Account на Profile) */}
               <Panel id="account">
-                <PanelHeader>
-                  Аккаунт
-                  <Button 
-                    size="s" 
-                    mode="secondary" 
-                    onClick={() => setActivePanel('search')}
-                    style={{ marginLeft: 10 }}
-                  >
-                    🔍
-                  </Button>
-                </PanelHeader>
-                <Account 
-                  user={user} 
-                  onUserUpdate={handleUserUpdate}
-                  onLogout={handleLogout}
-                  onOpenProfile={handleOpenProfile}
-                />
-              </Panel>
-              {user && (
-                <Panel id="feed">
-                  <PanelHeader>Лента</PanelHeader>
-                  <Feed 
-                    user={user} 
-                    onOpenPost={handleOpenPost}
-                  />
-                </Panel>
-              )}
-
-              {/* Profile */}
-              <Panel id="profile">
-                {profileUserId && (
+                <PanelHeader>Профиль</PanelHeader>
+                {user && (
                   <Profile 
-                    userId={profileUserId}
+                    userId={user.id}
                     user={user}
-                    onBack={handleCloseProfile}
-                    onOpenPost={(postId) => {
-                      setSelectedPostId(postId);
-                      setActivePanel('post-detail');
-                    }}
+                    onBack={() => {}}
+                    onOpenPost={handleOpenPost}
                   />
                 )}
               </Panel>
-
-              {/* Панель детального просмотра поста */}
+              
+              {/* Лента постов */}
+              <Panel id="feed">
+                <PanelHeader>Лента</PanelHeader>
+                <Feed 
+                  user={user} 
+                  onOpenPost={handleOpenPost}
+                />
+              </Panel>
+              
+              {/* Детальный просмотр поста */}
               <Panel id="post-detail">
                 {selectedPostId && (
                   <PostDetail 
@@ -155,7 +98,7 @@ function App() {
               </Panel>
             </View>
             
-            {/* 🔥 Нижняя навигация */}
+            {/* Нижняя навигация */}
             {user && (
               <div style={{ 
                 position: 'fixed', 
@@ -175,7 +118,7 @@ function App() {
                   onClick={() => setActivePanel('account')}
                   style={{ width: '45%' }}
                 >
-                  👤 Аккаунт
+                  👤 Профиль
                 </Button>
                 <Button 
                   mode={activePanel === 'feed' ? 'primary' : 'secondary'} 
