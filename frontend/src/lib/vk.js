@@ -2,78 +2,61 @@
 import bridge from '@vkontakte/vk-bridge';
 
 export const vk = {
-  init(onAuthData) {
-    console.log('🌉 Инициализация VK Bridge...');
+  init: async (onAuth) => {
+    console.log('🌉 VK Bridge init started...');
     
-    // 1. Отправляем инициализацию
-    bridge.send('VKWebAppInit')
-      .then((data) => {
-        console.log('✅ VKWebAppInit успешен:', data);
-      })
-      .catch((err) => {
-        console.error('❌ VKWebAppInit ошибка:', err);
-      });
-    
-    // 2. Подписываемся на ВСЕ события для отладки
-    const unsubscribe = bridge.subscribe((event) => {
-      console.log('📡 VK Bridge событие:', event);
+    try {
+      // Добавь таймаут для мобильных
+      const initPromise = bridge.send('VKWebAppInit');
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('VK Bridge timeout')), 10000)
+      );
       
-      const { type, data } = event.detail || event;
+      await Promise.race([initPromise, timeoutPromise]);
+      console.log('✅ VKWebAppInit success');
       
-      // Проверяем разные типы событий с данными пользователя
-      if (type === 'VKWebAppUpdateConfig' || 
-          type === 'VKWebAppGetUserInfoResult' ||
-          type === 'VKWebAppInitDone') {
+      // Получение данных пользователя
+      try {
+        const userInfo = await bridge.send('VKWebAppGetUserInfo');
+        console.log('👤 User info:', userInfo);
         
-        console.log('👤 Данные пользователя:', data);
-        
-        if (data?.viewer_id || data?.uuid || data?.id) {
-          console.log('✅ Найдены данные для авторизации');
-          
-          // Создаём базовый объект
-          const authData = {
-            vk_user_id: String(data.viewer_id || data.uuid || data.id),
-            first_name: data.first_name,
-            last_name: data.last_name,
-            photo: data.photo_200 || data.photo_100,
-          };
-
-          // Добавляем sign ТОЛЬКО если он есть
-          if (data.sign) {
-            authData.sign = data.sign;
-          }
-
-          onAuthData?.(authData);
+        if (onAuth && userInfo.id) {
+          onAuth({
+            vk_user_id: String(userInfo.id),
+            first_name: userInfo.first_name,
+            last_name: userInfo.last_name,
+            photo: userInfo.photo_200
+          });
+        }
+      } catch (err) {
+        console.warn('⚠️ Failed to get user info:', err);
+        // Fallback для мобильных
+        if (onAuth) {
+          onAuth({
+            vk_user_id: 'mobile_fallback',
+            first_name: 'Mobile',
+            last_name: 'User',
+            photo: ''
+          });
         }
       }
       
-      // Логируем ошибки
-      if (type.includes('Error') || type.includes('Failed')) {
-        console.error('❌ VK Bridge ошибка:', type, data);
-      }
-    });
-    
-    // 3. Запрашиваем инфо о пользователе (альтернативный способ)
-    setTimeout(() => {
-      console.log('🔄 Запрос VKWebAppGetUserInfo...');
-      bridge.send('VKWebAppGetUserInfo')
-        .then((data) => {
-          console.log('✅ VKWebAppGetUserInfo ответ:', data);
-          if (data?.id) {
-            onAuthData?.({
-              vk_user_id: String(data.id),
-              first_name: data.first_name,
-              last_name: data.last_name,
-              photo: data.photo_200,
-            });
+    } catch (err) {
+      console.error('❌ VK Bridge init failed:', err);
+      
+      // 🔥 Fallback для мобильного интернета
+      if (onAuth) {
+        const savedUser = localStorage.getItem('vhelp_user');
+        if (savedUser) {
+          try {
+            onAuth(JSON.parse(savedUser));
+            console.log('🔄 Restored from localStorage');
+          } catch (e) {
+            console.error('Failed to parse saved user:', e);
           }
-        })
-        .catch((err) => {
-          console.warn('⚠️ VKWebAppGetUserInfo ошибка (это нормально):', err);
-        });
-    }, 1000);
-    
-    return unsubscribe;
+        }
+      }
+    }
   },
   
   // 🔔 Показать уведомление

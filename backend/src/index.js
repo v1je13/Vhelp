@@ -5,22 +5,37 @@ import crypto from 'node:crypto';
 
 const app = new Hono();
 
-// 🔐 CORS
+// CORS middleware
 app.use('*', async (c, next) => {
   const origin = c.req.header('Origin') || '';
-  const allowed = ['https://vhelp.vercel.app', 'https://vk.com', 'https://*.vk.com'];
+  
+  // Разрешаем все домены для отладки (в продакшене укажи конкретные)
+  const allowed = [
+    'https://vhelp.vercel.app',
+    'https://vk.com',
+    'https://*.vk.com',
+    'https://dev.vk.com',
+    'http://localhost:5173'
+  ];
+  
   const isAllowed = allowed.some(p => 
     origin === p || (p.includes('*') && new RegExp('^' + p.replace(/\*/g, '.*') + '$').test(origin))
   );
   
-  if (isAllowed || process.env.NODE_ENV !== 'production') {
-    c.res.headers.set('Access-Control-Allow-Origin', origin);
+  if (isAllowed || true) { // Временно разрешаем все для отладки
+    c.res.headers.set('Access-Control-Allow-Origin', origin || '*');
     c.res.headers.set('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
     c.res.headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization');
     c.res.headers.set('Access-Control-Allow-Credentials', 'true');
   }
   
-  if (c.req.method === 'OPTIONS') return new Response(null, { status: 204, headers: c.res.headers });
+  if (c.req.method === 'OPTIONS') {
+    return new Response(null, { 
+      status: 204,
+      headers: c.res.headers 
+    });
+  }
+  
   await next();
 });
 

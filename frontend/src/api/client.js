@@ -4,35 +4,57 @@ const API_BASE = import.meta.env.VITE_API_URL; // "https://.../api"
 export const api = {
   async request(endpoint, options = {}) {
     const API_BASE = import.meta.env.VITE_API_URL;
-    
-    // 🔥 Читаем токен ПЕРЕД запросом (он может появиться после авторизации)
     const token = localStorage.getItem('vhelp_token');
     
-    console.log('🔐 [API] Запрос:', endpoint, { 
-      hasToken: !!token, 
-      tokenStart: token ? token.substring(0, 20) + '...' : null 
+    console.log('� API Request:', {
+      url: `${API_BASE}${endpoint}`,
+      method: options.method || 'GET',
+      hasToken: !!token,
+      tokenLength: token?.length || 0,
+      userAgent: navigator.userAgent,
+      connection: navigator.connection?.effectiveType || 'unknown'
     });
     
-    const res = await fetch(`${API_BASE}${endpoint}`, {
-      ...options,
-      headers: {
-        'Content-Type': 'application/json',
-        // 🔥 Добавляем Authorization ТОЛЬКО если токен есть
-        ...(token && { 
-          'Authorization': `Bearer ${token}`  // ← префикс "Bearer " обязателен!
-        }),
-        ...options.headers
+    try {
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 15000); // 15 сек для мобильных
+      
+      const res = await fetch(`${API_BASE}${endpoint}`, {
+        ...options,
+        signal: controller.signal,
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token && { 'Authorization': `Bearer ${token}` }),
+          ...options.headers
+        }
+      });
+      
+      clearTimeout(timeout);
+      
+      console.log('📥 API Response:', {
+        status: res.status,
+        ok: res.ok,
+        url: res.url
+      });
+      
+      const data = await res.json();
+      
+      if (!res.ok) {
+        console.error('❌ API Error:', data);
+        throw new Error(data.error || 'Request failed');
       }
-    });
-    
-    const data = await res.json();
-    
-    if (!res.ok) {
-      console.error('❌ [API] Ошибка:', res.status, data);
-      throw new Error(data.error || 'Request failed');
+      
+      return data;
+    } catch (err) {
+      console.error('🔥 API Fetch Error:', {
+        message: err.message,
+        name: err.name,
+        endpoint,
+        isAbort: err.name === 'AbortError',
+        isNetworkError: err.message.includes('Failed to fetch')
+      });
+      throw err;
     }
-    
-    return data;
   },
   
   // 🔐 Авторизация через VK
