@@ -1,114 +1,226 @@
 // src/components/Feed.jsx
 import { useState, useEffect } from 'react';
-import { Card, Avatar, Text, Button, Spinner, Textarea, Input } from '@vkontakte/vkui';
+import { 
+  Card, 
+  Avatar, 
+  Text, 
+  Button, 
+  Spinner, 
+  Textarea, 
+  Input,
+  Placeholder
+} from '@vkontakte/vkui';
 import { api } from '../api/client';
 import { vk } from '../lib/vk';
 
 export function Feed({ user }) {
   const [posts, setPosts] = useState([]);
-  const [comments, setComments] = useState({}); // postId -> comments array
-  const [commentTexts, setCommentTexts] = useState({}); // { postId: text }
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const [newPost, setNewPost] = useState('');
-  const [newImage, setNewImage] = useState(null);
-  const [loading, setLoading] = useState(false);
-  const [page, setPage] = useState(1);
-  
-  const loadPosts = async () => {
-    try {
-      const data = await api.getPosts(page);
-      setPosts(prev => page === 1 ? data.posts : [...prev, ...data.posts]);
-    } catch (err) {
-      console.error('Failed to load posts:', err);
-    }
+  const [commentTexts, setCommentTexts] = useState({});
+  const [comments, setComments] = useState({});
+  const [creating, setCreating] = useState(false);
+
+  // 🔥 Функция форматирования даты
+  const formatDate = (dateValue) => {
+    if (!dateValue) return 'Только что';
+    
+    // Если это число (timestamp в миллисекундах)
+    const timestamp = typeof dateValue === 'number' 
+      ? dateValue 
+      : new Date(dateValue).getTime();
+    
+    // Проверка на валидность
+    if (isNaN(timestamp) || timestamp < 0) return 'Только что';
+    
+    const date = new Date(timestamp);
+    const now = new Date();
+    const diffMs = now - date;
+    const diffMins = Math.floor(diffMs / 60000);
+    
+    // Если меньше минуты
+    if (diffMins < 1) return 'Только что';
+    if (diffMins < 60) return `${diffMins} мин. назад`;
+    
+    const diffHours = Math.floor(diffMins / 60);
+    if (diffHours < 24) return `${diffHours} ч. назад`;
+    
+    const diffDays = Math.floor(diffHours / 24);
+    if (diffDays < 7) return `${diffDays} дн. назад`;
+    
+    // Иначе полная дата
+    return date.toLocaleString('ru-RU', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
   };
-  
+
+  // Загрузка постов
   useEffect(() => {
+    const loadPosts = async () => {
+      console.log('📡 Загрузка постов...');
+      try {
+        setLoading(true);
+        const data = await api.getPosts(1);
+        console.log('✅ Посты получены:', data);
+        
+        if (data.posts && Array.isArray(data.posts)) {
+          console.log('📋 Первый пост:', data.posts[0]);
+          setPosts(data.posts);
+        } else {
+          console.warn('⚠️ posts не массив:', data);
+          setPosts([]);
+        }
+      } catch (err) {
+        console.error('❌ Ошибка загрузки постов:', err);
+        setError(err.message);
+      } finally {
+        setLoading(false);
+      }
+    };
+    
     loadPosts();
-  }, [page]);
-  
+  }, []);
+
+  // Загрузка комментариев для каждого поста
   useEffect(() => {
     const loadComments = async (postId) => {
       try {
         const { comments } = await api.getComments(postId);
-        setComments(prev => ({ ...prev, [postId]: comments }));
+        setComments(prev => ({ ...prev, [postId]: comments || [] }));
       } catch (err) {
         console.error('Failed to load comments:', err);
       }
     };
     
-    // Загружаем для всех видимых постов
     posts.forEach(post => {
       if (post.id && !comments[post.id]) {
         loadComments(post.id);
       }
     });
   }, [posts]);
-  
+
+  // Создание поста
   const handleCreatePost = async () => {
-    if (!newPost.trim() || loading) return;
-    setLoading(true);
+    if (!newPost.trim()) return;
     
     try {
-      const { post } = await api.createPost({ text: newPost, images: newImage ? [newImage] : [] });
-      setPosts(prev => [post, ...prev]);
+      setCreating(true);
+      await api.createPost({ text: newPost });
       setNewPost('');
-      setNewImage(null);
+      
+      // Перезагружаем посты
+      const data = await api.getPosts(1);
+      setPosts(data.posts || []);
+      
+      await vk.showNotification('✅', 'Пост опубликован', 'success');
     } catch (err) {
       console.error('Create post error:', err);
-      alert('Не удалось создать пост');
+      await vk.showNotification('❌', 'Не удалось создать пост', 'error');
     } finally {
-      setLoading(false);
+      setCreating(false);
     }
   };
-  
+
+  // Лайк поста
   const handleLike = async (postId) => {
-    // 🔥 Проверка перед запросом
+    console.log('❤️ Like post:', postId);
+    
     if (!postId) {
-      console.error('❌ Like error: postId is missing');
-      await vk.showNotification('Ошибка', 'Не удалось лайкнуть', 'error');
+      console.error('❌ Like error: postId is undefined');
       return;
     }
     
-    console.log('❤️ Like post:', postId);  // ← добавь лог
-    
     try {
-      const { liked, count } = await api.toggleLike(postId);  // ← убедись, что postId передаётся
-      setPosts(prev => prev.map(p => 
-        p.id === postId ? { ...p, likes: liked ? [...(p.likes||[]), user.id] : p.likes.filter(id => id !== user.id), likesCount: count } : p
+      const result = await api.likePost(postId);
+      
+      // Обновляем счётчик лайков локально
+      setPosts(prev => prev.map(post => 
+        post.id === postId 
+          ? { ...post, likes_count: result.count }
+          : post
       ));
     } catch (err) {
-      console.error('❌ Like failed:', err);
+      console.error('Like error:', err);
     }
   };
 
-  const loadComments = async (postId) => {
+  // Добавление комментария
+  const handleAddComment = async (postId, text) => {
+    if (!text.trim()) return;
+    
     try {
-      const { comments: postComments } = await api.getComments(postId);
-      setComments(prev => ({ ...prev, [postId]: postComments }));
+      const { comment } = await api.addComment(postId, text);
+      
+      // Обновляем комментарии локально
+      setComments(prev => ({
+        ...prev,
+        [postId]: [...(prev[postId] || []), comment]
+      }));
+      
+      // Очищаем поле ввода для этого поста
+      setCommentTexts(prev => ({ ...prev, [postId]: '' }));
+      
+      await vk.showNotification('✅', 'Комментарий добавлен', 'success');
     } catch (err) {
-      console.error('Load comments error:', err);
+      console.error('Comment error:', err);
+      await vk.showNotification('❌', 'Не удалось добавить комментарий', 'error');
     }
   };
 
-  // Helper functions for per-post comment text
+  // Получение текста комментария для поста
   const getCommentText = (postId) => commentTexts[postId] || '';
+  
+  // Установка текста комментария для поста
   const setCommentTextForPost = (postId, text) => {
     setCommentTexts(prev => ({ ...prev, [postId]: text }));
   };
 
-  const handleAddComment = async (postId, text) => {
-    if (!text.trim()) return;
-    try {
-      const { comment } = await api.addComment(postId, text);
-      setComments(prev => ({ ...prev, [postId]: [...(prev[postId] || []), comment] }));
-      setCommentTextForPost(postId, ''); // Clear comment text for this post
-      await vk.showNotification('✅ Готово', 'Комментарий добавлен', 'success');
-    } catch (err) {
-      console.error('Add comment error:', err);
-      await vk.showNotification('❌ Ошибка', 'Не удалось добавить комментарий', 'error');
-    }
-  };
-  
+  if (loading) {
+    return (
+      <div style={{ padding: 20, textAlign: 'center' }}>
+        <Spinner size="large" />
+        <div style={{ marginTop: 10 }}>Загрузка...</div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div style={{ padding: 20, color: 'red' }}>
+        Ошибка: {error}
+        <Button 
+          mode="secondary" 
+          onClick={() => window.location.reload()}
+          style={{ marginTop: 10 }}
+        >
+          Обновить
+        </Button>
+      </div>
+    );
+  }
+
+  if (posts.length === 0) {
+    return (
+      <div style={{ padding: 20 }}>
+        <Placeholder 
+          header="Постов пока нет"
+          action={
+            <Button mode="primary" onClick={() => window.location.reload()}>
+              Обновить
+            </Button>
+          }
+        >
+          Будьте первым, кто создаст пост!
+        </Placeholder>
+      </div>
+    );
+  }
+
   return (
     <div style={{ padding: 10 }}>
       {/* Форма создания поста */}
@@ -121,124 +233,147 @@ export function Feed({ user }) {
           rows={3}
           style={{ marginBottom: 12 }}
         />
-        <div style={{ marginBottom: 12, display: 'flex', alignItems: 'center' }}>
-          <input 
-            type="file" 
-            accept="image/*" 
-            onChange={async (e) => {
-              const file = e.target.files?.[0];
-              if (!file) return;
-              
-              try {
-                setLoading(true);
-                const photoUrl = await vk.uploadPhoto(file);
-                setNewImage(photoUrl);
-                await vk.showNotification('Успех', 'Фото загружено');
-              } catch (err) {
-                await vk.showNotification('Ошибка', err.message);
-              } finally {
-                setLoading(false);
-              }
-            }}
-            style={{ display: 'none' }}
-            id="photo-input"
-          />
-          <label htmlFor="photo-input" style={{ cursor: 'pointer', marginRight: 10, fontSize: 24 }}>
-            📷
-          </label>
-          {newImage && <Text caption style={{ marginLeft: 10 }}>Фото выбрано ✓</Text>}
-        </div>
         <Button 
           mode="primary" 
           onClick={handleCreatePost}
-          disabled={loading || !newPost.trim()}
+          disabled={creating || !newPost.trim()}
           stretched
         >
-          {loading ? <Spinner size="small" /> : 'Опубликовать'}
+          {creating ? <Spinner size="small" /> : 'Опубликовать'}
         </Button>
       </Card>
-      
-      {/* Лента постов */}
-      {posts.map(post => (
-        <Card key={post.id} style={{ padding: 15, marginBottom: 10 }}>
-          <div style={{ display: 'flex', alignItems: 'center', marginBottom: 10 }}>
-            <Avatar src={post.userId?.avatar} size={40} />
-            <div style={{ marginLeft: 10 }}>
-              <Text weight="2">{post.userId?.firstName} {post.userId?.lastName}</Text>
-              <Text caption>{new Date(post.createdAt).toLocaleDateString()}</Text>
+
+      {/* Список постов */}
+      {posts.map(post => {
+        // 🔥 Отладка поста
+        console.log('📋 Rendering post:', {
+          id: post.id,
+          firstName: post.first_name,
+          lastName: post.last_name,
+          avatar: post.avatar,
+          images: post.images,
+          createdAt: post.created_at
+        });
+        
+        return (
+          <Card key={post.id} style={{ padding: 15, marginBottom: 15 }}>
+            {/* 🔥 Шапка поста: автор и дата */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
+              {/* Аватар автора */}
+              <Avatar 
+                src={post.avatar || 'https://vk.com/images/camera_200.png'} 
+                size={40}
+              />
+              
+              {/* Имя автора */}
+              <div style={{ flex: 1 }}>
+                <Text weight="2" style={{ fontSize: 15 }}>
+                  {post.first_name || 'Пользователь'} {post.last_name || ''}
+                </Text>
+                
+                {/* Дата */}
+                <Text caption style={{ color: '#818c99', fontSize: 12 }}>
+                  {formatDate(post.created_at)}
+                </Text>
+              </div>
             </div>
-          </div>
-          <Text>{post.text}</Text>
-          {post.images && post.images !== '[]' && post.images !== 'null' && (
-            <div style={{ marginTop: 10 }}>
-              {(() => {
-                try {
-                  const imageUrls = typeof post.images === 'string' 
-                    ? JSON.parse(post.images) 
-                    : post.images;
-                  
-                  if (Array.isArray(imageUrls) && imageUrls.length > 0) {
-                    return imageUrls.map((url, idx) => (
-                      <img
-                        key={idx}
-                        src={url}
-                        alt={`Post image ${idx + 1}`}
-                        style={{
-                          width: '100%',
-                          maxHeight: 400,
-                          objectFit: 'cover',
-                          borderRadius: 8,
-                          marginTop: idx > 0 ? 8 : 0
-                        }}
-                        onError={(e) => {
-                          console.error('❌ Failed to load image:', url);
-                          e.target.style.display = 'none';
-                        }}
-                      />
-                    ));
+
+            {/* Текст поста */}
+            <Text style={{ marginBottom: 10, whiteSpace: 'pre-wrap' }}>
+              {post.text}
+            </Text>
+
+            {/* 🔥 Картинки поста */}
+            {post.images && post.images !== '[]' && post.images !== 'null' && (
+              <div style={{ marginTop: 10 }}>
+                {(() => {
+                  try {
+                    const imageUrls = typeof post.images === 'string' 
+                      ? JSON.parse(post.images) 
+                      : post.images;
+                    
+                    if (Array.isArray(imageUrls) && imageUrls.length > 0) {
+                      return imageUrls.map((url, idx) => (
+                        <img
+                          key={idx}
+                          src={url}
+                          alt={`Post image ${idx + 1}`}
+                          style={{
+                            width: '100%',
+                            maxHeight: 400,
+                            objectFit: 'cover',
+                            borderRadius: 8,
+                            marginTop: idx > 0 ? 8 : 0,
+                            display: 'block'
+                          }}
+                          onError={(e) => {
+                            console.error('❌ Failed to load image:', url);
+                            e.target.style.display = 'none';
+                          }}
+                          onLoad={() => {
+                            console.log('✅ Image loaded:', url);
+                          }}
+                        />
+                      ));
+                    }
+                    return null;
+                  } catch (err) {
+                    console.error('Error parsing images:', err, post.images);
+                    return null;
                   }
-                  return null;
-                } catch (err) {
-                  console.error('Error parsing images:', err);
-                  return null;
-                }
-              })()}
+                })()}
+              </div>
+            )}
+
+            {/* Кнопка лайка */}
+            <div style={{ marginTop: 12, display: 'flex', gap: 10 }}>
+              <Button
+                mode="secondary"
+                size="s"
+                before={<span>❤️</span>}
+                onClick={() => handleLike(post.id)}
+              >
+                {post.likes_count || 0}
+              </Button>
             </div>
-          )}
-          <div style={{ marginTop: 10, display: 'flex', gap: 20 }}>
-            <Button 
-              mode={post.likes?.includes(user?.id) ? 'primary' : 'secondary'}
-              size="s"
-              onClick={(e) => {
-                e.stopPropagation(); // предотврати всплытие, если нужно
-                if (!post?.id) {
-                  console.error('❌ Like: post.id is undefined', post);
-                  return;
-                }
-                handleLike(post.id);
-              }}
-            >
-              ❤️ {post.likes?.length || 0}
-            </Button>
-          </div>
-          
-          {/* Комментарии */}
-          <div style={{ marginTop: 15, borderTop: '1px solid #eee', paddingTop: 10 }}>
+
+            {/* Разделитель */}
+            <hr style={{ 
+              marginTop: 15, 
+              marginBottom: 10, 
+              border: 'none', 
+              borderTop: '1px solid #e7e8ec' 
+            }} />
+
+            {/* Комментарии */}
             <div style={{ marginBottom: 10 }}>
-              {comments[post.id]?.map(comment => (
-                <div key={comment.id} style={{ display: 'flex', gap: 10, marginBottom: 8 }}>
+              {/* Список комментариев */}
+              {(comments[post.id] || []).map(comment => (
+                <div key={comment.id} style={{ 
+                  display: 'flex', 
+                  gap: 10, 
+                  marginBottom: 8,
+                  padding: 8,
+                  background: '#f5f5f5',
+                  borderRadius: 6
+                }}>
                   <Avatar src={comment.avatar} size={32} />
-                  <div>
-                    <Text weight="2" style={{ fontSize: 14 }}>{comment.first_name} {comment.last_name}</Text>
-                    <div style={{ fontSize: 14 }}>{comment.text}</div>
-                    <Text caption style={{ color: '#818c99' }}>
-                      {new Date(comment.created_at).toLocaleString()}
-                    </Text>
+                  <div style={{ flex: 1 }}>
+                    <strong style={{ fontSize: 13 }}>
+                      {comment.first_name} {comment.last_name}
+                    </strong>
+                    <div style={{ fontSize: 14, marginTop: 2 }}>
+                      {comment.text}
+                    </div>
+                    <small style={{ color: '#818c99', fontSize: 11 }}>
+                      {formatDate(comment.created_at)}
+                    </small>
                   </div>
                 </div>
               ))}
             </div>
-            
+
+            {/* Форма добавления комментария */}
             <form 
               onSubmit={async (e) => {
                 e.preventDefault();
@@ -261,22 +396,9 @@ export function Feed({ user }) {
                 ➤
               </Button>
             </form>
-          </div>
-        </Card>
-      ))}
-      
-      {loading && <Spinner style={{ margin: '20px auto' }} />}
-      
-      {/* Пагинация */}
-      <Button 
-        mode="secondary" 
-        onClick={() => setPage(p => p + 1)}
-        disabled={loading}
-        stretched
-        style={{ marginTop: 20 }}
-      >
-        Загрузить ещё
-      </Button>
+          </Card>
+        );
+      })}
     </div>
   );
 }
