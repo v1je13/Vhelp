@@ -1,6 +1,6 @@
 // src/components/Feed.jsx
 import { useState, useEffect } from 'react';
-import { Card, Avatar, Text, Button, Spinner, FormItem, Textarea } from '@vkontakte/vkui';
+import { Card, Avatar, Text, Button, Spinner, Textarea } from '@vkontakte/vkui';
 import { api } from '../api/client';
 
 export function Feed({ user }) {
@@ -53,14 +53,14 @@ export function Feed({ user }) {
     <div style={{ padding: 10 }}>
       {/* Форма создания поста */}
       <Card style={{ padding: 15, marginBottom: 20 }}>
-        <FormItem top="Что у вас нового?">
-          <Textarea 
-            value={newPost}
-            onChange={e => setNewPost(e.target.value)}
-            placeholder="Напишите что-нибудь..."
-            rows={3}
-          />
-        </FormItem>
+        <Text weight="2" style={{ marginBottom: 8 }}>Что у вас новое?</Text>
+        <Textarea 
+          value={newPost}
+          onChange={e => setNewPost(e.target.value)}
+          placeholder="Напишите что-нибудь..."
+          rows={3}
+          style={{ marginBottom: 12 }}
+        />
         <Button 
           mode="primary" 
           onClick={handleCreatePost}

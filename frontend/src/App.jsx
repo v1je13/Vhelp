@@ -1,67 +1,35 @@
-// src/App.jsx
+// frontend/src/App.jsx — МИНИМАЛЬНЫЙ ТЕСТ
 import { useState, useEffect } from 'react';
-import { 
-  AdaptivityProvider, AppRoot, SplitLayout, SplitCol, 
-  View, Panel, PanelHeader 
-} from '@vkontakte/vkui';
-
-import { Account } from './components/Account';
-import { api } from './api/client';
+import { AppRoot, SplitLayout, SplitCol, View, Panel, PanelHeader, Text } from '@vkontakte/vkui';
 import '@vkontakte/vkui/dist/vkui.css';
 
+// Шаг 1: Добавляем только api
+import { api } from './api/client';
+
+// Шаг 2: Добавляем только Account
+import { Account } from './components/Account';
+
+// 🔥 Feed импорт удалён для упрощения
+
 function App() {
-  const [activePanel, setActivePanel] = useState('account');
-  const [user, setUser] = useState(null);
-  const [isReady, setIsReady] = useState(false);
-  
-  useEffect(() => {
-    const token = localStorage.getItem('vhelp_token');
-    const savedUser = localStorage.getItem('vhelp_user');
-    if (token && savedUser) {
-      try { setUser(JSON.parse(savedUser)); } 
-      catch (e) { localStorage.removeItem('vhelp_user'); }
-    }
-    setIsReady(true);
-  }, []);
-  
-  const handleUserUpdate = (userData) => setUser(userData);
-  const handleLogout = () => { setUser(null); api.logout(); };
-  
-  if (!isReady) {
-    return (
-      <AppRoot mode="embedded">
-        <SplitLayout>
-          <SplitCol>
-            <View activePanel="loading">
-              <Panel id="loading" centered>Загрузка...</Panel>
-            </View>
-          </SplitCol>
-        </SplitLayout>
-      </AppRoot>
-    );
-  }
+  const [activePanel] = useState('test');
   
   return (
-    <AdaptivityProvider>
-      <AppRoot mode="embedded">
-        <SplitLayout header={false}>
-          <SplitCol>
-            <View activePanel={activePanel}>
-              
-              <Panel id="account">
-                <PanelHeader>Аккаунт</PanelHeader>
-                <Account 
-                  user={user} 
-                  onUserUpdate={handleUserUpdate}
-                  onLogout={handleLogout}
-                />
-              </Panel>
-              
-            </View>
-          </SplitCol>
-        </SplitLayout>
-      </AppRoot>
-    </AdaptivityProvider>
+    <AppRoot mode="embedded">
+      <SplitLayout>
+        <SplitCol>
+          <View activePanel={activePanel}>
+            <Panel id="test">
+              <PanelHeader>Тест</PanelHeader>
+              <Text style={{ padding: 20 }}>
+                ✅ Если вы видите этот текст — сборка работает!<br/>
+                Проблема в импорте одного из компонентов.
+              </Text>
+            </Panel>
+          </View>
+        </SplitCol>
+      </SplitLayout>
+    </AppRoot>
   );
 }
 
