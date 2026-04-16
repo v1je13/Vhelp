@@ -7,7 +7,7 @@ import {
 import '@vkontakte/vkui/dist/vkui.css';
 
 import { Account } from './components/Account';
-// import { Feed } from './components/Feed';  // пока закомментируйте
+import { Feed } from './components/Feed';
 import { api } from './api/client';
 
 function App() {
@@ -59,6 +59,12 @@ function App() {
                   onLogout={handleLogout}
                 />
               </Panel>
+              {user && (
+                <Panel id="feed">
+                  <PanelHeader>Лента</PanelHeader>
+                  <Feed user={user} />
+                </Panel>
+              )}
             </View>
           </SplitCol>
         </SplitLayout>

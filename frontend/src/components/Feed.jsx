@@ -2,10 +2,14 @@
 import { useState, useEffect } from 'react';
 import { Card, Avatar, Text, Button, Spinner, Textarea } from '@vkontakte/vkui';
 import { api } from '../api/client';
+import { vk } from '../lib/vk';
 
 export function Feed({ user }) {
   const [posts, setPosts] = useState([]);
+  const [comments, setComments] = useState({}); // postId -> comments array
+  const [commentText, setCommentText] = useState('');
   const [newPost, setNewPost] = useState('');
+  const [newImage, setNewImage] = useState(null);
   const [loading, setLoading] = useState(false);
   const [page, setPage] = useState(1);
   
@@ -27,9 +31,10 @@ export function Feed({ user }) {
     setLoading(true);
     
     try {
-      const { post } = await api.createPost({ text: newPost });
+      const { post } = await api.createPost({ text: newPost, images: newImage ? [newImage] : [] });
       setPosts(prev => [post, ...prev]);
       setNewPost('');
+      setNewImage(null);
     } catch (err) {
       console.error('Create post error:', err);
       alert('Не удалось создать пост');
@@ -48,6 +53,27 @@ export function Feed({ user }) {
       console.error('Like error:', err);
     }
   };
+
+  const loadComments = async (postId) => {
+    try {
+      const { comments: postComments } = await api.getComments(postId);
+      setComments(prev => ({ ...prev, [postId]: postComments }));
+    } catch (err) {
+      console.error('Load comments error:', err);
+    }
+  };
+
+  const handleAddComment = async (postId, text) => {
+    if (!text.trim()) return;
+    try {
+      const { comment } = await api.addComment(postId, text);
+      setComments(prev => ({ ...prev, [postId]: [...(prev[postId] || []), comment] }));
+      await vk.showNotification('✅ Готово', 'Комментарий добавлен', 'success');
+    } catch (err) {
+      console.error('Add comment error:', err);
+      await vk.showNotification('❌ Ошибка', 'Не удалось добавить комментарий', 'error');
+    }
+  };
   
   return (
     <div style={{ padding: 10 }}>
@@ -61,6 +87,33 @@ export function Feed({ user }) {
           rows={3}
           style={{ marginBottom: 12 }}
         />
+        <div style={{ marginBottom: 12, display: 'flex', alignItems: 'center' }}>
+          <input 
+            type="file" 
+            accept="image/*" 
+            onChange={async (e) => {
+              const file = e.target.files?.[0];
+              if (!file) return;
+              
+              try {
+                setLoading(true);
+                const photoUrl = await vk.uploadPhoto(file);
+                setNewImage(photoUrl);
+                await vk.showNotification('Успех', 'Фото загружено');
+              } catch (err) {
+                await vk.showNotification('Ошибка', err.message);
+              } finally {
+                setLoading(false);
+              }
+            }}
+            style={{ display: 'none' }}
+            id="photo-input"
+          />
+          <label htmlFor="photo-input" style={{ cursor: 'pointer', marginRight: 10, fontSize: 24 }}>
+            📷
+          </label>
+          {newImage && <Text caption style={{ marginLeft: 10 }}>Фото выбрано ✓</Text>}
+        </div>
         <Button 
           mode="primary" 
           onClick={handleCreatePost}
@@ -91,6 +144,38 @@ export function Feed({ user }) {
             >
               ❤️ {post.likes?.length || 0}
             </Button>
+          </div>
+          
+          {/* Комментарии */}
+          <div style={{ marginTop: 15, borderTop: '1px solid #eee', paddingTop: 10 }}>
+            <div style={{ marginBottom: 10 }}>
+              {comments[post._id]?.map(comment => (
+                <div key={comment.id} style={{ display: 'flex', gap: 10, marginBottom: 8 }}>
+                  <Avatar src={comment.avatar} size={32} />
+                  <div>
+                    <Text weight="2" style={{ fontSize: 14 }}>{comment.first_name} {comment.last_name}</Text>
+                    <div style={{ fontSize: 14 }}>{comment.text}</div>
+                    <Text caption style={{ color: '#818c99' }}>
+                      {new Date(comment.created_at).toLocaleString()}
+                    </Text>
+                  </div>
+                </div>
+              ))}
+            </div>
+            
+            <form onSubmit={async (e) => {
+              e.preventDefault();
+              if (!commentText.trim()) return;
+              await handleAddComment(post._id, commentText);
+              setCommentText('');
+            }}>
+              <input 
+                value={commentText}
+                onChange={e => setCommentText(e.target.value)}
+                placeholder="Написать комментарий..."
+                style={{ width: '100%', padding: 8, borderRadius: 8, border: '1px solid #ddd' }}
+              />
+            </form>
           </div>
         </Card>
       ))}

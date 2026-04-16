@@ -76,11 +76,65 @@ export const vk = {
     return unsubscribe;
   },
   
-  async showNotification(title, message) {
+  // 🔔 Показать уведомление
+  async showNotification(title, message, type = 'info') {
     try {
-      await bridge.send('VKWebAppShowSnackbar', { message: `${title}: ${message}` });
+      await bridge.send('VKWebAppShowSnackbar', {
+        message: `${title}: ${message}`,
+        duration: 3000,
+        type: type // 'info', 'success', 'error'
+      });
     } catch (err) {
-      console.warn('Не удалось показать уведомление:', err);
+      // Fallback для браузеров
+      if ('Notification' in window && Notification.permission === 'granted') {
+        new Notification(title, { body: message });
+      } else {
+        console.log(`🔔 ${title}: ${message}`);
+      }
+    }
+  },
+  
+  // 🔔 Запросить разрешение на уведомления
+  async requestNotificationPermission() {
+    try {
+      const result = await bridge.send('VKWebAppSubscribeStoryApp', {});
+      return result.result;
+    } catch {
+      return false;
+    }
+  },
+  
+  // 📤 Загрузка фото через VK
+  async uploadPhoto(file) {
+    try {
+      // 1. Получаем URL для загрузки
+      const uploadUrl = await bridge.send('VKWebAppGetUploadServer', {
+        group_id: 0, // 0 = пользователь
+        album_id: 'wall' // или 'messages' для чатов
+      });
+      
+      // 2. Загружаем файл на сервер VK
+      const formData = new FormData();
+      formData.append('file', file);
+      
+      const uploadResponse = await fetch(uploadUrl.upload_url, {
+        method: 'POST',
+        body: formData
+      });
+      const uploadData = await uploadResponse.json();
+      
+      // 3. Сохраняем фото
+      const saveResponse = await bridge.send('VKWebAppSaveWallPhoto', {
+        photo: uploadData.photo,
+        server: uploadData.server,
+        hash: uploadData.hash,
+        group_id: 0
+      });
+      
+      return saveResponse.photos?.[0]?.sizes?.[0]?.url;
+    } catch (err) {
+      console.error('VK photo upload error:', err);
+      throw new Error('Failed to upload photo');
     }
   }
 };
