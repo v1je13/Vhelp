@@ -1,4 +1,4 @@
-import mongoose from 'mongoose';
+const mongoose = require('mongoose');
 
 const postSchema = new mongoose.Schema({
   author: {
@@ -42,4 +42,4 @@ postSchema.pre('save', function(next) {
   next();
 });
 
-export default mongoose.model('Post', postSchema);
+module.exports = mongoose.model('Post', postSchema);
