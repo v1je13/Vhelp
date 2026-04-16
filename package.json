@@ -7,9 +7,9 @@
     "start": "vite",
     "build": "vite build",
     "lint": "eslint . --ext js,jsx --report-unused-disable-directives --max-warnings 0",
-    "preview": "vite preview",
+    "preview": "npm run build && wrangler dev",
     "tunnel": "vk-tunnel --http-protocol=http --host=localhost --port=5173",
-    "deploy": "vite build && vk-miniapps-deploy",
+    "deploy": "npm run build && wrangler deploy",
     "deploy-gh": "gh-pages -d build",
     "server": "cd server && npm install && node server.js",
     "dev:server": "cd server && npm install && nodemon server.js"
@@ -35,6 +35,7 @@
     "vite": "^6.0.0"
   },
   "devDependencies": {
+    "@cloudflare/vite-plugin": "^1.32.3",
     "@vkontakte/vk-miniapps-deploy": "^0.1.6",
     "@vkontakte/vk-tunnel": "^0.2.4",
     "eruda": "^3.0.1",
@@ -42,6 +43,7 @@
     "eslint-plugin-react": "^7.33.2",
     "eslint-plugin-react-hooks": "^4.6.0",
     "eslint-plugin-react-refresh": "^0.4.5",
-    "gh-pages": "^6.3.0"
+    "gh-pages": "^6.3.0",
+    "wrangler": "^4.83.0"
   }
 }

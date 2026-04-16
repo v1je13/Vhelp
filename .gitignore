@@ -40,3 +40,9 @@ coverage/
 
 # VK Mini Apps / Vite specific
 .vite/
+
+# wrangler files
+.wrangler
+.dev.vars*
+!.dev.vars.example
+!.env.example
