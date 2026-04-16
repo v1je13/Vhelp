@@ -26,13 +26,27 @@ app.use('*', async (c, next) => {
 
 //  Middleware авторизации
 const auth = async (c, next) => {
-  const token = c.req.header('Authorization')?.replace('Bearer ', '');
-  if (!token) return c.json({ error: 'No token' }, 401);
+  // 🔥 Получаем заголовок
+  const authHeader = c.req.header('Authorization');
+  console.log('🔐 [Auth] Header:', authHeader);  // ← добавь лог для отладки
+  
+  if (!authHeader) {
+    console.warn('⚠️ [Auth] No Authorization header');
+    return c.json({ error: 'No token' }, 401);
+  }
+  
+  // 🔥 Убираем префикс "Bearer "
+  const token = authHeader.replace('Bearer ', '');
+  console.log('🔐 [Auth] Token (first 30):', token.substring(0, 30) + '...');
+  
   try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    // 🔥 Проверяем токен
+    const decoded = jwt.verify(token, c.env.JWT_SECRET);  // ← c.env, не process.env!
+    console.log('✅ [Auth] Token valid:', decoded);
     c.set('user', decoded);
     await next();
-  } catch {
+  } catch (err) {
+    console.error('❌ [Auth] Token invalid:', err.message);
     return c.json({ error: 'Invalid token' }, 401);
   }
 };
@@ -87,6 +101,10 @@ app.get('/api/posts', async (c) => {
     const limit = 20;
     const offset = (page - 1) * limit;
     const { results } = await db.prepare('SELECT p.*, u.first_name, u.last_name, u.avatar FROM posts p JOIN users u ON p.user_id = u.id ORDER BY p.created_at DESC LIMIT ? OFFSET ?').bind(limit, offset).all();
+    
+    // 🔥 Проверяем, что images есть в результате
+    console.log('📋 Post images:', results[0]?.images);
+    
     return c.json({ posts: results, page, hasMore: results.length === limit });
   } catch (err) {
     return c.json({ error: 'Failed to fetch posts' }, 500);
