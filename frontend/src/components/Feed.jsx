@@ -252,7 +252,9 @@ export function Feed({ user }) {
           lastName: post.last_name,
           avatar: post.avatar,
           images: post.images,
-          createdAt: post.created_at
+          createdAt: post.created_at,
+          likesCount: post.likes_count,
+          fullPost: post  // ← полный объект для проверки
         });
         
         return (

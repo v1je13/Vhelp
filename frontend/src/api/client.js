@@ -65,6 +65,11 @@ export const api = {
     return this.request(`/api/posts/${postId}/like`, { method: 'POST' });
   },
 
+  // ❤️ Лайк поста
+  async likePost(postId) {
+    return this.request(`/api/posts/${postId}/like`, { method: 'POST' });
+  },
+
   // 
   async getComments(postId) {
     return this.request(`/api/posts/${postId}/comments`);
