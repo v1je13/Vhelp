@@ -1,40 +1,53 @@
 // src/components/Account.jsx
 import { useState, useEffect } from 'react';
-import { 
-  Card, Avatar, Button, Spinner, 
-  Separator, Group, InfoRow, Cell, Placeholder 
-} from '@vkontakte/vkui';
-import { Icon28UserOutline, Icon28SettingsOutline } from '@vkontakte/icons';
+import { Card, Avatar, Button, Spinner, Text } from '@vkontakte/vkui';
 import { vk } from '../lib/vk';
 import { api } from '../api/client';
 
 export function Account({ user, onUserUpdate, onLogout }) {
   const [loading, setLoading] = useState(!user);
   const [error, setError] = useState(null);
-  
-  // 🔁 Авто-загрузка профиля при монтировании
+  const [debugInfo, setDebugInfo] = useState('');
+
   useEffect(() => {
     let unsubscribe;
     
     const initAuth = async () => {
-      // Если пользователь уже есть в state — проверяем токен
+      setDebugInfo('🔍 Проверка сохранённого токена...');
+      
+      // Если пользователь уже есть — проверяем токен
       if (user?.token) {
         try {
+          setDebugInfo('✅ Токен найден, проверяем валидность...');
           const userData = await api.getMe();
           onUserUpdate?.(userData);
           setLoading(false);
+          setDebugInfo('✅ Профиль загружен из API');
           return;
         } catch (err) {
-          console.warn('Token invalid, re-authenticating:', err);
-          // Токен невалиден — продолжаем авто-авторизацию
+          console.warn('⚠️ Токен невалиден, очищаем:', err);
+          localStorage.removeItem('vhelp_token');
+          localStorage.removeItem('vhelp_user');
+          // Продолжаем авто-авторизацию
         }
       }
       
+      setDebugInfo('🔄 Инициализация VK Bridge...');
+      
       // Если пользователя нет — инициализируем авто-авторизацию
       unsubscribe = vk.init(async (authData) => {
-        if (!authData.vk_user_id) return;
+        setDebugInfo('📥 Получены данные от VK Bridge');
+        console.log('VK Auth Data:', authData);
+        
+        if (!authData.vk_user_id) {
+          setDebugInfo('❌ Нет vk_user_id в данных VK');
+          setError('Не удалось получить данные из VK');
+          setLoading(false);
+          return;
+        }
         
         try {
+          setDebugInfo('🔐 Отправка данных на бэкенд...');
           setLoading(true);
           setError(null);
           
@@ -47,129 +60,126 @@ export function Account({ user, onUserUpdate, onLogout }) {
           
           // Обновляем состояние в приложении
           onUserUpdate?.(response.user);
+          setDebugInfo('✅ Авторизация успешна!');
         } catch (err) {
-          console.error('Auto-auth error:', err);
+          console.error('❌ Auto-auth error:', err);
           setError(err.message || 'Не удалось авторизоваться');
+          setDebugInfo('❌ Ошибка: ' + err.message);
         } finally {
           setLoading(false);
         }
       });
+
+      // Таймаут 5 секунд для локальной разработки
+      setTimeout(() => {
+        if (loading) {
+          setDebugInfo('⏱ Таймаут VK Bridge (нормально для локальной разработки)');
+          console.warn('⏱ VK Bridge не ответил за 5 секунд - это нормально при запуске вне VK');
+          setLoading(false);
+          setError('VK Bridge не ответил. Откройте приложение внутри VK для авторизации.');
+        }
+      }, 5000);
     };
     
     initAuth();
     
-    // Cleanup: отписываемся от событий при размонтировании
+    // Cleanup
     return () => unsubscribe?.();
-  }, [user, onUserUpdate]);
-  
-  // 🔄 Ручное обновление профиля (по кнопке)
-  const handleRefresh = async () => {
-    setLoading(true);
-    try {
-      const userData = await api.getMe();
-      onUserUpdate?.(userData);
-      localStorage.setItem('vhelp_user', JSON.stringify(userData));
-      await vk.showNotification('Обновлено', 'Профиль обновлён');
-    } catch (err) {
-      setError(err.message || 'Ошибка обновления');
-    } finally {
-      setLoading(false);
-    }
-  };
-  
-  // 🚪 Выход из аккаунта
-  const handleLogout = () => {
-    api.logout();
-    onLogout?.();
-    vk.showNotification('Выход', 'Вы вышли из аккаунта');
-  };
-  
+  }, [user, onUserUpdate, loading]);
+
   // 📋 Состояния отображения
+  
   if (loading && !user) {
     return (
-      <Group style={{ minHeight: '60vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <Card style={{ padding: 20, textAlign: 'center' }}>
         <Spinner size="large" />
-        <div style={{ marginLeft: 10 }}>Загрузка профиля...</div>
-      </Group>
+        <Text style={{ marginTop: 15, marginBottom: 10 }}>
+          {debugInfo || 'Загрузка профиля...'}
+        </Text>
+        <Text caption style={{ color: '#818c99' }}>
+          {error || 'Ожидание ответа от VK...'}
+        </Text>
+      </Card>
     );
   }
   
   if (error && !user) {
     return (
-      <Placeholder
-        icon={<Icon28UserOutline />}
-        header="Не удалось загрузить профиль"
-        description={error}
-        action={<Button mode="secondary" onClick={handleRefresh}>Попробовать снова</Button>}
-      />
+      <Card style={{ padding: 20 }}>
+        <Text weight="2" style={{ marginBottom: 10, color: '#e64646' }}>
+          ⚠️ Авторизация не удалась
+        </Text>
+        <Text style={{ marginBottom: 15, fontSize: 14 }}>
+          {error}
+        </Text>
+        <Text caption style={{ display: 'block', marginBottom: 15, color: '#818c99' }}>
+          💡 Для локальной разработки:<br/>
+          1. Откройте приложение внутри VK<br/>
+          2. Или добавьте тестового пользователя вручную
+        </Text>
+        <Button 
+          mode="secondary" 
+          onClick={() => window.location.reload()}
+          stretched
+        >
+          Попробовать снова
+        </Button>
+      </Card>
     );
   }
   
   if (!user) {
     return (
-      <Placeholder
-        icon={<Icon28UserOutline />}
-        header="Профиль не найден"
-        description="Попробуйте обновить страницу или перезапустить приложение"
-        action={<Button mode="secondary" onClick={() => window.location.reload()}>Обновить</Button>}
-      />
+      <Card style={{ padding: 20, textAlign: 'center' }}>
+        <Text weight="2" style={{ marginBottom: 10 }}>
+          Профиль не загружен
+        </Text>
+        <Text caption style={{ display: 'block', marginBottom: 15, color: '#818c99' }}>
+          {debugInfo}
+        </Text>
+        <Button 
+          mode="secondary" 
+          onClick={() => window.location.reload()}
+          stretched
+        >
+          Обновить страницу
+        </Button>
+      </Card>
     );
   }
   
   // ✅ Отображение профиля
   return (
-    <Group header={<div style={{ fontWeight: 600 }}>Мой профиль</div>}>
-      {/* Аватар и имя */}
-      <Card style={{ padding: 20, textAlign: 'center', marginBottom: 15 }}>
+    <Card style={{ padding: 20 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 15, marginBottom: 20 }}>
         <Avatar 
           src={user.avatar} 
-          size={96} 
-          mode={user.avatar ? 'image' : 'image'}
-          fallbackIcon={<Icon28UserOutline />}
+          size={64}
+          fallbackIcon={
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="none">
+              <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" fill="currentColor"/>
+            </svg>
+          }
         />
-        <div style={{ marginTop: 12, fontSize: 18, fontWeight: 500 }}>
-          {user.firstName} {user.lastName}
+        <div style={{ flex: 1 }}>
+          <Text weight="1" style={{ fontSize: 18 }}>
+            {user.firstName} {user.lastName}
+          </Text>
+          {user.bio && (
+            <Text caption style={{ color: '#818c99', marginTop: 4 }}>
+              {user.bio}
+            </Text>
+          )}
         </div>
-        {user.bio && <div style={{ marginTop: 4, color: '#818c99', fontSize: 13 }}>{user.bio}</div>}
-      </Card>
+      </div>
       
-      {/* Информация */}
-      <Card mode="shadow" style={{ marginBottom: 15 }}>
-        <InfoRow header="ID ВКонтакте">
-          <div>{user.vkId}</div>
-        </InfoRow>
-        <Separator />
-        <InfoRow header="Дата регистрации">
-          <div>{user.createdAt ? new Date(user.createdAt).toLocaleDateString('ru-RU') : '—'}</div>
-        </InfoRow>
-      </Card>
-      
-      {/* Действия */}
-      <Card mode="shadow">
-        <Cell 
-          before={<Icon28SettingsOutline />} 
-          subtitle="Обновить данные из ВКонтакте"
-          onClick={handleRefresh}
-        >
-          Обновить профиль
-        </Cell>
-        <Separator />
-        <Cell 
-          before={<Icon28UserOutline />} 
-          subtitle="Выйти из аккаунта"
-          onClick={handleLogout}
-          style={{ color: '#e64646' }}
-        >
-          Выйти
-        </Cell>
-      </Card>
-      
-      {/* Индикатор загрузки при обновлении */}
-      {loading && (
-        <div style={{ textAlign: 'center', marginTop: 15 }}>
-          <Spinner size="small" />
-        </div>
-      )}
-    </Group>
+      <Button 
+        mode="secondary" 
+        onClick={onLogout}
+        stretched
+      >
+        Выйти
+      </Button>
+    </Card>
   );
 }
