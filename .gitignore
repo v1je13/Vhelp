@@ -38,5 +38,9 @@ coverage/
 # Vercel
 .vercel
 
+# Cloudflare Workers
+.wrangler/
+.dev/
+
 # VK Mini Apps / Vite specific
 .vite/

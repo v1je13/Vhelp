@@ -1,4 +1,4 @@
-const mongoose = require('mongoose');
+import mongoose from 'mongoose';
 
 const storySchema = new mongoose.Schema({
   author: {
@@ -37,4 +37,4 @@ const storySchema = new mongoose.Schema({
 // Index to automatically delete expired stories
 storySchema.index({ expiresAt: 1 }, { expireAfterSeconds: 0 });
 
-module.exports = mongoose.model('Story', storySchema);
+export default mongoose.model('Story', storySchema);

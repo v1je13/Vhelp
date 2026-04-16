@@ -1,5 +1,5 @@
-const crypto = require('crypto');
-const User = require('../models/User');
+import crypto from 'crypto';
+import User from '../models/User.js';
 
 // Verify VK Bridge signature
 const verifyVKSignature = (params) => {
@@ -20,17 +20,17 @@ const verifyVKSignature = (params) => {
   return hash === sign;
 };
 
-const vkAuth = async (req, res, next) => {
+const vkAuth = async (c, next) => {
   try {
-    const { vk_user_id, vk_first_name, vk_last_name, vk_avatar, sign } = req.body;
+    const { vk_user_id, vk_first_name, vk_last_name, vk_avatar, sign } = await c.req.json();
 
     if (!vk_user_id || !sign) {
-      return res.status(401).json({ message: 'VK auth data required' });
+      return c.json({ message: 'VK auth data required' }, 401);
     }
 
     // Verify signature (skip in development)
-    if (process.env.NODE_ENV === 'production' && !verifyVKSignature(req.body)) {
-      return res.status(401).json({ message: 'Invalid VK signature' });
+    if (process.env.NODE_ENV === 'production' && !verifyVKSignature({ vk_user_id, vk_first_name, vk_last_name, vk_avatar, sign })) {
+      return c.json({ message: 'Invalid VK signature' }, 401);
     }
 
     // Find or create user
@@ -52,12 +52,12 @@ const vkAuth = async (req, res, next) => {
       await user.save();
     }
 
-    req.user = user;
-    next();
+    c.set('user', user);
+    await next();
   } catch (error) {
     console.error('VK Auth error:', error);
-    res.status(500).json({ message: 'VK authentication failed' });
+    return c.json({ message: 'VK authentication failed' }, 500);
   }
 };
 
-module.exports = vkAuth;
+export { vkAuth };

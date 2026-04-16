@@ -1,14 +1,14 @@
-const express = require('express');
-const Post = require('../models/Post');
-const auth = require('../middleware/auth');
+import { Hono } from 'hono';
+import Post from '../models/Post.js';
+import { auth } from '../middleware/auth.js';
 
-const router = express.Router();
+const posts = new Hono();
 
 // Get all posts (feed)
-router.get('/', async (req, res) => {
+posts.get('/', async (c) => {
   try {
-    const page = parseInt(req.query.page) || 1;
-    const limit = parseInt(req.query.limit) || 20;
+    const page = parseInt(c.req.query('page')) || 1;
+    const limit = parseInt(c.req.query('limit')) || 20;
     const skip = (page - 1) * limit;
 
     const posts = await Post.find()
@@ -20,7 +20,7 @@ router.get('/', async (req, res) => {
 
     const total = await Post.countDocuments();
 
-    res.json({
+    return c.json({
       posts,
       pagination: {
         page,
@@ -31,14 +31,14 @@ router.get('/', async (req, res) => {
     });
   } catch (error) {
     console.error('Get posts error:', error);
-    res.status(500).json({ message: 'Server error' });
+    return c.json({ message: 'Server error' }, 500);
   }
 });
 
 // Get single post
-router.get('/:id', async (req, res) => {
+posts.get('/:id', async (c) => {
   try {
-    const post = await Post.findById(req.params.id)
+    const post = await Post.findById(c.req.param('id'))
       .populate('author', 'vkId firstName lastName avatar bio')
       .populate('likes', 'vkId firstName lastName avatar')
       .populate({
@@ -50,27 +50,27 @@ router.get('/:id', async (req, res) => {
       });
 
     if (!post) {
-      return res.status(404).json({ message: 'Post not found' });
+      return c.json({ message: 'Post not found' }, 404);
     }
 
-    res.json(post);
+    return c.json(post);
   } catch (error) {
     console.error('Get post error:', error);
-    res.status(500).json({ message: 'Server error' });
+    return c.json({ message: 'Server error' }, 500);
   }
 });
 
 // Create post
-router.post('/', auth, async (req, res) => {
+posts.post('/', auth, async (c) => {
   try {
-    const { content, images, location } = req.body;
+    const { content, images, location } = await c.req.json();
 
     if (!content) {
-      return res.status(400).json({ message: 'Content is required' });
+      return c.json({ message: 'Content is required' }, 400);
     }
 
     const post = new Post({
-      author: req.user._id,
+      author: c.get('user')._id,
       content,
       images: images || [],
       location: location || ''
@@ -79,27 +79,27 @@ router.post('/', auth, async (req, res) => {
     await post.save();
     await post.populate('author', 'vkId firstName lastName avatar');
 
-    res.status(201).json(post);
+    return c.json(post, 201);
   } catch (error) {
     console.error('Create post error:', error);
-    res.status(500).json({ message: 'Server error' });
+    return c.json({ message: 'Server error' }, 500);
   }
 });
 
 // Update post
-router.put('/:id', auth, async (req, res) => {
+posts.put('/:id', auth, async (c) => {
   try {
-    const post = await Post.findById(req.params.id);
+    const post = await Post.findById(c.req.param('id'));
 
     if (!post) {
-      return res.status(404).json({ message: 'Post not found' });
+      return c.json({ message: 'Post not found' }, 404);
     }
 
-    if (post.author.toString() !== req.user._id.toString()) {
-      return res.status(403).json({ message: 'Not authorized' });
+    if (post.author.toString() !== c.get('user')._id.toString()) {
+      return c.json({ message: 'Not authorized' }, 403);
     }
 
-    const { content, images, location } = req.body;
+    const { content, images, location } = await c.req.json();
     
     post.content = content || post.content;
     post.images = images || post.images;
@@ -109,46 +109,46 @@ router.put('/:id', auth, async (req, res) => {
     await post.save();
     await post.populate('author', 'vkId firstName lastName avatar');
 
-    res.json(post);
+    return c.json(post);
   } catch (error) {
     console.error('Update post error:', error);
-    res.status(500).json({ message: 'Server error' });
+    return c.json({ message: 'Server error' }, 500);
   }
 });
 
 // Delete post
-router.delete('/:id', auth, async (req, res) => {
+posts.delete('/:id', auth, async (c) => {
   try {
-    const post = await Post.findById(req.params.id);
+    const post = await Post.findById(c.req.param('id'));
 
     if (!post) {
-      return res.status(404).json({ message: 'Post not found' });
+      return c.json({ message: 'Post not found' }, 404);
     }
 
-    if (post.author.toString() !== req.user._id.toString()) {
-      return res.status(403).json({ message: 'Not authorized' });
+    if (post.author.toString() !== c.get('user')._id.toString()) {
+      return c.json({ message: 'Not authorized' }, 403);
     }
 
-    await Post.findByIdAndDelete(req.params.id);
-    res.json({ message: 'Post deleted' });
+    await Post.findByIdAndDelete(c.req.param('id'));
+    return c.json({ message: 'Post deleted' });
   } catch (error) {
     console.error('Delete post error:', error);
-    res.status(500).json({ message: 'Server error' });
+    return c.json({ message: 'Server error' }, 500);
   }
 });
 
 // Get user's posts
-router.get('/user/:userId', async (req, res) => {
+posts.get('/user/:userId', async (c) => {
   try {
-    const posts = await Post.find({ author: req.params.userId })
+    const posts = await Post.find({ author: c.req.param('userId') })
       .populate('author', 'vkId firstName lastName avatar')
       .sort({ createdAt: -1 });
 
-    res.json(posts);
+    return c.json(posts);
   } catch (error) {
     console.error('Get user posts error:', error);
-    res.status(500).json({ message: 'Server error' });
+    return c.json({ message: 'Server error' }, 500);
   }
 });
 
-module.exports = router;
+export default posts;

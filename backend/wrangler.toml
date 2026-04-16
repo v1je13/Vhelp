@@ -1,0 +1,13 @@
+name = "vhelp-api"
+main = "src/index.js"
+compatibility_date = "2024-04-01"
+compatibility_flags = ["nodejs_compat"]
+
+[vars]
+FRONTEND_URL = "https://vhelp.vercel.app"
+NODE_ENV = "production"
+
+# Секреты добавляйте через: wrangler secret put KEY
+# MONGODB_URI
+# JWT_SECRET
+# VK_CLIENT_SECRET

@@ -1,20 +1,20 @@
-const express = require('express');
-const Like = require('../models/Like');
-const Post = require('../models/Post');
-const Comment = require('../models/Comment');
-const auth = require('../middleware/auth');
+import { Hono } from 'hono';
+import Like from '../models/Like.js';
+import Post from '../models/Post.js';
+import Comment from '../models/Comment.js';
+import { auth } from '../middleware/auth.js';
 
-const router = express.Router();
+const likes = new Hono();
 
 // Like/unlike a post
-router.post('/post/:postId', auth, async (req, res) => {
+likes.post('/post/:postId', auth, async (c) => {
   try {
-    const { postId } = req.params;
-    const userId = req.user._id;
+    const postId = c.req.param('postId');
+    const userId = c.get('user')._id;
 
     const post = await Post.findById(postId);
     if (!post) {
-      return res.status(404).json({ message: 'Post not found' });
+      return c.json({ message: 'Post not found' }, 404);
     }
 
     const existingLike = await Like.findOne({ user: userId, post: postId });
@@ -26,7 +26,7 @@ router.post('/post/:postId', auth, async (req, res) => {
       post.likesCount = Math.max(0, post.likesCount - 1);
       await post.save();
       
-      res.json({ liked: false, likesCount: post.likesCount });
+      return c.json({ liked: false, likesCount: post.likesCount });
     } else {
       // Like
       const like = new Like({ user: userId, post: postId });
@@ -35,23 +35,23 @@ router.post('/post/:postId', auth, async (req, res) => {
       post.likesCount += 1;
       await post.save();
       
-      res.json({ liked: true, likesCount: post.likesCount });
+      return c.json({ liked: true, likesCount: post.likesCount });
     }
   } catch (error) {
     console.error('Like post error:', error);
-    res.status(500).json({ message: 'Server error' });
+    return c.json({ message: 'Server error' }, 500);
   }
 });
 
 // Like/unlike a comment
-router.post('/comment/:commentId', auth, async (req, res) => {
+likes.post('/comment/:commentId', auth, async (c) => {
   try {
-    const { commentId } = req.params;
-    const userId = req.user._id;
+    const commentId = c.req.param('commentId');
+    const userId = c.get('user')._id;
 
     const comment = await Comment.findById(commentId);
     if (!comment) {
-      return res.status(404).json({ message: 'Comment not found' });
+      return c.json({ message: 'Comment not found' }, 404);
     }
 
     const existingLike = await Like.findOne({ user: userId, comment: commentId });
@@ -63,7 +63,7 @@ router.post('/comment/:commentId', auth, async (req, res) => {
       comment.likesCount = Math.max(0, comment.likesCount - 1);
       await comment.save();
       
-      res.json({ liked: false, likesCount: comment.likesCount });
+      return c.json({ liked: false, likesCount: comment.likesCount });
     } else {
       // Like
       const like = new Like({ user: userId, comment: commentId });
@@ -72,42 +72,42 @@ router.post('/comment/:commentId', auth, async (req, res) => {
       comment.likesCount += 1;
       await comment.save();
       
-      res.json({ liked: true, likesCount: comment.likesCount });
+      return c.json({ liked: true, likesCount: comment.likesCount });
     }
   } catch (error) {
     console.error('Like comment error:', error);
-    res.status(500).json({ message: 'Server error' });
+    return c.json({ message: 'Server error' }, 500);
   }
 });
 
 // Check if user liked a post
-router.get('/post/:postId/check', auth, async (req, res) => {
+likes.get('/post/:postId/check', auth, async (c) => {
   try {
     const like = await Like.findOne({
-      user: req.user._id,
-      post: req.params.postId
+      user: c.get('user')._id,
+      post: c.req.param('postId')
     });
 
-    res.json({ liked: !!like });
+    return c.json({ liked: !!like });
   } catch (error) {
     console.error('Check like error:', error);
-    res.status(500).json({ message: 'Server error' });
+    return c.json({ message: 'Server error' }, 500);
   }
 });
 
 // Check if user liked a comment
-router.get('/comment/:commentId/check', auth, async (req, res) => {
+likes.get('/comment/:commentId/check', auth, async (c) => {
   try {
     const like = await Like.findOne({
-      user: req.user._id,
-      comment: req.params.commentId
+      user: c.get('user')._id,
+      comment: c.req.param('commentId')
     });
 
-    res.json({ liked: !!like });
+    return c.json({ liked: !!like });
   } catch (error) {
     console.error('Check like error:', error);
-    res.status(500).json({ message: 'Server error' });
+    return c.json({ message: 'Server error' }, 500);
   }
 });
 
-module.exports = router;
+export default likes;
