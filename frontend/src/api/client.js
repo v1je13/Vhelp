@@ -4,25 +4,35 @@ const API_BASE = import.meta.env.VITE_API_URL; // "https://.../api"
 export const api = {
   async request(endpoint, options = {}) {
     const API_BASE = import.meta.env.VITE_API_URL;
+    
+    // 🔥 Читаем токен ПЕРЕД запросом (он может появиться после авторизации)
     const token = localStorage.getItem('vhelp_token');
+    
+    console.log('🔐 [API] Запрос:', endpoint, { 
+      hasToken: !!token, 
+      tokenStart: token ? token.substring(0, 20) + '...' : null 
+    });
     
     const res = await fetch(`${API_BASE}${endpoint}`, {
       ...options,
       headers: {
         'Content-Type': 'application/json',
-        ...(token && { 'Authorization': `Bearer ${token}` }),
+        // 🔥 Добавляем Authorization ТОЛЬКО если токен есть
+        ...(token && { 
+          'Authorization': `Bearer ${token}`  // ← префикс "Bearer " обязателен!
+        }),
         ...options.headers
       }
     });
     
-    // 🔥 Парсим ответ
     const data = await res.json();
     
     if (!res.ok) {
+      console.error('❌ [API] Ошибка:', res.status, data);
       throw new Error(data.error || 'Request failed');
     }
     
-    return data;  // ← Возвращаем данные, а не Response
+    return data;
   },
   
   // 🔐 Авторизация через VK
