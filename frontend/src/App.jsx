@@ -9,6 +9,7 @@ import '@vkontakte/vkui/dist/vkui.css';
 import { Feed } from './components/Feed';
 import { PostDetail } from './components/PostDetail';
 import { Profile } from './components/Profile';
+import { Trips } from './components/Trips';
 import { api } from './api/client';
 
 function App() {
@@ -16,6 +17,7 @@ function App() {
   const [selectedPostId, setSelectedPostId] = useState(null);
   const [user, setUser] = useState(null);
   const [isReady, setIsReady] = useState(false);
+  const [selectedTripId, setSelectedTripId] = useState(null);
   
   useEffect(() => {
     const token = localStorage.getItem('vhelp_token');
@@ -40,7 +42,17 @@ function App() {
     setSelectedPostId(null);
     setActivePanel('feed');
   };
-  
+
+  const handleOpenTrip = (tripId) => {
+    setSelectedTripId(tripId);
+    setActivePanel('trips');
+  };
+
+  const handleCloseTrip = () => {
+    setSelectedTripId(null);
+    setActivePanel('trips');
+  };
+
   if (!isReady) {
     return (
       <AppRoot mode="embedded">
@@ -86,6 +98,14 @@ function App() {
                 />
               </Panel>
               
+              {/* Дневник путешествий */}
+              <Panel id="trips">
+                <Trips 
+                  user={user}
+                  onOpenTrip={handleOpenTrip}
+                />
+              </Panel>
+              
               {/* Детальный просмотр поста */}
               <Panel id="post-detail">
                 {selectedPostId && (
@@ -100,34 +120,74 @@ function App() {
             
             {/* Нижняя навигация */}
             {user && (
-              <div style={{ 
-                position: 'fixed', 
-                bottom: 0, 
-                left: 0, 
-                right: 0, 
-                background: '#fff', 
-                borderTop: '1px solid #eee',
+              <div style={{
+                position: 'fixed',
+                bottom: 0,
+                left: 0,
+                right: 0,
+                background: 'white',
+                borderTop: '1px solid #e7e8ec',
                 display: 'flex',
                 justifyContent: 'space-around',
-                padding: '8px 0',
+                padding: '8px 0 12px',
                 zIndex: 100
               }}>
-                <Button 
-                  mode={activePanel === 'account' ? 'primary' : 'secondary'} 
-                  size="s"
+                <button
                   onClick={() => setActivePanel('account')}
-                  style={{ width: '45%' }}
+                  style={{
+                    flex: 1,
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    gap: 4,
+                    background: 'none',
+                    border: 'none',
+                    cursor: 'pointer',
+                    color: activePanel === 'account' ? '#0077FF' : '#818c99',
+                    padding: 4
+                  }}
                 >
-                  👤 Профиль
-                </Button>
-                <Button 
-                  mode={activePanel === 'feed' ? 'primary' : 'secondary'} 
-                  size="s"
+                  <span style={{ fontSize: 24 }}>👤</span>
+                  <span style={{ fontSize: 11 }}>Профиль</span>
+                </button>
+
+                <button
                   onClick={() => setActivePanel('feed')}
-                  style={{ width: '45%' }}
+                  style={{
+                    flex: 1,
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    gap: 4,
+                    background: 'none',
+                    border: 'none',
+                    cursor: 'pointer',
+                    color: activePanel === 'feed' ? '#0077FF' : '#818c99',
+                    padding: 4
+                  }}
                 >
-                  📰 Лента
-                </Button>
+                  <span style={{ fontSize: 24 }}>📰</span>
+                  <span style={{ fontSize: 11 }}>Лента</span>
+                </button>
+
+                <button
+                  onClick={() => setActivePanel('trips')}
+                  style={{
+                    flex: 1,
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    gap: 4,
+                    background: 'none',
+                    border: 'none',
+                    cursor: 'pointer',
+                    color: activePanel === 'trips' ? '#0077FF' : '#818c99',
+                    padding: 4
+                  }}
+                >
+                  <span style={{ fontSize: 24 }}>�</span>
+                  <span style={{ fontSize: 11 }}>Дневник</span>
+                </button>
               </div>
             )}
           </SplitCol>

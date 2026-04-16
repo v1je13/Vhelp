@@ -56,7 +56,27 @@ export const api = {
   async getUserPosts(userId) {
     return this.request(`/api/users/${userId}/posts`);
   },
-  
+
+  // 🌍 Путешествия
+  async getUserTrips() {
+    return this.request('/api/trips');
+  },
+
+  async createTrip(data) {
+    return this.request('/api/trips', {
+      method: 'POST',
+      body: JSON.stringify(data)
+    });
+  },
+
+  async deleteTrip(tripId) {
+    return this.request(`/api/trips/${tripId}`, { method: 'DELETE' });
+  },
+
+  async getTripNotes(tripId) {
+    return this.request(`/api/trips/${tripId}/notes`);
+  },
+
   // 📰 Посты
   async getPosts(page = 1) {
     return this.request(`/api/posts?page=${page}`);
