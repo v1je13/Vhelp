@@ -3,7 +3,8 @@ import { cors } from 'hono/cors';
 import mongoose from 'mongoose';
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
-import crypto from 'crypto';
+// 🔥 Исправленный импорт:
+import crypto from 'node:crypto';
 
 const app = new Hono();
 
@@ -24,13 +25,24 @@ async function getDB() {
   return mongoClient;
 }
 
-// 🔐 VK Auth middleware (упрощённая версия)
+// Функция проверки подписи VK (использует crypto)
+function verifyVKSignature(params, clientSecret) {
+  const { sign, ...data } = params;
+  const sorted = Object.keys(data).sort().map(k => `${k}=${data[k]}`).join('');
+  // � Теперь crypto работает корректно:
+  const hash = crypto.createHmac('sha256', clientSecret).update(sorted).digest('hex');
+  return hash === sign;
+}
+
+// �🔐 VK Auth middleware (упрощённая версия)
 const vkAuth = async (c, next) => {
   const { vk_user_id, sign } = await c.req.json();
   if (!vk_user_id || !sign) return c.json({ message: 'VK auth data required' }, 401);
   
   // В production добавьте проверку подписи через crypto
-  // if (process.env.NODE_ENV === 'production' && !verifyVKSignature(...)) ...
+  if (process.env.NODE_ENV === 'production' && !verifyVKSignature({ vk_user_id, sign }, process.env.VK_CLIENT_SECRET)) {
+    return c.json({ message: 'Invalid VK signature' }, 401);
+  }
   
   const db = await getDB();
   let user = await db.model('User').findOne({ vkId: vk_user_id });

@@ -1,7 +1,15 @@
 name = "vhelp-api"
 main = "src/index.js"
-compatibility_date = "2024-04-01"
+compatibility_date = "2024-09-23"
 compatibility_flags = ["nodejs_compat"]
+
+[alias]
+"node:hono" = "hono"
+"node:hono/cors" = "hono/cors"
+
+[[kv_namespaces]]
+binding = "STORAGE"
+id = "d2753065581948aaab0aa4357a7ebc36"
 
 [vars]
 FRONTEND_URL = "https://vhelp.vercel.app"
