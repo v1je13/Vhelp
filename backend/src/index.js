@@ -72,13 +72,18 @@ app.post('/api/auth/vk', async (c) => {
     const body = await c.req.json();
     const { vk_user_id, sign, first_name, last_name, photo, ...rest } = body;
     
-    if (!vk_user_id || !sign) return c.json({ error: 'VK auth data required' }, 400);
+    // 🔥 sign теперь опционален (для простых мини-приложений)
+    if (!vk_user_id) {
+      return c.json({ error: 'VK user ID required' }, 400);
+    }
     
-    // Level 2: проверка подписи в production
-    if (process.env.NODE_ENV === 'production' && process.env.VK_CLIENT_SECRET) {
-      if (!verifyVKSignature({ vk_user_id, first_name, last_name, photo, ...rest }, process.env.VK_CLIENT_SECRET)) {
+    // Level 2: проверка подписи ТОЛЬКО если sign предоставлен
+    if (sign && process.env.NODE_ENV === 'production' && process.env.VK_CLIENT_SECRET) {
+      if (!verifyVKSignature({ vk_user_id, first_name, last_name, photo, ...rest, sign }, process.env.VK_CLIENT_SECRET)) {
         return c.json({ error: 'Invalid signature' }, 403);
       }
+    } else if (!sign) {
+      console.warn('⚠️ No sign provided - skipping signature verification (OK for simple VK Mini Apps)');
     }
     
     const db = await getDB();

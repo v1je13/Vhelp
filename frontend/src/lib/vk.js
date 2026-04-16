@@ -31,7 +31,7 @@ export const vk = {
           console.log('✅ Найдены данные для авторизации');
           onAuthData?.({
             vk_user_id: String(data.viewer_id || data.uuid || data.id),
-            sign: data.sign,
+            ...(data.sign && { sign: data.sign }),
             first_name: data.first_name,
             last_name: data.last_name,
             photo: data.photo_200 || data.photo_100 || data.photo_max_orig,

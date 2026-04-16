@@ -11,6 +11,7 @@ export function Account({ user, onUserUpdate, onLogout }) {
 
   useEffect(() => {
     let unsubscribe;
+    let timeoutId;  // 🔥 объявление timeoutId в начале useEffect
     
     const initAuth = async () => {
       setDebugInfo('🔍 Проверка сохранённого токена...');
