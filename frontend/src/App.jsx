@@ -8,10 +8,12 @@ import '@vkontakte/vkui/dist/vkui.css';
 
 import { Account } from './components/Account';
 import { Feed } from './components/Feed';
+import { SearchBar } from './components/SearchBar';
 import { api } from './api/client';
 
 function App() {
   const [activePanel, setActivePanel] = useState('account');
+  const [selectedPost, setSelectedPost] = useState(null);
   const [user, setUser] = useState(null);
   const [isReady, setIsReady] = useState(false);
   
@@ -51,8 +53,35 @@ function App() {
         <SplitLayout header={false}>
           <SplitCol>
             <View activePanel={activePanel}>
+              {/* 🔍 Панель поиска */}
+              <Panel id="search">
+                <PanelHeader>
+                  <Button size="s" mode="secondary" onClick={() => setActivePanel('account')}>← Назад</Button>
+                  Поиск
+                </PanelHeader>
+                <SearchBar 
+                  onUserSelect={(user) => {
+                    console.log('Выбран пользователь:', user);
+                  }}
+                  onPostSelect={(post) => {
+                    setSelectedPost(post);
+                    setActivePanel('feed');
+                  }}
+                />
+              </Panel>
+              
               <Panel id="account">
-                <PanelHeader>Аккаунт</PanelHeader>
+                <PanelHeader>
+                  Аккаунт
+                  <Button 
+                    size="s" 
+                    mode="secondary" 
+                    onClick={() => setActivePanel('search')}
+                    style={{ marginLeft: 10 }}
+                  >
+                    🔍
+                  </Button>
+                </PanelHeader>
                 <Account 
                   user={user} 
                   onUserUpdate={handleUserUpdate}

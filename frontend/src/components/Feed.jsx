@@ -1,6 +1,6 @@
 // src/components/Feed.jsx
 import { useState, useEffect } from 'react';
-import { Card, Avatar, Text, Button, Spinner, Textarea } from '@vkontakte/vkui';
+import { Card, Avatar, Text, Button, Spinner, Textarea, Input } from '@vkontakte/vkui';
 import { api } from '../api/client';
 import { vk } from '../lib/vk';
 
@@ -25,6 +25,24 @@ export function Feed({ user }) {
   useEffect(() => {
     loadPosts();
   }, [page]);
+  
+  useEffect(() => {
+    const loadComments = async (postId) => {
+      try {
+        const { comments } = await api.getComments(postId);
+        setComments(prev => ({ ...prev, [postId]: comments }));
+      } catch (err) {
+        console.error('Failed to load comments:', err);
+      }
+    };
+    
+    // Загружаем для всех видимых постов
+    posts.forEach(post => {
+      if (post.id && !comments[post.id]) {
+        loadComments(post.id);
+      }
+    });
+  }, [posts]);
   
   const handleCreatePost = async () => {
     if (!newPost.trim() || loading) return;
@@ -179,18 +197,28 @@ export function Feed({ user }) {
               ))}
             </div>
             
-            <form onSubmit={async (e) => {
-              e.preventDefault();
-              if (!commentText.trim()) return;
-              await handleAddComment(post.id, commentText);
-              setCommentText('');
-            }}>
-              <input 
+            <form 
+              onSubmit={async (e) => {
+                e.preventDefault();
+                await handleAddComment(post.id, commentText);
+                setCommentText('');
+              }}
+              style={{ display: 'flex', gap: 8 }}
+            >
+              <Input
                 value={commentText}
                 onChange={e => setCommentText(e.target.value)}
                 placeholder="Написать комментарий..."
-                style={{ width: '100%', padding: 8, borderRadius: 8, border: '1px solid #ddd' }}
+                style={{ flex: 1 }}
               />
+              <Button 
+                type="submit" 
+                mode="primary" 
+                size="s"
+                disabled={!commentText.trim()}
+              >
+                ➤
+              </Button>
             </form>
           </div>
         </Card>
