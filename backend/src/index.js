@@ -7,21 +7,18 @@ const app = new Hono();
 
 // CORS middleware
 app.use('*', async (c, next) => {
-  // Упрощенный CORS для мобильных сетей
-  c.res.headers.set('Access-Control-Allow-Origin', '*');
-  c.res.headers.set('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-  // Добавляем X-VK-Sign и другие заголовки, которые могут быть полезны
-  c.res.headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Accept, Origin, X-VK-Sign, Cache-Control, Pragma');
-  c.res.headers.set('Access-Control-Max-Age', '86400');
+  const origin = c.req.header('Origin') || '*';
   
-  // Принудительно отключаем кэширование на стороне API
-  c.res.headers.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+  // Устанавливаем динамический Origin для поддержки credentials
+  c.header('Access-Control-Allow-Origin', origin);
+  c.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+  c.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Accept, Origin, X-VK-Sign');
+  c.header('Access-Control-Allow-Credentials', 'true');
+  c.header('Access-Control-Max-Age', '86400');
+  c.header('Vary', 'Origin');
   
   if (c.req.method === 'OPTIONS') {
-    return new Response(null, {
-      status: 204,
-      headers: c.res.headers 
-    });
+    return c.body(null, 204);
   }
   
   await next();

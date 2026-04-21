@@ -2,60 +2,67 @@
 // Принудительно используем HTTPS для API, чтобы Android WebView не блокировал запросы
 const API_BASE = (import.meta.env.VITE_API_URL || '').replace('http://', 'https://');
 
+const fetchWithRetry = async (url, options = {}, retries = 3) => {
+  for (let i = 0; i < retries; i++) {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 15000); // 15 сек таймаут
+
+    try {
+      const response = await fetch(url, {
+        ...options,
+        signal: controller.signal,
+        // Важно для Android WebView:
+        credentials: 'include',
+        headers: {
+          ...options.headers,
+          'Cache-Control': 'no-cache',
+          'Pragma': 'no-cache'
+        }
+      });
+      clearTimeout(timeout);
+      return response;
+    } catch (err) {
+      clearTimeout(timeout);
+      if (i === retries - 1) throw err;
+      // Экспоненциальная задержка перед повтором
+      await new Promise(r => setTimeout(r, 2000 * (i + 1)));
+    }
+  }
+};
+
 export const api = {
-  async request(endpoint, options = {}, retries = 2) {
+  async request(endpoint, options = {}) {
     const token = localStorage.getItem('vhelp_token');
-    
-    for (let i = 0; i <= retries; i++) {
-      let timeoutId;
-      try {
-        const controller = new AbortController();
-        // Увеличиваем базовый таймаут до 60 секунд для мобильного интернета
-        const timeoutMs = 60000 + (i * 10000);
-        timeoutId = setTimeout(() => controller.abort(), timeoutMs);
-        
-        const headers = {
-          ...(token && { 'Authorization': `Bearer ${token}` }),
-          ...options.headers
-        };
+    const headers = {
+      ...(token && { 'Authorization': `Bearer ${token}` }),
+      ...options.headers
+    };
 
-        // На мобильных сетях лучше не перегружать заголовки
-        // Удаляем Cache-Control, если он может вызвать проблемы с CORS на стороне оператора
-        // Если Content-Type не задан явно и это не FormData, ставим json
-        if (!headers['Content-Type'] && !(options.body instanceof FormData)) {
-          headers['Content-Type'] = 'application/json';
-        }
-        
-        const res = await fetch(`${API_BASE}${endpoint}`, {
-          ...options,
-          signal: controller.signal,
-          headers
-        });
-        
-        clearTimeout(timeoutId);
-        
-        if (!res.ok) {
-          const data = await res.json().catch(() => ({}));
-          throw new Error(data.error || `Ошибка сервера: ${res.status}`);
-        }
-        
-        return await res.json();
-      } catch (err) {
-        if (timeoutId) clearTimeout(timeoutId);
-        
-        const isTimeout = err.name === 'AbortError';
-        const errorMessage = isTimeout 
-          ? `Превышено время ожидания (${30 + i * 10} сек). Медленное соединение.` 
-          : err.message;
+    // Если Content-Type не задан явно и это не FormData, ставим json
+    if (!headers['Content-Type'] && !(options.body instanceof FormData)) {
+      headers['Content-Type'] = 'application/json';
+    }
 
-        if (i === retries) {
-          console.error('🔥 API Final Error:', errorMessage);
-          throw new Error(errorMessage);
-        }
-        
-        console.warn(`⚠️ API Retry ${i + 1}/${retries} for ${endpoint}:`, errorMessage);
-        await new Promise(resolve => setTimeout(resolve, 2000 * (i + 1)));
+    try {
+      const res = await fetchWithRetry(`${API_BASE}${endpoint}`, {
+        ...options,
+        headers
+      });
+
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error || `Ошибка сервера: ${res.status}`);
       }
+
+      return await res.json();
+    } catch (err) {
+      const isTimeout = err.name === 'AbortError';
+      const errorMessage = isTimeout 
+        ? 'Превышено время ожидания (15 сек). Медленное соединение.' 
+        : err.message;
+      
+      console.error(`🔥 API Error for ${endpoint}:`, errorMessage);
+      throw new Error(errorMessage);
     }
   },
   
@@ -65,7 +72,7 @@ export const api = {
       method: 'POST',
       body: JSON.stringify(vkData)
     });
-    return res;  // ← Обязательно return!
+    return res;
   },
   
   // 👤 Профиль
@@ -114,7 +121,7 @@ export const api = {
     return this.request('/api/posts', {
       method: 'POST',
       body: JSON.stringify({
-        text: data.text || data.content, // Поддержка обоих вариантов имен полей
+        text: data.text || data.content,
         images: data.images || [],
         tags: data.tags || [],
         trip_id: data.trip_id || null
@@ -126,12 +133,10 @@ export const api = {
     return this.request(`/api/posts/${postId}/like`, { method: 'POST' });
   },
 
-  // ❤️ Лайк поста
   async likePost(postId) {
     return this.request(`/api/posts/${postId}/like`, { method: 'POST' });
   },
 
-  // 
   async getComments(postId) {
     return this.request(`/api/posts/${postId}/comments`);
   },
@@ -143,7 +148,6 @@ export const api = {
     });
   },
 
-  // 
   async searchUsers(query) {
     return this.request(`/api/users/search?q=${encodeURIComponent(query)}`);
   },
@@ -152,35 +156,28 @@ export const api = {
     return this.request(`/api/posts/search?q=${encodeURIComponent(query)}`);
   },
 
-  // 🔍 Посты по тэгу
   async getPostsByTag(tag) {
-    const res = await this.request(`/api/tags/${encodeURIComponent(tag)}/posts`);
-    return res;
+    return this.request(`/api/tags/${encodeURIComponent(tag)}/posts`);
   },
 
-  // 🖼️ Загрузка фото
   async uploadPhoto(file) {
     const formData = new FormData();
     formData.append('image', file);
     
-    // Используем request для единообразия таймаутов и ретраев
     return this.request('/api/upload', {
       method: 'POST',
       body: formData,
-      // Для FormData fetch сам установит правильный Content-Type с boundary
       headers: {
         'Content-Type': undefined 
       }
     });
   },
   
-  // 🚪 Выход
   logout() {
     localStorage.removeItem('vhelp_token');
     localStorage.removeItem('vhelp_user');
   },
   
-  // 🔁 Проверка токена (опционально, для надёжности)
   async validateToken() {
     try {
       await this.request('/api/auth/me');

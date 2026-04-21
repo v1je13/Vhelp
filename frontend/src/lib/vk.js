@@ -13,32 +13,30 @@ export const vk = {
       const href = window.location.href;
       console.log('Bridge: Init started. URL:', href);
       
-      const search = window.location.search;
-      const hash = window.location.hash;
-      // Проверка на наличие параметров VK
       const hasVkParams = href.includes('vk_');
       
       try {
-        console.log('Bridge: Sending VKWebAppInit...');
-        // Попытка инициализации в любом случае, но с таймаутом
-        const initCall = bridge.send('VKWebAppInit');
+        console.log('Bridge: Waiting for VK Bridge and sending VKWebAppInit...');
+        
+        // Для Android важно использовать window.VKBridge если он есть, 
+        // или дождаться инициализации стандартного bridge
+        const currentBridge = window.VKBridge || bridge;
+        
+        const initCall = currentBridge.send('VKWebAppInit');
         const timeout = new Promise((_, reject) => 
-          setTimeout(() => reject(new Error('VK Bridge timeout')), 5000)
+          setTimeout(() => reject(new Error('VK Bridge timeout')), 7000)
         );
         
         await Promise.race([initCall, timeout]);
         console.log('✅ Bridge: VKWebAppInit success');
         
-        // Если инициализация прошла, считаем что мы в VK
-        const isEmbedded = true;
-
         // Получение данных пользователя
         try {
-          const userInfoPromise = bridge.send('VKWebAppGetUserInfo');
+          const userInfoPromise = currentBridge.send('VKWebAppGetUserInfo');
           const authInfoPromise = vk.getAuthInfo();
           
           const bridgeTimeout = new Promise((_, reject) => 
-            setTimeout(() => reject(new Error('Bridge data timeout')), 5000)
+            setTimeout(() => reject(new Error('Bridge data timeout')), 7000)
           );
 
           const [userInfo, authInfo] = await Promise.race([
@@ -60,13 +58,12 @@ export const vk = {
           return { isEmbedded: true, userData, authInfo };
 
         } catch (err) {
-          console.warn('⚠️ Bridge: Failed to get user data, but bridge is alive:', err.message);
+          console.warn('⚠️ Bridge: Failed to get user data:', err.message);
           const authInfo = await vk.getAuthInfo();
           return { isEmbedded: true, authInfo, error: err.message };
         }
         
       } catch (err) {
-        // Если инициализация упала (таймаут или ошибка), проверяем параметры URL
         if (hasVkParams) {
           console.error('❌ Bridge: Init failed but URL has VK params:', err.message);
           const authInfo = await vk.getAuthInfo();
@@ -81,17 +78,16 @@ export const vk = {
     return initPromise;
   },
   
-  // � Получить данные пользователя
   async getUserInfo() {
     try {
-      return await bridge.send('VKWebAppGetUserInfo');
+      const currentBridge = window.VKBridge || bridge;
+      return await currentBridge.send('VKWebAppGetUserInfo');
     } catch (err) {
       console.error('Failed to get user info:', err);
       throw err;
     }
   },
 
-  // 🔑 Получить данные авторизации (launch params)
   async getAuthInfo() {
     try {
       const search = window.location.search;
@@ -134,16 +130,15 @@ export const vk = {
     }
   },
   
-  // �� Показать уведомление
   async showNotification(title, message, type = 'info') {
     try {
-      await bridge.send('VKWebAppShowSnackbar', {
+      const currentBridge = window.VKBridge || bridge;
+      await currentBridge.send('VKWebAppShowSnackbar', {
         message: `${title}: ${message}`,
         duration: 3000,
-        type: type // 'info', 'success', 'error'
+        type: type
       });
     } catch (err) {
-      // Fallback для браузеров
       if ('Notification' in window && Notification.permission === 'granted') {
         new Notification(title, { body: message });
       } else {
@@ -152,26 +147,24 @@ export const vk = {
     }
   },
   
-  // 🔔 Запросить разрешение на уведомления
   async requestNotificationPermission() {
     try {
-      const result = await bridge.send('VKWebAppSubscribeStoryApp', {});
+      const currentBridge = window.VKBridge || bridge;
+      const result = await currentBridge.send('VKWebAppSubscribeStoryApp', {});
       return result.result;
     } catch {
       return false;
     }
   },
   
-  // 📤 Загрузка фото через VK
   async uploadPhoto(file) {
     try {
-      // 1. Получаем URL для загрузки
-      const uploadUrl = await bridge.send('VKWebAppGetUploadServer', {
-        group_id: 0, // 0 = пользователь
-        album_id: 'wall' // или 'messages' для чатов
+      const currentBridge = window.VKBridge || bridge;
+      const uploadUrl = await currentBridge.send('VKWebAppGetUploadServer', {
+        group_id: 0,
+        album_id: 'wall'
       });
       
-      // 2. Загружаем файл на сервер VK
       const formData = new FormData();
       formData.append('file', file);
       
@@ -181,8 +174,7 @@ export const vk = {
       });
       const uploadData = await uploadResponse.json();
       
-      // 3. Сохраняем фото
-      const saveResponse = await bridge.send('VKWebAppSaveWallPhoto', {
+      const saveResponse = await currentBridge.send('VKWebAppSaveWallPhoto', {
         photo: uploadData.photo,
         server: uploadData.server,
         hash: uploadData.hash,
