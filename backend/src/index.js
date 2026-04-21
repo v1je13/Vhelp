@@ -7,13 +7,15 @@ const app = new Hono();
 
 // CORS middleware
 app.use('*', async (c, next) => {
-  // Упрощенный CORS для мобильных сетей (без привязки к домену)
+  // Упрощенный CORS для мобильных сетей
   c.res.headers.set('Access-Control-Allow-Origin', '*');
   c.res.headers.set('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-  // Расширяем список разрешенных заголовков для мобильных устройств
-  c.res.headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Accept, Origin');
-  // Кэшируем префлайт запросы на 24 часа для ускорения работы на мобильном интернете
+  // Добавляем X-VK-Sign и другие заголовки, которые могут быть полезны
+  c.res.headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Accept, Origin, X-VK-Sign, Cache-Control, Pragma');
   c.res.headers.set('Access-Control-Max-Age', '86400');
+  
+  // Принудительно отключаем кэширование на стороне API
+  c.res.headers.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
   
   if (c.req.method === 'OPTIONS') {
     return new Response(null, {

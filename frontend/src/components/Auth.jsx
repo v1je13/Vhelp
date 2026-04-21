@@ -7,6 +7,7 @@ import { api } from '../api/client';
 export function Auth({ onAuthSuccess }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [debugInfo, setDebugInfo] = useState(null);
   
   useEffect(() => {
     vk.init();
@@ -16,67 +17,38 @@ export function Auth({ onAuthSuccess }) {
     if (loading) return;
     setLoading(true);
     setError(null);
+    setDebugInfo(null);
     
-    // Watchdog для предотвращения вечной загрузки в UI
+    // Собираем отладочную инфу на случай ошибки
+    const currentDebug = {
+      url: window.location.href,
+      referrer: document.referrer || 'none',
+      userAgent: navigator.userAgent,
+      hasVkParams: window.location.href.includes('vk_'),
+      bridgeInjected: !!window.AndroidBridge || !!window.webkit?.messageHandlers?.VKWebAppInit || !!window.parent
+    };
+    
     const watchdog = setTimeout(() => {
       if (loading) {
-        console.warn('Auth: Watchdog triggered - login is taking too long');
-        setError('Авторизация занимает слишком много времени. Попробуйте еще раз или обновите страницу.');
+        setError('Превышено время ожидания. Проверьте, что приложение открыто внутри VK.');
+        setDebugInfo(currentDebug);
       }
-    }, 20000);
+    }, 15000);
     
     try {
-      console.log('Auth: Manual login started');
-      
-      // 1. Пытаемся получить данные
       const initData = await vk.init();
-      console.log('Auth: vk.init finished, isEmbedded:', initData.isEmbedded);
       
       let userData = initData.userData;
       let authInfo = initData.authInfo;
 
-      // Если мы не в VK, имитируем успешный вход для разработки или показываем ошибку
-      if (!initData.isEmbedded) {
-        console.warn('Auth: Not in VK, using mock data for development');
-        // В продакшене тут должна быть ошибка, но для теста на мобилках вне VK:
-        // throw new Error('Приложение должно быть открыто внутри ВКонтакте');
-      }
-
-      if (!userData || !authInfo) {
-        console.log('Auth: Data missing, fetching manually...');
-        const bridgeTimeout = new Promise((_, reject) => 
-          setTimeout(() => reject(new Error('Bridge data timeout')), 5000)
-        );
-
-        try {
-          const results = await Promise.race([
-            Promise.all([
-              vk.getUserInfo().catch(e => ({ id: 0, first_name: 'Guest' })), 
-              vk.getAuthInfo()
-            ]),
-            bridgeTimeout
-          ]);
-          userData = results[0];
-          authInfo = results[1];
-        } catch (e) {
-          console.error('Auth: Manual fetch failed', e);
-        }
+      if (!authInfo || !authInfo.sign) {
+        setDebugInfo(currentDebug);
+        const missing = !authInfo ? 'authInfo is null' : (!authInfo.sign ? 'sign is missing' : 'unknown');
+        throw new Error(`Параметры запуска VK не найдены (${missing}). Откройте приложение через поиск VK или по прямой ссылке на сервис.`);
       }
       
-      if (!authInfo || !authInfo.sign) {
-        throw new Error('Не удалось получить параметры запуска VK. Откройте приложение внутри ВКонтакте.');
-      }
-
-      // Если userData все еще нет (например, getUserInfo не сработал), 
-      // пробуем авторизоваться хотя бы по ID из authInfo
       const vkId = userData?.vk_user_id || userData?.id || authInfo.vk_user_id;
       
-      if (!vkId) {
-        throw new Error('Не удалось определить ваш VK ID.');
-      }
-      
-      // 2. Отправляем на бэкенд
-      console.log('Auth: Calling api.vkAuth...');
       const response = await api.vkAuth({
         vk_user_id: String(vkId),
         sign: authInfo.sign,
@@ -85,16 +57,14 @@ export function Auth({ onAuthSuccess }) {
         photo: userData?.photo || userData?.photo_200 || '',
       });
       
-      console.log('Auth: Backend login success');
       clearTimeout(watchdog);
-      
       localStorage.setItem('vhelp_token', response.token);
       localStorage.setItem('vhelp_user', JSON.stringify(response.user));
-      
       onAuthSuccess?.(response);
     } catch (err) {
       console.error('Auth error:', err);
-      setError(err.message || 'Авторизация не удалась. Проверьте интернет-соединение.');
+      setError(err.message);
+      setDebugInfo(currentDebug);
       clearTimeout(watchdog);
     } finally {
       setLoading(false);
@@ -102,16 +72,58 @@ export function Auth({ onAuthSuccess }) {
   };
   
   return (
-    <div style={{ padding: 20, textAlign: 'center' }}>
-      {error && <div style={{ color: 'red', marginBottom: 10 }}>{error}</div>}
+    <div style={{ padding: 20, textAlign: 'center', maxWidth: 500, margin: '0 auto' }}>
+      <div style={{ fontSize: 48, marginBottom: 20 }}>🌍</div>
+      <h2 style={{ marginBottom: 10 }}>Добро пожаловать</h2>
+      <p style={{ color: 'var(--vkui--color_text_secondary)', marginBottom: 24 }}>
+        Для продолжения необходимо авторизоваться через ВКонтакте
+      </p>
+
+      {error && (
+        <div style={{ 
+          backgroundColor: '#FFF2F2', 
+          color: '#E64646', 
+          padding: 12, 
+          borderRadius: 10, 
+          marginBottom: 20,
+          fontSize: 14,
+          textAlign: 'left',
+          border: '1px solid #FFE0E0'
+        }}>
+          <strong>Ошибка:</strong> {error}
+        </div>
+      )}
+
       <Button 
         size="l" 
         mode="primary" 
+        stretched
         onClick={handleVkLogin}
         disabled={loading}
+        before={!loading && <span>🔑</span>}
       >
         {loading ? <Spinner size="regular" /> : 'Войти через VK'}
       </Button>
+
+      {debugInfo && (
+        <div style={{ 
+          marginTop: 30, 
+          padding: 12, 
+          backgroundColor: '#f5f5f5', 
+          borderRadius: 8, 
+          fontSize: 10, 
+          textAlign: 'left',
+          color: '#666',
+          fontFamily: 'monospace',
+          wordBreak: 'break-all'
+        }}>
+          <div style={{ fontWeight: 'bold', marginBottom: 5, fontSize: 11 }}>DЕBUG INFO:</div>
+          <div>URL: {debugInfo.url}</div>
+          <div>REF: {debugInfo.referrer}</div>
+          <div>VK_PARAMS: {debugInfo.hasVkParams ? 'YES' : 'NO'}</div>
+          <div>BRIDGE: {debugInfo.bridgeInjected ? 'FOUND' : 'NOT_FOUND'}</div>
+        </div>
+      )}
     </div>
   );
 }

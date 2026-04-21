@@ -16,6 +16,8 @@ export const api = {
         
         const headers = {
           ...(token && { 'Authorization': `Bearer ${token}` }),
+          'Cache-Control': 'no-cache', 
+          'Pragma': 'no-cache',
           ...options.headers
         };
 
@@ -31,6 +33,8 @@ export const api = {
 
         const res = await fetch(`${API_BASE}${endpoint}`, {
           ...options,
+          mode: 'cors',
+          credentials: 'omit',
           signal: controller.signal,
           headers
         });

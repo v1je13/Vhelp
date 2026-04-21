@@ -96,12 +96,9 @@ export const vk = {
     try {
       const search = window.location.search;
       const hash = window.location.hash;
+      console.log('Bridge: Parsing params. Search:', search, 'Hash:', hash);
       
-      // Объединяем параметры из search и hash (на случай использования HashRouter)
       const searchParams = new URLSearchParams(search);
-      
-      // Для hash нужно убрать символ '#' и всё что до знака '?' внутри хэша
-      // Также убираем ведущие слеши, которые могут мешать URLSearchParams
       const hashClean = hash.replace(/^#\/?/, '');
       const hashPart = hashClean.includes('?') ? hashClean.split('?')[1] : hashClean;
       const hashParams = new URLSearchParams(hashPart);
@@ -114,11 +111,16 @@ export const vk = {
       ];
 
       vkParams.forEach(param => {
-        // Приоритет параметрам из URL (search), затем из хэша
         const value = searchParams.get(param) || hashParams.get(param);
         if (value) {
           authData[param] = value;
         }
+      });
+
+      console.log('Bridge: Parsed authData:', { 
+        hasUserId: !!authData.vk_user_id, 
+        hasSign: !!authData.sign,
+        paramsCount: Object.keys(authData).length 
       });
 
       return {

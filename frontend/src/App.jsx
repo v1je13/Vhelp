@@ -54,6 +54,12 @@ function App() {
 
         // 2. Если нет токена, пробуем авто-авторизацию через VK
         const initData = await vk.init();
+        console.log('App: initData received:', { 
+          isEmbedded: initData.isEmbedded, 
+          hasUser: !!initData.userData, 
+          hasSign: !!initData.userData?.sign,
+          error: initData.error 
+        });
         
         if (initData.isEmbedded && initData.userData && initData.userData.sign) {
           console.log('App: Attempting auto-auth...');
