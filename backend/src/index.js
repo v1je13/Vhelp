@@ -10,7 +10,7 @@ const jwt = {
     const header = { alg: 'HS256', typ: 'JWT' };
     const now = Math.floor(Date.now() / 1000);
     const exp = now + (options.expiresIn === '30d' ? 30 * 24 * 60 * 60 : 7200);
-    
+
     const tokenPayload = {
       ...payload,
       iat: now,
@@ -19,8 +19,8 @@ const jwt = {
     };
 
     const encoder = new TextEncoder();
-    const encodedHeader = btoa(JSON.stringify(header));
-    const encodedPayload = btoa(JSON.stringify(tokenPayload));
+    const encodedHeader = base64UrlEncode(btoa(JSON.stringify(header)));
+    const encodedPayload = base64UrlEncode(btoa(JSON.stringify(tokenPayload)));
     const data = `${encodedHeader}.${encodedPayload}`;
 
     const key = await crypto.subtle.importKey(
@@ -37,7 +37,7 @@ const jwt = {
       encoder.encode(data)
     );
 
-    const encodedSignature = btoa(String.fromCharCode(...new Uint8Array(signature)));
+    const encodedSignature = base64UrlEncode(btoa(String.fromCharCode(...new Uint8Array(signature))));
     return `${data}.${encodedSignature}`;
   },
 
@@ -57,7 +57,7 @@ const jwt = {
       ['verify']
     );
 
-    const signature = Uint8Array.from(atob(encodedSignature), c => c.charCodeAt(0));
+    const signature = Uint8Array.from(atob(base64UrlDecode(encodedSignature)), c => c.charCodeAt(0));
     const isValid = await crypto.subtle.verify(
       'HMAC',
       key,
@@ -67,8 +67,8 @@ const jwt = {
 
     if (!isValid) throw new Error('Invalid signature');
 
-    const payload = JSON.parse(atob(encodedPayload));
-    
+    const payload = JSON.parse(atob(base64UrlDecode(encodedPayload)));
+
     if (payload.exp && payload.exp < Math.floor(Date.now() / 1000)) {
       throw new Error('Token expired');
     }
@@ -76,6 +76,17 @@ const jwt = {
     return { payload };
   }
 };
+
+// Helper functions for URL-safe base64
+function base64UrlEncode(str) {
+  return str.replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+}
+
+function base64UrlDecode(str) {
+  str = str.replace(/-/g, '+').replace(/_/g, '/');
+  while (str.length % 4) str += '=';
+  return str;
+}
 
 // CORS — исправленный для Android
 app.use('*', async (c, next) => {
