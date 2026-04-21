@@ -1,27 +1,46 @@
 const API_URL = 'https://vhelp-backend.traveldiary-api.workers.dev';
 
-const apiFetch = async (endpoint, options = {}) => {
+const apiFetch = async (endpoint, options = {}, retries = 2) => {
   const url = `${API_URL}/api${endpoint}`;
-  
+
   const token = localStorage.getItem('vhelp_token');
   const headers = {
     'Content-Type': 'application/json',
     ...(token && { 'Authorization': `Bearer ${token}` }),
     ...options.headers
   };
-  
-  const response = await fetch(url, {
-    ...options,
-    headers,
-    credentials: 'include'
-  });
-  
-  if (!response.ok) {
-    const error = await response.json().catch(() => ({}));
-    throw new Error(error.error || `HTTP ${response.status}`);
+
+  // Mobile: increased timeout and retry
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 30000); // 30s timeout
+
+  try {
+    const response = await fetch(url, {
+      ...options,
+      headers,
+      signal: controller.signal,
+      credentials: 'include'
+    });
+    clearTimeout(timeoutId);
+
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({}));
+      throw new Error(error.error || `HTTP ${response.status}`);
+    }
+
+    return response.json();
+  } catch (err) {
+    clearTimeout(timeoutId);
+
+    // Retry on network errors
+    if (retries > 0 && (err.name === 'AbortError' || err.message.includes('fetch'))) {
+      console.log(`Retrying ${endpoint}, attempts left: ${retries}`);
+      await new Promise(resolve => setTimeout(resolve, 1000)); // 1s delay
+      return apiFetch(endpoint, options, retries - 1);
+    }
+
+    throw err;
   }
-  
-  return response.json();
 };
 
 export const api = {
