@@ -29,12 +29,19 @@ export function AppConfig({ children }) {
     };
     vkBridge.subscribe(bridgeListener);
 
-    // Инициализация через vk.js
+    // Инициализация через vk.js с жестким таймаутом для Android
+    const forceStart = setTimeout(() => {
+      console.warn('AppConfig: Force starting after 7s timeout');
+      setIsReady(true);
+    }, 7000);
+
     vk.init().then(() => {
       console.log('AppConfig: vk.init success');
+      clearTimeout(forceStart);
       setIsReady(true);
     }).catch((err) => {
       console.error('AppConfig: vk.init error', err);
+      clearTimeout(forceStart);
       setIsReady(true);
     });
 
