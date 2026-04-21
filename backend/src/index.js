@@ -1,10 +1,17 @@
 import { Hono } from 'hono';
-import { serve } from '@hono/node-server';
 import { cors } from 'hono/cors';
 import { Pool } from 'pg';
 import { randomUUID, createHmac } from 'crypto';
 
 const app = new Hono();
+
+// Add CORS at the app level for all routes
+app.use('/*', cors({
+  origin: '*',
+  allowMethods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin', 'X-VK-Sign'],
+  maxAge: 86400,
+}));
 
 // PostgreSQL connection
 const pool = new Pool({
@@ -69,15 +76,6 @@ function base64UrlDecode(str) {
   while (str.length % 4) str += '=';
   return str;
 }
-
-// CORS — исправленный для Android
-app.use('*', cors({
-  origin: '*',
-  allowMethods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin', 'X-VK-Sign'],
-  credentials: true,
-  maxAge: 86400,
-}));
 
 // Health check
 app.get('/api/health', (c) => c.json({ status: 'ok' }));
@@ -486,10 +484,5 @@ app.get('/api/tags/:tag/posts', async (c) => {
   }
 });
 
-// Start server
-serve({
-  fetch: app.fetch,
-  port: process.env.PORT || 3000,
-});
-
-console.log('Server running on port', process.env.PORT || 3000);
+// Vercel export
+export default app;
