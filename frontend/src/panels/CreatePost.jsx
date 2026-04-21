@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { Panel, Button, Textarea, FormItem } from "@vkontakte/vkui";
-import api from "../api";
+import { api } from "../api/client";
 import { useAuth } from "../hooks/useAuth";
 
 export default function CreatePost({ nav, onBack }) {
@@ -20,7 +20,7 @@ export default function CreatePost({ nav, onBack }) {
     try {
       setLoading(true);
       await api.createPost({
-        content,
+        text: content,
         location: location || undefined,
         images: [] // Можно добавить загрузку изображений позже
       });
