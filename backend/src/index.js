@@ -1,9 +1,18 @@
 import { Hono } from 'hono';
+import { serve } from '@hono/node-server';
+import { cors } from 'hono/cors';
+import { Pool } from 'pg';
+import { randomUUID, createHmac } from 'crypto';
 
 const app = new Hono();
 
-// JWT helpers using Web Crypto API
-const getSecret = (env) => env.JWT_SECRET || 'fallback-secret-key-change-it';
+// PostgreSQL connection
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+});
+
+// JWT helpers using Node.js crypto
+const getSecret = () => process.env.JWT_SECRET || 'fallback-secret-key-change-it';
 
 const jwt = {
   sign: async (payload, secret, options = {}) => {
@@ -15,29 +24,16 @@ const jwt = {
       ...payload,
       iat: now,
       exp: exp,
-      jti: crypto.randomUUID()
+      jti: randomUUID()
     };
 
-    const encoder = new TextEncoder();
-    const encodedHeader = base64UrlEncode(btoa(JSON.stringify(header)));
-    const encodedPayload = base64UrlEncode(btoa(JSON.stringify(tokenPayload)));
+    const encodedHeader = base64UrlEncode(Buffer.from(JSON.stringify(header)).toString('base64'));
+    const encodedPayload = base64UrlEncode(Buffer.from(JSON.stringify(tokenPayload)).toString('base64'));
     const data = `${encodedHeader}.${encodedPayload}`;
 
-    const key = await crypto.subtle.importKey(
-      'raw',
-      encoder.encode(secret),
-      { name: 'HMAC', hash: 'SHA-256' },
-      false,
-      ['sign']
-    );
+    const signature = createHmac('sha256', secret).update(data).digest('base64');
+    const encodedSignature = base64UrlEncode(signature);
 
-    const signature = await crypto.subtle.sign(
-      'HMAC',
-      key,
-      encoder.encode(data)
-    );
-
-    const encodedSignature = base64UrlEncode(btoa(String.fromCharCode(...new Uint8Array(signature))));
     return `${data}.${encodedSignature}`;
   },
 
@@ -48,26 +44,12 @@ const jwt = {
     const [encodedHeader, encodedPayload, encodedSignature] = parts;
     const data = `${encodedHeader}.${encodedPayload}`;
 
-    const encoder = new TextEncoder();
-    const key = await crypto.subtle.importKey(
-      'raw',
-      encoder.encode(secret),
-      { name: 'HMAC', hash: 'SHA-256' },
-      false,
-      ['verify']
-    );
+    const signature = createHmac('sha256', secret).update(data).digest('base64');
+    const encodedSignatureCheck = base64UrlEncode(signature);
 
-    const signature = Uint8Array.from(atob(base64UrlDecode(encodedSignature)), c => c.charCodeAt(0));
-    const isValid = await crypto.subtle.verify(
-      'HMAC',
-      key,
-      signature,
-      encoder.encode(data)
-    );
+    if (encodedSignature !== encodedSignatureCheck) throw new Error('Invalid signature');
 
-    if (!isValid) throw new Error('Invalid signature');
-
-    const payload = JSON.parse(atob(base64UrlDecode(encodedPayload)));
+    const payload = JSON.parse(Buffer.from(base64UrlDecode(encodedPayload), 'base64').toString());
 
     if (payload.exp && payload.exp < Math.floor(Date.now() / 1000)) {
       throw new Error('Token expired');
@@ -89,22 +71,13 @@ function base64UrlDecode(str) {
 }
 
 // CORS — исправленный для Android
-app.use('*', async (c, next) => {
-  const origin = c.req.header('Origin') || '*';
-  
-  c.header('Access-Control-Allow-Origin', origin);
-  c.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-  c.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Accept, Origin, X-VK-Sign');
-  c.header('Access-Control-Allow-Credentials', 'true');
-  c.header('Access-Control-Max-Age', '86400');
-  c.header('Vary', 'Origin');
-  
-  if (c.req.method === 'OPTIONS') {
-    return c.body(null, 204);
-  }
-  
-  await next();
-});
+app.use('*', cors({
+  origin: '*',
+  allowMethods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin', 'X-VK-Sign'],
+  credentials: true,
+  maxAge: 86400,
+}));
 
 // Health check
 app.get('/api/health', (c) => c.json({ status: 'ok' }));
@@ -112,26 +85,29 @@ app.get('/api/health', (c) => c.json({ status: 'ok' }));
 // VK Auth
 app.post('/api/auth/vk', async (c) => {
   try {
-    const db = c.env.DB;
-    const secret = getSecret(c.env);
+    const secret = getSecret();
     const { vk_user_id, first_name, last_name, photo } = await c.req.json();
-    
+
     if (!vk_user_id) return c.json({ error: 'VK user ID required' }, 400);
-    
-    let user = await db.prepare('SELECT * FROM users WHERE vk_id = ?').bind(vk_user_id).first();
-    
+
+    let user = (await pool.query('SELECT * FROM users WHERE vk_id = $1', [vk_user_id])).rows[0];
+
     if (!user) {
-      const userId = crypto.randomUUID();
-      await db.prepare('INSERT INTO users (id, vk_id, first_name, last_name, avatar) VALUES (?, ?, ?, ?, ?)')
-        .bind(userId, vk_user_id, first_name || 'User', last_name || '', photo || '').run();
+      const userId = randomUUID();
+      await pool.query(
+        'INSERT INTO users (id, vk_id, first_name, last_name, avatar) VALUES ($1, $2, $3, $4, $5)',
+        [userId, vk_user_id, first_name || 'User', last_name || '', photo || '']
+      );
       user = { id: userId, vk_id: vk_user_id, first_name, last_name, avatar: photo };
     } else {
-      await db.prepare('UPDATE users SET first_name = ?, last_name = ?, avatar = ?, updated_at = ? WHERE vk_id = ?')
-        .bind(first_name || user.first_name, last_name || user.last_name, photo || user.avatar, Date.now(), vk_user_id).run();
+      await pool.query(
+        'UPDATE users SET first_name = $1, last_name = $2, avatar = $3, updated_at = $4 WHERE vk_id = $5',
+        [first_name || user.first_name, last_name || user.last_name, photo || user.avatar, Date.now(), vk_user_id]
+      );
     }
-    
+
     const token = await jwt.sign({ userId: user.id, vkId: user.vk_id }, secret, { expiresIn: '30d' });
-    
+
     return c.json({
       token,
       user: {
@@ -152,16 +128,15 @@ app.get('/api/auth/me', async (c) => {
   try {
     const authHeader = c.req.header('Authorization');
     if (!authHeader) return c.json({ error: 'No token' }, 401);
-    
+
     const token = authHeader.replace('Bearer ', '');
-    const secret = getSecret(c.env);
+    const secret = getSecret();
     const decoded = await jwt.verify(token, secret);
-    
-    const db = c.env.DB;
-    const user = await db.prepare('SELECT * FROM users WHERE id = ?').bind(decoded.payload.userId).first();
-    
+
+    const user = (await pool.query('SELECT * FROM users WHERE id = $1', [decoded.payload.userId])).rows[0];
+
     if (!user) return c.json({ error: 'User not found' }, 404);
-    
+
     return c.json({
       id: user.id,
       vkId: user.vk_id,
@@ -178,18 +153,17 @@ app.get('/api/auth/me', async (c) => {
 // Get posts feed
 app.get('/api/posts', async (c) => {
   try {
-    const db = c.env.DB;
     const page = parseInt(c.req.query('page')) || 1;
     const limit = 20;
     const offset = (page - 1) * limit;
-    
-    const { results } = await db.prepare(`
+
+    const { rows } = await pool.query(`
       SELECT p.*, u.first_name, u.last_name, u.avatar
       FROM posts p JOIN users u ON p.user_id = u.id
-      ORDER BY p.created_at DESC LIMIT ? OFFSET ?
-    `).bind(limit, offset).all();
-    
-    return c.json({ posts: results, page, hasMore: results.length === limit });
+      ORDER BY p.created_at DESC LIMIT $1 OFFSET $2
+    `, [limit, offset]);
+
+    return c.json({ posts: rows, page, hasMore: rows.length === limit });
   } catch (err) {
     return c.json({ error: err.message }, 500);
   }
@@ -198,12 +172,11 @@ app.get('/api/posts', async (c) => {
 // Get single post
 app.get('/api/posts/:id', async (c) => {
   try {
-    const db = c.env.DB;
-    const post = await db.prepare(`
+    const post = (await pool.query(`
       SELECT p.*, u.first_name, u.last_name, u.avatar
-      FROM posts p JOIN users u ON p.user_id = u.id WHERE p.id = ?
-    `).bind(c.req.param('id')).first();
-    
+      FROM posts p JOIN users u ON p.user_id = u.id WHERE p.id = $1
+    `, [c.req.param('id')])).rows[0];
+
     if (!post) return c.json({ error: 'Post not found' }, 404);
     return c.json({ post });
   } catch (err) {
@@ -218,33 +191,29 @@ app.post('/api/posts', async (c) => {
     if (!authHeader) return c.json({ error: 'No token' }, 401);
 
     const token = authHeader.replace('Bearer ', '');
-    const secret = getSecret(c.env);
-    console.log('JWT Secret length:', secret.length);
-    console.log('Token prefix:', token.substring(0, 50) + '...');
+    const secret = getSecret();
     const decoded = await jwt.verify(token, secret);
 
-    const db = c.env.DB;
     const { text, images, tags = [], trip_id = null } = await c.req.json();
 
     if (!text || text.trim().length < 3) {
       return c.json({ error: 'Text required (min 3 chars)' }, 400);
     }
 
-    const postId = crypto.randomUUID();
-    await db.prepare(`
+    const postId = randomUUID();
+    await pool.query(`
       INSERT INTO posts (id, user_id, text, images, tags, trip_id, location, likes_count)
-      VALUES (?, ?, ?, ?, ?, ?, ?, 0)
-    `).bind(postId, decoded.payload.userId, text.trim(), JSON.stringify(images || []),
-            JSON.stringify(tags), trip_id, JSON.stringify(null)).run();
+      VALUES ($1, $2, $3, $4, $5, $6, $7, 0)
+    `, [postId, decoded.payload.userId, text.trim(), JSON.stringify(images || []),
+        JSON.stringify(tags), trip_id, JSON.stringify(null)]);
 
-    const post = await db.prepare(`
+    const post = (await pool.query(`
       SELECT p.*, u.first_name, u.last_name, u.avatar
-      FROM posts p JOIN users u ON p.user_id = u.id WHERE p.id = ?
-    `).bind(postId).first();
+      FROM posts p JOIN users u ON p.user_id = u.id WHERE p.id = $1
+    `, [postId])).rows[0];
 
     return c.json({ post }, 201);
   } catch (err) {
-    console.error('JWT Verify Error:', err);
     return c.json({ error: err.message }, 500);
   }
 });
@@ -254,28 +223,25 @@ app.post('/api/posts/:id/like', async (c) => {
   try {
     const authHeader = c.req.header('Authorization');
     if (!authHeader) return c.json({ error: 'No token' }, 401);
-    
+
     const token = authHeader.replace('Bearer ', '');
-    const secret = getSecret(c.env);
+    const secret = getSecret();
     const decoded = await jwt.verify(token, secret);
-    
-    const db = c.env.DB;
+
     const postId = c.req.param('id');
     const userId = decoded.payload.userId;
-    
-    const existing = await db.prepare('SELECT * FROM likes WHERE post_id = ? AND user_id = ?')
-      .bind(postId, userId).first();
-    
+
+    const existing = (await pool.query('SELECT * FROM likes WHERE post_id = $1 AND user_id = $2', [postId, userId])).rows[0];
+
     if (existing) {
-      await db.prepare('DELETE FROM likes WHERE post_id = ? AND user_id = ?').bind(postId, userId).run();
-      await db.prepare('UPDATE posts SET likes_count = likes_count - 1 WHERE id = ?').bind(postId).run();
+      await pool.query('DELETE FROM likes WHERE post_id = $1 AND user_id = $2', [postId, userId]);
+      await pool.query('UPDATE posts SET likes_count = likes_count - 1 WHERE id = $1', [postId]);
     } else {
-      await db.prepare('INSERT INTO likes (id, post_id, user_id) VALUES (?, ?, ?)')
-        .bind(crypto.randomUUID(), postId, userId).run();
-      await db.prepare('UPDATE posts SET likes_count = likes_count + 1 WHERE id = ?').bind(postId).run();
+      await pool.query('INSERT INTO likes (id, post_id, user_id) VALUES ($1, $2, $3)', [randomUUID(), postId, userId]);
+      await pool.query('UPDATE posts SET likes_count = likes_count + 1 WHERE id = $1', [postId]);
     }
-    
-    const newCount = await db.prepare('SELECT likes_count FROM posts WHERE id = ?').bind(postId).first();
+
+    const newCount = (await pool.query('SELECT likes_count FROM posts WHERE id = $1', [postId])).rows[0];
     return c.json({ liked: !existing, count: newCount.likes_count });
   } catch (err) {
     return c.json({ error: err.message }, 500);
@@ -285,14 +251,13 @@ app.post('/api/posts/:id/like', async (c) => {
 // Get comments
 app.get('/api/posts/:id/comments', async (c) => {
   try {
-    const db = c.env.DB;
-    const { results } = await db.prepare(`
+    const { rows } = await pool.query(`
       SELECT c.*, u.first_name, u.last_name, u.avatar
       FROM comments c JOIN users u ON c.user_id = u.id
-      WHERE c.post_id = ? ORDER BY c.created_at ASC
-    `).bind(c.req.param('id')).all();
-    
-    return c.json({ comments: results });
+      WHERE c.post_id = $1 ORDER BY c.created_at ASC
+    `, [c.req.param('id')]);
+
+    return c.json({ comments: rows });
   } catch (err) {
     return c.json({ error: err.message }, 500);
   }
@@ -303,28 +268,28 @@ app.post('/api/posts/:id/comments', async (c) => {
   try {
     const authHeader = c.req.header('Authorization');
     if (!authHeader) return c.json({ error: 'No token' }, 401);
-    
+
     const token = authHeader.replace('Bearer ', '');
-    const secret = getSecret(c.env);
+    const secret = getSecret();
     const decoded = await jwt.verify(token, secret);
-    
-    const db = c.env.DB;
+
     const { text } = await c.req.json();
-    
+
     if (!text || text.trim().length < 1) {
       return c.json({ error: 'Comment text required' }, 400);
     }
-    
-    const commentId = crypto.randomUUID();
-    await db.prepare(`
-      INSERT INTO comments (id, post_id, user_id, text) VALUES (?, ?, ?, ?)
-    `).bind(commentId, c.req.param('id'), decoded.payload.userId, text.trim()).run();
-    
-    const comment = await db.prepare(`
+
+    const commentId = randomUUID();
+    await pool.query(
+      'INSERT INTO comments (id, post_id, user_id, text) VALUES ($1, $2, $3, $4)',
+      [commentId, c.req.param('id'), decoded.payload.userId, text.trim()]
+    );
+
+    const comment = (await pool.query(`
       SELECT c.*, u.first_name, u.last_name, u.avatar
-      FROM comments c JOIN users u ON c.user_id = u.id WHERE c.id = ?
-    `).bind(commentId).first();
-    
+      FROM comments c JOIN users u ON c.user_id = u.id WHERE c.id = $1
+    `, [commentId])).rows[0];
+
     return c.json({ comment }, 201);
   } catch (err) {
     return c.json({ error: err.message }, 500);
@@ -334,14 +299,12 @@ app.post('/api/posts/:id/comments', async (c) => {
 // Get user profile
 app.get('/api/users/:id', async (c) => {
   try {
-    const db = c.env.DB;
-    const user = await db.prepare('SELECT * FROM users WHERE id = ?').bind(c.req.param('id')).first();
-    
+    const user = (await pool.query('SELECT * FROM users WHERE id = $1', [c.req.param('id')])).rows[0];
+
     if (!user) return c.json({ error: 'User not found' }, 404);
-    
-    const postsCount = await db.prepare('SELECT COUNT(*) as count FROM posts WHERE user_id = ?')
-      .bind(c.req.param('id')).first();
-    
+
+    const postsCount = (await pool.query('SELECT COUNT(*) as count FROM posts WHERE user_id = $1', [c.req.param('id')])).rows[0];
+
     return c.json({
       user: {
         ...user,
@@ -356,14 +319,13 @@ app.get('/api/users/:id', async (c) => {
 // Get user posts
 app.get('/api/users/:id/posts', async (c) => {
   try {
-    const db = c.env.DB;
-    const { results } = await db.prepare(`
+    const { rows } = await pool.query(`
       SELECT p.*, u.first_name, u.last_name, u.avatar
       FROM posts p JOIN users u ON p.user_id = u.id
-      WHERE p.user_id = ? ORDER BY p.created_at DESC LIMIT 50
-    `).bind(c.req.param('id')).all();
-    
-    return c.json({ posts: results });
+      WHERE p.user_id = $1 ORDER BY p.created_at DESC LIMIT 50
+    `, [c.req.param('id')]);
+
+    return c.json({ posts: rows });
   } catch (err) {
     return c.json({ error: err.message }, 500);
   }
@@ -372,17 +334,16 @@ app.get('/api/users/:id/posts', async (c) => {
 // Search users
 app.get('/api/users/search', async (c) => {
   try {
-    const db = c.env.DB;
     const query = c.req.query('q')?.trim();
-    
+
     if (!query || query.length < 2) return c.json({ users: [] });
-    
-    const { results } = await db.prepare(`
+
+    const { rows } = await pool.query(`
       SELECT id, vk_id, first_name, last_name, avatar FROM users
-      WHERE first_name LIKE ? OR last_name LIKE ? LIMIT 20
-    `).bind(`%${query}%`, `%${query}%`).all();
-    
-    return c.json({ users: results });
+      WHERE first_name LIKE $1 OR last_name LIKE $2 LIMIT 20
+    `, [`%${query}%`, `%${query}%`]);
+
+    return c.json({ users: rows });
   } catch (err) {
     return c.json({ error: err.message }, 500);
   }
@@ -391,18 +352,17 @@ app.get('/api/users/search', async (c) => {
 // Search posts
 app.get('/api/posts/search', async (c) => {
   try {
-    const db = c.env.DB;
     const query = c.req.query('q')?.trim();
-    
+
     if (!query || query.length < 2) return c.json({ posts: [] });
-    
-    const { results } = await db.prepare(`
+
+    const { rows } = await pool.query(`
       SELECT p.*, u.first_name, u.last_name, u.avatar
       FROM posts p JOIN users u ON p.user_id = u.id
-      WHERE p.text LIKE ? ORDER BY p.created_at DESC LIMIT 20
-    `).bind(`%${query}%`).all();
-    
-    return c.json({ posts: results });
+      WHERE p.text LIKE $1 ORDER BY p.created_at DESC LIMIT 20
+    `, [`%${query}%`]);
+
+    return c.json({ posts: rows });
   } catch (err) {
     return c.json({ error: err.message }, 500);
   }
@@ -413,18 +373,17 @@ app.get('/api/trips', async (c) => {
   try {
     const authHeader = c.req.header('Authorization');
     if (!authHeader) return c.json({ error: 'No token' }, 401);
-    
+
     const token = authHeader.replace('Bearer ', '');
-    const secret = getSecret(c.env);
+    const secret = getSecret();
     const decoded = await jwt.verify(token, secret);
-    
-    const db = c.env.DB;
-    const { results } = await db.prepare(`
+
+    const { rows } = await pool.query(`
       SELECT t.*, (SELECT COUNT(*) FROM posts WHERE trip_id = t.id) as notes_count
-      FROM trips t WHERE t.user_id = ? ORDER BY t.created_at DESC
-    `).bind(decoded.payload.userId).all();
-    
-    return c.json({ trips: results });
+      FROM trips t WHERE t.user_id = $1 ORDER BY t.created_at DESC
+    `, [decoded.payload.userId]);
+
+    return c.json({ trips: rows });
   } catch (err) {
     return c.json({ error: err.message }, 500);
   }
@@ -435,25 +394,24 @@ app.post('/api/trips', async (c) => {
   try {
     const authHeader = c.req.header('Authorization');
     if (!authHeader) return c.json({ error: 'No token' }, 401);
-    
+
     const token = authHeader.replace('Bearer ', '');
-    const secret = getSecret(c.env);
+    const secret = getSecret();
     const decoded = await jwt.verify(token, secret);
-    
-    const db = c.env.DB;
+
     const { name, description, cover_image } = await c.req.json();
-    
+
     if (!name || name.trim().length < 3) {
       return c.json({ error: 'Name required (min 3 chars)' }, 400);
     }
-    
-    const tripId = crypto.randomUUID();
-    await db.prepare(`
-      INSERT INTO trips (id, user_id, name, description, cover_image)
-      VALUES (?, ?, ?, ?, ?)
-    `).bind(tripId, decoded.payload.userId, name.trim(), description || '', cover_image || '').run();
-    
-    const trip = await db.prepare('SELECT * FROM trips WHERE id = ?').bind(tripId).first();
+
+    const tripId = randomUUID();
+    await pool.query(
+      'INSERT INTO trips (id, user_id, name, description, cover_image) VALUES ($1, $2, $3, $4, $5)',
+      [tripId, decoded.payload.userId, name.trim(), description || '', cover_image || '']
+    );
+
+    const trip = (await pool.query('SELECT * FROM trips WHERE id = $1', [tripId])).rows[0];
     return c.json({ trip }, 201);
   } catch (err) {
     return c.json({ error: err.message }, 500);
@@ -465,22 +423,20 @@ app.delete('/api/trips/:id', async (c) => {
   try {
     const authHeader = c.req.header('Authorization');
     if (!authHeader) return c.json({ error: 'No token' }, 401);
-    
+
     const token = authHeader.replace('Bearer ', '');
-    const secret = getSecret(c.env);
+    const secret = getSecret();
     const decoded = await jwt.verify(token, secret);
-    
-    const db = c.env.DB;
+
     const tripId = c.req.param('id');
-    
-    const trip = await db.prepare('SELECT * FROM trips WHERE id = ? AND user_id = ?')
-      .bind(tripId, decoded.payload.userId).first();
-    
+
+    const trip = (await pool.query('SELECT * FROM trips WHERE id = $1 AND user_id = $2', [tripId, decoded.payload.userId])).rows[0];
+
     if (!trip) return c.json({ error: 'Trip not found' }, 404);
-    
-    await db.prepare('DELETE FROM posts WHERE trip_id = ?').bind(tripId).run();
-    await db.prepare('DELETE FROM trips WHERE id = ?').bind(tripId).run();
-    
+
+    await pool.query('DELETE FROM posts WHERE trip_id = $1', [tripId]);
+    await pool.query('DELETE FROM trips WHERE id = $1', [tripId]);
+
     return c.json({ success: true });
   } catch (err) {
     return c.json({ error: err.message }, 500);
@@ -492,26 +448,24 @@ app.get('/api/trips/:id/notes', async (c) => {
   try {
     const authHeader = c.req.header('Authorization');
     if (!authHeader) return c.json({ error: 'No token' }, 401);
-    
+
     const token = authHeader.replace('Bearer ', '');
-    const secret = getSecret(c.env);
+    const secret = getSecret();
     const decoded = await jwt.verify(token, secret);
-    
-    const db = c.env.DB;
+
     const tripId = c.req.param('id');
-    
-    const trip = await db.prepare('SELECT id FROM trips WHERE id = ? AND user_id = ?')
-      .bind(tripId, decoded.payload.userId).first();
-    
+
+    const trip = (await pool.query('SELECT id FROM trips WHERE id = $1 AND user_id = $2', [tripId, decoded.payload.userId])).rows[0];
+
     if (!trip) return c.json({ error: 'Trip not found' }, 404);
-    
-    const { results } = await db.prepare(`
+
+    const { rows } = await pool.query(`
       SELECT p.*, u.first_name, u.last_name, u.avatar
       FROM posts p JOIN users u ON p.user_id = u.id
-      WHERE p.trip_id = ? ORDER BY p.created_at DESC
-    `).bind(tripId).all();
-    
-    return c.json({ notes: results });
+      WHERE p.trip_id = $1 ORDER BY p.created_at DESC
+    `, [tripId]);
+
+    return c.json({ notes: rows });
   } catch (err) {
     return c.json({ error: err.message }, 500);
   }
@@ -520,17 +474,22 @@ app.get('/api/trips/:id/notes', async (c) => {
 // Get posts by tag
 app.get('/api/tags/:tag/posts', async (c) => {
   try {
-    const db = c.env.DB;
-    const { results } = await db.prepare(`
+    const { rows } = await pool.query(`
       SELECT p.*, u.first_name, u.last_name, u.avatar
       FROM posts p JOIN users u ON p.user_id = u.id
-      WHERE p.tags LIKE ? ORDER BY p.created_at DESC
-    `).bind(`%"${c.req.param('tag')}"%`).all();
-    
-    return c.json({ posts: results });
+      WHERE p.tags LIKE $1 ORDER BY p.created_at DESC
+    `, [`%"${c.req.param('tag')}"%`]);
+
+    return c.json({ posts: rows });
   } catch (err) {
     return c.json({ error: err.message }, 500);
   }
 });
 
-export default app;
+// Start server
+serve({
+  fetch: app.fetch,
+  port: process.env.PORT || 3000,
+});
+
+console.log('Server running on port', process.env.PORT || 3000);
