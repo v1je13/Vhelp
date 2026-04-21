@@ -1,72 +1,82 @@
 // src/lib/vk.js
 import bridge from '@vkontakte/vk-bridge';
 
-let isInitialized = false;
+let initPromise = null;
 
 export const vk = {
   bridge, // Экспортируем сам bridge для прямого доступа
 
   init: async (onAuth) => {
-    if (isInitialized) {
-      console.log('🌉 VK Bridge already initialized');
-      return;
-    }
-    
-    console.log('🌉 VK Bridge init started...');
-    
-    try {
-      // Увеличенный таймаут для мобильных (15 секунд)
-      const initPromise = bridge.send('VKWebAppInit');
-      const timeoutPromise = new Promise((_, reject) => 
-        setTimeout(() => reject(new Error('VK Bridge timeout')), 15000)
-      );
+    // Если инициализация уже запущена или завершена, возвращаем существующий промис
+    if (initPromise) return initPromise;
+
+    initPromise = (async () => {
+      console.log('Bridge: Initialization started...');
       
-      await Promise.race([initPromise, timeoutPromise]);
-      isInitialized = true;
-      console.log('✅ VKWebAppInit success');
+      // Проверка, находимся ли мы внутри VK (наличие параметров запуска)
+      const isEmbedded = window.location.search.includes('vk_');
       
-      // Получение данных пользователя
+      if (!isEmbedded) {
+        console.warn('Bridge: Not in VK environment - skipping bridge init');
+        return { isEmbedded: false };
+      }
+
       try {
-        const userInfo = await bridge.send('VKWebAppGetUserInfo');
-        console.log('👤 User info:', userInfo);
+        // Таймаут для инициализации
+        const initCall = bridge.send('VKWebAppInit');
+        const timeout = new Promise((_, reject) => 
+          setTimeout(() => reject(new Error('VK Bridge timeout')), 10000)
+        );
         
-        if (onAuth && userInfo.id) {
-          onAuth({
+        await Promise.race([initCall, timeout]);
+        console.log('✅ Bridge: VKWebAppInit success');
+        
+        // Получение данных пользователя
+        try {
+          const userInfo = await bridge.send('VKWebAppGetUserInfo');
+          console.log('👤 Bridge: User info received');
+          
+          const userData = {
             vk_user_id: String(userInfo.id),
             first_name: userInfo.first_name,
             last_name: userInfo.last_name,
             photo: userInfo.photo_200
-          });
+          };
+
+          if (onAuth) onAuth(userData);
+          return { isEmbedded: true, userData };
+
+        } catch (err) {
+          console.warn('⚠️ Bridge: Failed to get user info:', err);
+          if (onAuth) {
+            onAuth({
+              vk_user_id: 'mobile_fallback',
+              first_name: 'Mobile',
+              last_name: 'User',
+              photo: ''
+            });
+          }
+          return { isEmbedded: true, error: 'UserInfo failed' };
         }
+        
       } catch (err) {
-        console.warn('⚠️ Failed to get user info:', err);
-        // Fallback для мобильных
+        console.error('❌ Bridge: Init failed:', err.message);
+        
+        // Попытка восстановить из localStorage при ошибке
         if (onAuth) {
-          onAuth({
-            vk_user_id: 'mobile_fallback',
-            first_name: 'Mobile',
-            last_name: 'User',
-            photo: ''
-          });
-        }
-      }
-      
-    } catch (err) {
-      console.error('❌ VK Bridge init failed:', err);
-      
-      // 🔥 Fallback для мобильного интернета
-      if (onAuth) {
-        const savedUser = localStorage.getItem('vhelp_user');
-        if (savedUser) {
-          try {
-            onAuth(JSON.parse(savedUser));
-            console.log('🔄 Restored from localStorage');
-          } catch (e) {
-            console.error('Failed to parse saved user:', e);
+          const savedUser = localStorage.getItem('vhelp_user');
+          if (savedUser) {
+            try {
+              onAuth(JSON.parse(savedUser));
+              console.log('🔄 Bridge: Restored from localStorage');
+            } catch (e) {}
           }
         }
+        return { isEmbedded: true, error: err.message };
       }
-    }
+    })();
+
+    return initPromise;
   },
   
   // � Получить данные пользователя
