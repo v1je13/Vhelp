@@ -10,19 +10,17 @@ export const vk = {
     if (initPromise) return initPromise;
 
     initPromise = (async () => {
-      console.log('Bridge: Initialization started...');
+      const href = window.location.href;
+      console.log('Bridge: Init started. URL:', href);
       
       const search = window.location.search;
       const hash = window.location.hash;
-      const isEmbedded = search.includes('vk_') || hash.includes('vk_');
+      // Проверка на наличие параметров VK
+      const hasVkParams = href.includes('vk_');
       
-      if (!isEmbedded) {
-        console.warn('Bridge: Not in VK environment - finishing init flow');
-        return { isEmbedded: false };
-      }
-
       try {
-        // Таймаут для инициализации — уменьшаем до 5 секунд для отзывчивости
+        console.log('Bridge: Sending VKWebAppInit...');
+        // Попытка инициализации в любом случае, но с таймаутом
         const initCall = bridge.send('VKWebAppInit');
         const timeout = new Promise((_, reject) => 
           setTimeout(() => reject(new Error('VK Bridge timeout')), 5000)
@@ -31,6 +29,9 @@ export const vk = {
         await Promise.race([initCall, timeout]);
         console.log('✅ Bridge: VKWebAppInit success');
         
+        // Если инициализация прошла, считаем что мы в VK
+        const isEmbedded = true;
+
         // Получение данных пользователя
         try {
           const userInfoPromise = bridge.send('VKWebAppGetUserInfo');
@@ -59,32 +60,21 @@ export const vk = {
           return { isEmbedded: true, userData, authInfo };
 
         } catch (err) {
-          console.warn('⚠️ Bridge: Failed to get user info:', err);
-          if (onAuth) {
-            onAuth({
-              vk_user_id: 'mobile_fallback',
-              first_name: 'Mobile',
-              last_name: 'User',
-              photo: ''
-            });
-          }
-          return { isEmbedded: true, error: 'UserInfo failed' };
+          console.warn('⚠️ Bridge: Failed to get user data, but bridge is alive:', err.message);
+          const authInfo = await vk.getAuthInfo();
+          return { isEmbedded: true, authInfo, error: err.message };
         }
         
       } catch (err) {
-        console.error('❌ Bridge: Init failed:', err.message);
-        
-        // Попытка восстановить из localStorage при ошибке
-        if (onAuth) {
-          const savedUser = localStorage.getItem('vhelp_user');
-          if (savedUser) {
-            try {
-              onAuth(JSON.parse(savedUser));
-              console.log('🔄 Bridge: Restored from localStorage');
-            } catch (e) {}
-          }
+        // Если инициализация упала (таймаут или ошибка), проверяем параметры URL
+        if (hasVkParams) {
+          console.error('❌ Bridge: Init failed but URL has VK params:', err.message);
+          const authInfo = await vk.getAuthInfo();
+          return { isEmbedded: true, authInfo, error: err.message };
         }
-        return { isEmbedded: true, error: err.message };
+        
+        console.warn('Bridge: Not in VK environment or Bridge not responding');
+        return { isEmbedded: false, error: err.message };
       }
     })();
 
@@ -111,7 +101,9 @@ export const vk = {
       const searchParams = new URLSearchParams(search);
       
       // Для hash нужно убрать символ '#' и всё что до знака '?' внутри хэша
-      const hashPart = hash.includes('?') ? hash.split('?')[1] : hash.replace('#', '');
+      // Также убираем ведущие слеши, которые могут мешать URLSearchParams
+      const hashClean = hash.replace(/^#\/?/, '');
+      const hashPart = hashClean.includes('?') ? hashClean.split('?')[1] : hashClean;
       const hashParams = new URLSearchParams(hashPart);
       
       const authData = {};
