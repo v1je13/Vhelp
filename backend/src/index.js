@@ -7,31 +7,11 @@ const app = new Hono();
 
 // CORS middleware
 app.use('*', async (c, next) => {
-  const origin = c.req.header('Origin') || '';
-  
-  // Разрешаем все домены для отладки (в продакшене укажи конкретные)
-  const allowed = [
-    'https://vhelp.vercel.app',
-    'https://vk.com',
-    'https://*.vk.com',
-    'https://dev.vk.com',
-    'http://localhost:5173'
-  ];
-  
-  const isAllowed = allowed.some(p => 
-    origin === p || (p.includes('*') && new RegExp('^' + p.replace(/\*/g, '.*') + '$').test(origin))
-  );
-  
-  if (isAllowed || true) {
-    // Если origin пустой (некоторые мобильные браузеры), но мы хотим разрешить,
-    // лучше не использовать '*', так как это конфликтует с Allow-Credentials.
-    // Возвращаем запрашиваемый origin или конкретный домен.
-    const responseOrigin = origin || 'https://vhelp.vercel.app';
-    c.res.headers.set('Access-Control-Allow-Origin', responseOrigin);
-    c.res.headers.set('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-    c.res.headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization');
-    c.res.headers.set('Access-Control-Allow-Credentials', 'true');
-  }
+  // Упрощенный CORS для мобильных сетей (без привязки к домену)
+  c.res.headers.set('Access-Control-Allow-Origin', '*');
+  c.res.headers.set('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+  // Расширяем список разрешенных заголовков для мобильных устройств
+  c.res.headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Accept, Origin');
   
   if (c.req.method === 'OPTIONS') {
     return new Response(null, {
