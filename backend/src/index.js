@@ -7,14 +7,14 @@ const app = new Hono();
 const getSecret = (env) => new TextEncoder().encode(env.JWT_SECRET || 'fallback-secret-key-change-it');
 
 const jwt = {
-  sign: (payload, secret, options = {}) => {
+  sign: async (payload, secret, options = {}) => {
     return new SignJWT(payload)
       .setProtectedHeader({ alg: 'HS256' })
       .setExpirationTime(options.expiresIn || '30d')
       .setJti(crypto.randomUUID())
       .sign(secret);
   },
-  verify: (token, secret) => jwtVerify(token, secret, { algorithms: ['HS256'] })
+  verify: async (token, secret) => jwtVerify(token, secret, { algorithms: ['HS256'] })
 };
 
 // CORS — исправленный для Android
