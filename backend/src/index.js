@@ -1,20 +1,80 @@
 import { Hono } from 'hono';
-import { SignJWT, jwtVerify } from 'jose';
 
 const app = new Hono();
 
-// JWT helpers
-const getSecret = (env) => new TextEncoder().encode(env.JWT_SECRET || 'fallback-secret-key-change-it');
+// JWT helpers using Web Crypto API
+const getSecret = (env) => env.JWT_SECRET || 'fallback-secret-key-change-it';
 
 const jwt = {
   sign: async (payload, secret, options = {}) => {
-    return new SignJWT(payload)
-      .setProtectedHeader({ alg: 'HS256' })
-      .setExpirationTime(options.expiresIn || '30d')
-      .setJti(crypto.randomUUID())
-      .sign(secret);
+    const header = { alg: 'HS256', typ: 'JWT' };
+    const now = Math.floor(Date.now() / 1000);
+    const exp = now + (options.expiresIn === '30d' ? 30 * 24 * 60 * 60 : 7200);
+    
+    const tokenPayload = {
+      ...payload,
+      iat: now,
+      exp: exp,
+      jti: crypto.randomUUID()
+    };
+
+    const encoder = new TextEncoder();
+    const encodedHeader = btoa(JSON.stringify(header));
+    const encodedPayload = btoa(JSON.stringify(tokenPayload));
+    const data = `${encodedHeader}.${encodedPayload}`;
+
+    const key = await crypto.subtle.importKey(
+      'raw',
+      encoder.encode(secret),
+      { name: 'HMAC', hash: 'SHA-256' },
+      false,
+      ['sign']
+    );
+
+    const signature = await crypto.subtle.sign(
+      'HMAC',
+      key,
+      encoder.encode(data)
+    );
+
+    const encodedSignature = btoa(String.fromCharCode(...new Uint8Array(signature)));
+    return `${data}.${encodedSignature}`;
   },
-  verify: async (token, secret) => jwtVerify(token, secret, { algorithms: ['HS256'] })
+
+  verify: async (token, secret) => {
+    const parts = token.split('.');
+    if (parts.length !== 3) throw new Error('Invalid token format');
+
+    const [encodedHeader, encodedPayload, encodedSignature] = parts;
+    const data = `${encodedHeader}.${encodedPayload}`;
+
+    const encoder = new TextEncoder();
+    const key = await crypto.subtle.importKey(
+      'raw',
+      encoder.encode(secret),
+      { name: 'HMAC', hash: 'SHA-256' },
+      false,
+      ['verify']
+    );
+
+    const signature = Uint8Array.from(atob(encodedSignature), c => c.charCodeAt(0));
+    const isValid = await crypto.subtle.verify(
+      'HMAC',
+      key,
+      signature,
+      encoder.encode(data)
+    );
+
+    if (!isValid) throw new Error('Invalid signature');
+
+    const payload = JSON.parse(atob(encodedPayload));
+    
+    if (payload.exp && payload.exp < Math.floor(Date.now() / 1000)) {
+      throw new Error('Token expired');
+    }
+
+    return { payload };
+  }
 };
 
 // CORS — исправленный для Android
