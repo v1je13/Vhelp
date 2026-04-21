@@ -51,11 +51,13 @@ function App() {
     // 2. Если нет в localStorage, пробуем инициализировать VK и получить данные
     vk.init((userData) => {
       if (userData && userData.vk_user_id !== 'mobile_fallback') {
-        // Здесь можно было бы сделать авто-логин, если есть данные
-        // Но пока просто помечаем готовность
+        // Данные получены успешно
       }
+    }).then(() => {
+      console.log('App: vk.init success');
       setIsReady(true);
-    }).catch(() => {
+    }).catch((err) => {
+      console.error('App: vk.init error', err);
       setIsReady(true);
     });
   }, []);

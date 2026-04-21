@@ -30,7 +30,11 @@ export function AppConfig({ children }) {
     vkBridge.subscribe(bridgeListener);
 
     // Инициализация через vk.js
-    vk.init().finally(() => {
+    vk.init().then(() => {
+      console.log('AppConfig: vk.init success');
+      setIsReady(true);
+    }).catch((err) => {
+      console.error('AppConfig: vk.init error', err);
       setIsReady(true);
     });
 

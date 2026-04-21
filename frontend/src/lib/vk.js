@@ -7,17 +7,18 @@ export const vk = {
   bridge, // Экспортируем сам bridge для прямого доступа
 
   init: async (onAuth) => {
-    // Если инициализация уже запущена или завершена, возвращаем существующий промис
+    // Если инициализация уже завершена, возвращаем успешный статус
     if (initPromise) return initPromise;
 
     initPromise = (async () => {
       console.log('Bridge: Initialization started...');
       
-      // Проверка, находимся ли мы внутри VK (наличие параметров запуска)
       const isEmbedded = window.location.search.includes('vk_');
       
       if (!isEmbedded) {
-        console.warn('Bridge: Not in VK environment - skipping bridge init');
+        console.warn('Bridge: Not in VK environment - finishing init flow');
+        // Даже если мы не в VK, помечаем инициализацию как "завершенную", 
+        // чтобы фронтенд убрал лоадер
         return { isEmbedded: false };
       }
 
