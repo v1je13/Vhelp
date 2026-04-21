@@ -6,8 +6,6 @@
     "start": "node src/index.js"
   },
   "dependencies": {
-    "hono": "^4.0.0",
-    "jose": "^5.2.0",
     "pg": "^8.11.3"
   }
 }
