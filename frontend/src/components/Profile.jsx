@@ -19,46 +19,52 @@ export function Profile({ userId, user, onBack, onOpenPost }) {
   const [activeTab, setActiveTab] = useState('posts'); // posts, friends, subscribers
 
   useEffect(() => {
+    // Увеличиваем до 40 секунд для мобильного интернета
     const profileWatchdog = setTimeout(() => {
       if (loading) {
         console.warn('Profile: Watchdog triggered');
         setLoading(false);
         setError('Загрузка профиля занимает слишком много времени. Проверьте соединение.');
       }
-    }, 15000);
+    }, 40000);
 
-    const loadProfile = async () => {
-        try {
-          setLoading(true);
-          setError(null);
-          
-          const targetUserId = userId || user?.id;
-          if (!targetUserId) {
-            setLoading(false);
-            return;
-          }
-
-          const [profileResponse, postsResponse] = await Promise.allSettled([
-            api.getUserProfile(targetUserId),
-            api.getUserPosts(targetUserId)
-          ]);
-
-          if (profileResponse.status === 'fulfilled') {
-            setProfileData(profileResponse.value.user || profileResponse.value);
-          } else {
-            setError('Не удалось загрузить данные профиля');
-          }
-
-          if (postsResponse.status === 'fulfilled') {
-            setPosts(postsResponse.value.posts || []);
-          }
-        } catch (err) {
-          setError(err.message);
-        } finally {
-          clearTimeout(profileWatchdog);
+    const loadProfile = async (retryCount = 0) => {
+      try {
+        setLoading(true);
+        setError(null);
+        
+        const targetUserId = userId || user?.id;
+        if (!targetUserId) {
           setLoading(false);
+          return;
         }
-      };
+
+        console.log('Profile: Loading for', targetUserId, 'attempt', retryCount + 1);
+
+        // На мобильном интернете лучше грузить последовательно, чтобы не делить канал
+        const profileData = await api.getUserProfile(targetUserId);
+        setProfileData(profileData.user || profileData);
+
+        try {
+          const postsData = await api.getUserPosts(targetUserId);
+          setPosts(postsData.posts || []);
+        } catch (e) {
+          console.warn('Profile: Posts failed to load, but profile is OK');
+        }
+
+      } catch (err) {
+        console.error('Profile error:', err);
+        // Авто-повтор один раз через 3 секунды
+        if (retryCount < 1) {
+          setTimeout(() => loadProfile(retryCount + 1), 3000);
+          return;
+        }
+        setError(err.message || 'Не удалось загрузить данные');
+      } finally {
+        clearTimeout(profileWatchdog);
+        setLoading(false);
+      }
+    };
 
     loadProfile();
     return () => clearTimeout(profileWatchdog);
