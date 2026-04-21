@@ -10,31 +10,24 @@ export const api = {
       let timeoutId;
       try {
         const controller = new AbortController();
-        // Увеличиваем базовый таймаут до 30 секунд для мобильного интернета
-        const timeoutMs = 30000 + (i * 10000);
+        // Увеличиваем базовый таймаут до 60 секунд для мобильного интернета
+        const timeoutMs = 60000 + (i * 10000);
         timeoutId = setTimeout(() => controller.abort(), timeoutMs);
         
         const headers = {
           ...(token && { 'Authorization': `Bearer ${token}` }),
-          'Cache-Control': 'no-cache', 
-          'Pragma': 'no-cache',
           ...options.headers
         };
 
+        // На мобильных сетях лучше не перегружать заголовки
+        // Удаляем Cache-Control, если он может вызвать проблемы с CORS на стороне оператора
         // Если Content-Type не задан явно и это не FormData, ставим json
         if (!headers['Content-Type'] && !(options.body instanceof FormData)) {
           headers['Content-Type'] = 'application/json';
         }
         
-        // Если Content-Type явно задан как undefined, удаляем его (для FormData)
-        if (headers['Content-Type'] === undefined) {
-          delete headers['Content-Type'];
-        }
-
         const res = await fetch(`${API_BASE}${endpoint}`, {
           ...options,
-          mode: 'cors',
-          credentials: 'omit',
           signal: controller.signal,
           headers
         });

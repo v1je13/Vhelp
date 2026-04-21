@@ -72,8 +72,21 @@ export function Profile({ userId, user, onBack, onOpenPost }) {
 
   if (loading) {
     return (
-      <div style={{ padding: 40, textAlign: 'center' }}>
+      <div style={{ 
+        display: 'flex', 
+        flexDirection: 'column', 
+        alignItems: 'center', 
+        justifyContent: 'center', 
+        padding: 60,
+        textAlign: 'center'
+      }}>
         <Spinner size="large" />
+        <Text style={{ marginTop: 16, color: 'var(--vkui--color_text_secondary)' }}>
+          Загружаем ваш профиль...
+        </Text>
+        <Text caption style={{ marginTop: 8, color: 'var(--vkui--color_text_tertiary)' }}>
+          Это может занять до минуты при слабом соединении
+        </Text>
       </div>
     );
   }
