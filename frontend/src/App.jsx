@@ -22,44 +22,61 @@ function App() {
   const [isReady, setIsReady] = useState(false);
   const [selectedPostId, setSelectedPostId] = useState(null);
   const [selectedTripId, setSelectedTripId] = useState(null);
+  const [authError, setAuthError] = useState(null);
   
-  useEffect(() => {
-    if (isReady && !user && activePanel !== 'auth') {
-      setActivePanel('auth');
-    } else if (user && activePanel === 'auth') {
-      setActivePanel('account');
-    }
-  }, [isReady, user, activePanel]);
-
   const showBottomNav = !!user;
   
   useEffect(() => {
-    // 1. Сначала проверяем localStorage
-    const token = localStorage.getItem('vhelp_token');
-    const savedUser = localStorage.getItem('vhelp_user');
-    
-    if (token && savedUser) {
-      try { 
-        setUser(JSON.parse(savedUser));
-        setIsReady(true);
-        return;
-      } catch (e) { 
-        localStorage.removeItem('vhelp_user'); 
-      }
-    }
+    const initApp = async () => {
+      try {
+        // 1. Проверяем localStorage
+        const token = localStorage.getItem('vhelp_token');
+        const savedUser = localStorage.getItem('vhelp_user');
+        
+        if (token && savedUser) {
+          try { 
+            setUser(JSON.parse(savedUser));
+            setIsReady(true);
+            return;
+          } catch (e) { 
+            localStorage.removeItem('vhelp_user'); 
+          }
+        }
 
-    // 2. Если нет в localStorage, пробуем инициализировать VK и получить данные
-    vk.init((userData) => {
-      if (userData && userData.vk_user_id !== 'mobile_fallback') {
-        // Данные получены успешно
+        // 2. Если нет токена, пробуем авто-авторизацию через VK
+        const initData = await vk.init();
+        
+        if (initData.isEmbedded && initData.userData && initData.userData.sign) {
+          console.log('App: Attempting auto-auth...');
+          try {
+            const response = await api.vkAuth({
+              vk_user_id: initData.userData.vk_user_id,
+              sign: initData.userData.sign,
+              first_name: initData.userData.first_name,
+              last_name: initData.userData.last_name,
+              photo: initData.userData.photo
+            });
+            
+            localStorage.setItem('vhelp_token', response.token);
+            localStorage.setItem('vhelp_user', JSON.stringify(response.user));
+            setUser(response.user);
+            console.log('App: Auto-auth success');
+          } catch (err) {
+            console.error('App: Auto-auth failed', err);
+            setAuthError('Не удалось автоматически авторизоваться');
+          }
+        } else if (!initData.isEmbedded) {
+          console.log('App: Not in VK, showing auth screen');
+          setActivePanel('auth');
+        }
+      } catch (err) {
+        console.error('App: Init error', err);
+      } finally {
+        setIsReady(true);
       }
-    }).then(() => {
-      console.log('App: vk.init success');
-      setIsReady(true);
-    }).catch((err) => {
-      console.error('App: vk.init error', err);
-      setIsReady(true);
-    });
+    };
+
+    initApp();
   }, []);
   
   const handleAuthSuccess = (userData) => {
@@ -129,10 +146,17 @@ function App() {
                 <div style={{ 
                   height: '100%', 
                   display: 'flex', 
+                  flexDirection: 'column',
                   alignItems: 'center', 
                   justifyContent: 'center',
+                  padding: 20,
                   paddingBottom: '20%' 
                 }}>
+                  {authError && (
+                    <div style={{ color: 'red', marginBottom: 20, textAlign: 'center' }}>
+                      {authError}
+                    </div>
+                  )}
                   <Auth onAuthSuccess={handleAuthSuccess} />
                 </div>
               </Panel>

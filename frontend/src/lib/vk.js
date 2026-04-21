@@ -34,18 +34,23 @@ export const vk = {
         
         // Получение данных пользователя
         try {
-          const userInfo = await bridge.send('VKWebAppGetUserInfo');
-          console.log('👤 Bridge: User info received');
+          const [userInfo, authInfo] = await Promise.all([
+            bridge.send('VKWebAppGetUserInfo'),
+            this.getAuthInfo()
+          ]);
+          
+          console.log('👤 Bridge: User and Auth info received');
           
           const userData = {
             vk_user_id: String(userInfo.id),
             first_name: userInfo.first_name,
             last_name: userInfo.last_name,
-            photo: userInfo.photo_200
+            photo: userInfo.photo_200,
+            sign: authInfo.sign
           };
 
           if (onAuth) onAuth(userData);
-          return { isEmbedded: true, userData };
+          return { isEmbedded: true, userData, authInfo };
 
         } catch (err) {
           console.warn('⚠️ Bridge: Failed to get user info:', err);
