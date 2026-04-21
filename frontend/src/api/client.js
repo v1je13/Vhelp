@@ -1,58 +1,43 @@
 // src/api/client.js
-const API_BASE = import.meta.env.VITE_API_URL || ''; // Если не задано, используем относительные пути
+// Принудительно используем HTTPS для API, чтобы Android WebView не блокировал запросы
+const API_BASE = (import.meta.env.VITE_API_URL || '').replace('http://', 'https://');
 
 export const api = {
-  async request(endpoint, options = {}) {
+  async request(endpoint, options = {}, retries = 2) {
     const token = localStorage.getItem('vhelp_token');
     
-    console.log('� API Request:', {
-      url: `${API_BASE}${endpoint}`,
-      method: options.method || 'GET',
-      hasToken: !!token,
-      tokenLength: token?.length || 0,
-      userAgent: navigator.userAgent,
-      connection: navigator.connection?.effectiveType || 'unknown'
-    });
-    
-    try {
-      const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), 15000); // 15 сек для мобильных
-      
-      const res = await fetch(`${API_BASE}${endpoint}`, {
-        ...options,
-        signal: controller.signal,
-        headers: {
-          'Content-Type': 'application/json',
-          ...(token && { 'Authorization': `Bearer ${token}` }),
-          ...options.headers
+    for (let i = 0; i <= retries; i++) {
+      try {
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 10000 + (i * 5000)); // Увеличиваем таймаут при ретрае
+        
+        const res = await fetch(`${API_BASE}${endpoint}`, {
+          ...options,
+          signal: controller.signal,
+          headers: {
+            'Content-Type': 'application/json',
+            ...(token && { 'Authorization': `Bearer ${token}` }),
+            ...options.headers
+          }
+        });
+        
+        clearTimeout(timeout);
+        
+        if (!res.ok) {
+          const data = await res.json().catch(() => ({}));
+          throw new Error(data.error || `Request failed with status ${res.status}`);
         }
-      });
-      
-      clearTimeout(timeout);
-      
-      console.log('📥 API Response:', {
-        status: res.status,
-        ok: res.ok,
-        url: res.url
-      });
-      
-      const data = await res.json();
-      
-      if (!res.ok) {
-        console.error('❌ API Error:', data);
-        throw new Error(data.error || 'Request failed');
+        
+        return await res.json();
+      } catch (err) {
+        if (i === retries) {
+          console.error('🔥 API Final Error:', err.message);
+          throw err;
+        }
+        console.warn(`⚠️ API Retry ${i + 1}/${retries} for ${endpoint}:`, err.message);
+        // Ждем немного перед следующим ретраем
+        await new Promise(resolve => setTimeout(resolve, 1000 * (i + 1)));
       }
-      
-      return data;
-    } catch (err) {
-      console.error('🔥 API Fetch Error:', {
-        message: err.message,
-        name: err.name,
-        endpoint,
-        isAbort: err.name === 'AbortError',
-        isNetworkError: err.message.includes('Failed to fetch')
-      });
-      throw err;
     }
   },
   

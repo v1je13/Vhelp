@@ -37,6 +37,8 @@ function App() {
           try { 
             setUser(JSON.parse(savedUser));
             setIsReady(true);
+            // Даже если есть в localStorage, инициализируем мост в фоне
+            vk.init().catch(e => console.warn('Background bridge init failed:', e));
             return;
           } catch (e) { 
             localStorage.removeItem('vhelp_user'); 
@@ -49,13 +51,23 @@ function App() {
         if (initData.isEmbedded && initData.userData && initData.userData.sign) {
           console.log('App: Attempting auto-auth...');
           try {
-            const response = await api.vkAuth({
-              vk_user_id: initData.userData.vk_user_id,
-              sign: initData.userData.sign,
-              first_name: initData.userData.first_name,
-              last_name: initData.userData.last_name,
-              photo: initData.userData.photo
-            });
+            // Добавляем ретрай для авторизации
+            let response;
+            for (let i = 0; i < 2; i++) {
+              try {
+                response = await api.vkAuth({
+                  vk_user_id: initData.userData.vk_user_id,
+                  sign: initData.userData.sign,
+                  first_name: initData.userData.first_name,
+                  last_name: initData.userData.last_name,
+                  photo: initData.userData.photo
+                });
+                break;
+              } catch (e) {
+                if (i === 1) throw e;
+                await new Promise(r => setTimeout(r, 2000));
+              }
+            }
             
             localStorage.setItem('vhelp_token', response.token);
             localStorage.setItem('vhelp_user', JSON.stringify(response.user));
@@ -63,14 +75,16 @@ function App() {
             console.log('App: Auto-auth success');
           } catch (err) {
             console.error('App: Auto-auth failed', err);
-            setAuthError('Не удалось автоматически авторизоваться');
+            setAuthError('Проблемы с сетью. Попробуйте нажать кнопку входа.');
+            setActivePanel('auth'); // Показываем кнопку входа как fallback
           }
-        } else if (!initData.isEmbedded) {
-          console.log('App: Not in VK, showing auth screen');
+        } else {
+          console.log('App: Manual auth mode');
           setActivePanel('auth');
         }
       } catch (err) {
         console.error('App: Init error', err);
+        setActivePanel('auth');
       } finally {
         setIsReady(true);
       }
