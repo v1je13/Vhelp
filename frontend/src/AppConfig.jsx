@@ -2,30 +2,39 @@
 import { useEffect, useState } from 'react';
 import vkBridge from '@vkontakte/vk-bridge';
 import { AdaptivityProvider, ConfigProvider, AppRoot } from '@vkontakte/vkui';
+import { transformVKBridgeAdaptivity } from './utils/transformVKBridgeAdaptivity';
+import { vk } from './lib/vk';
 import '@vkontakte/vkui/dist/vkui.css';
 
 export function AppConfig({ children }) {
   const [isReady, setIsReady] = useState(false);
+  const [bridgeAdaptivity, setBridgeAdaptivity] = useState({});
+  const [appearance, setAppearance] = useState(undefined);
 
   useEffect(() => {
-    // Таймаут 2 секунды - если VK Bridge не ответит, продолжаем без него
-    const timeoutId = setTimeout(() => {
-      console.warn('⏱ VKWebAppInit timeout - running without VK Bridge');
-      setIsReady(true);
-    }, 2000);
+    // Подписка на события VK Bridge
+    const bridgeListener = (e) => {
+      const { type, data } = e.detail;
+      
+      if (type === 'VKWebAppUpdateConfig') {
+        setAppearance(data.appearance);
+        
+        const adaptivity = transformVKBridgeAdaptivity({
+          type: 'adaptive',
+          viewportWidth: data.viewport_width,
+          viewportHeight: data.viewport_height
+        });
+        setBridgeAdaptivity(adaptivity);
+      }
+    };
+    vkBridge.subscribe(bridgeListener);
 
-    // Пытаемся инициализировать VK Bridge
-    vkBridge.send('VKWebAppInit')
-      .then(() => {
-        console.log('✅ VK Bridge initialized');
-        clearTimeout(timeoutId);
-        setIsReady(true);
-      })
-      .catch((err) => {
-        console.warn('⚠️ VKWebAppInit failed:', err);
-        clearTimeout(timeoutId);
-        setIsReady(true);
-      });
+    // Инициализация через vk.js
+    vk.init().finally(() => {
+      setIsReady(true);
+    });
+
+    return () => vkBridge.unsubscribe(bridgeListener);
   }, []);
 
   if (!isReady) {
@@ -36,7 +45,8 @@ export function AppConfig({ children }) {
         alignItems: 'center', 
         height: '100vh', 
         fontFamily: 'system-ui',
-        background: '#f0f2f5'
+        background: appearance === 'dark' ? '#19191a' : '#f0f2f5',
+        color: appearance === 'dark' ? '#fff' : '#000'
       }}>
         <div style={{ textAlign: 'center' }}>
           <div style={{ 
@@ -60,8 +70,8 @@ export function AppConfig({ children }) {
   }
 
   return (
-    <ConfigProvider>
-      <AdaptivityProvider>
+    <ConfigProvider appearance={appearance}>
+      <AdaptivityProvider {...bridgeAdaptivity}>
         <AppRoot mode="embedded">
           {children}
         </AppRoot>

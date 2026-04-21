@@ -73,23 +73,24 @@ export function Feed({ user, onOpenPost }) {
     try {
       setCreating(true);
       await api.createPost({
-        text: newPost,
+        text: newPost.trim(),
         images: selectedPhoto ? [selectedPhoto] : [],
         tags: postTags.split(',').map(t => t.trim()).filter(t => t),
-        // trip_id: selectedTripId || null  // ← Если создаёшь из путешествия
       });
       
       setNewPost('');
       setSelectedPhoto(null);
       setPostTags('');
       
+      // Сначала уведомляем, потом обновляем ленту
+      await vk.showNotification('✅', 'Пост опубликован', 'success');
+      
       const data = await api.getPosts(1);
       setPosts(data.posts || []);
-      
-      await vk.showNotification('✅', 'Пост опубликован', 'success');
     } catch (err) {
       console.error('Create post error:', err);
-      await vk.showNotification('❌', 'Не удалось создать пост', 'error');
+      const errorMsg = err.message || 'Не удалось создать пост';
+      await vk.showNotification('❌', errorMsg, 'error');
     } finally {
       setCreating(false);
     }

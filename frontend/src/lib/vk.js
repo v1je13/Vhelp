@@ -1,8 +1,17 @@
 // src/lib/vk.js
 import bridge from '@vkontakte/vk-bridge';
 
+let isInitialized = false;
+
 export const vk = {
+  bridge, // Экспортируем сам bridge для прямого доступа
+
   init: async (onAuth) => {
+    if (isInitialized) {
+      console.log('🌉 VK Bridge already initialized');
+      return;
+    }
+    
     console.log('🌉 VK Bridge init started...');
     
     try {
@@ -13,6 +22,7 @@ export const vk = {
       );
       
       await Promise.race([initPromise, timeoutPromise]);
+      isInitialized = true;
       console.log('✅ VKWebAppInit success');
       
       // Получение данных пользователя
@@ -101,7 +111,7 @@ export const vk = {
     }
   },
   
-  // �🔔 Показать уведомление
+  // �� Показать уведомление
   async showNotification(title, message, type = 'info') {
     try {
       await bridge.send('VKWebAppShowSnackbar', {

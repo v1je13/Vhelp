@@ -110,7 +110,12 @@ export const api = {
   async createPost(data) {
     return this.request('/api/posts', {
       method: 'POST',
-      body: JSON.stringify(data)
+      body: JSON.stringify({
+        text: data.text || data.content, // Поддержка обоих вариантов имен полей
+        images: data.images || [],
+        tags: data.tags || [],
+        trip_id: data.trip_id || null
+      })
     });
   },
   

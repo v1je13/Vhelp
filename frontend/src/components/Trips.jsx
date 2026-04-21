@@ -59,10 +59,12 @@ export function Trips({ user, onOpenTrip }) {
     
     try {
       setCreating(true);
-      await api.createTrip({
+      const response = await api.createTrip({
         name: newTripName.trim(),
         cover_image: selectedCover || null // Отправляем фото (или null)
       });
+      
+      console.log('Trip created:', response);
       
       // Сброс формы
       setNewTripName('');
@@ -73,7 +75,8 @@ export function Trips({ user, onOpenTrip }) {
       await vk.showNotification('✅', 'Путешествие создано', 'success');
     } catch (err) {
       console.error('Create trip error:', err);
-      await vk.showNotification('❌', 'Не удалось создать', 'error');
+      const errorMsg = err.message || 'Не удалось создать';
+      await vk.showNotification('❌', errorMsg, 'error');
     } finally {
       setCreating(false);
     }
@@ -177,11 +180,11 @@ export function Trips({ user, onOpenTrip }) {
             backgroundColor: 'rgba(0, 0, 0, 0.7)',
             zIndex: 1000,
             display: 'flex',
-            alignItems: 'center',      // Центрирование по вертикали
-            justifyContent: 'center',   // Центрирование по горизонтали
+            alignItems: 'center',
+            justifyContent: 'center',
             padding: 20
           }}
-          onClick={() => setShowCreateModal(false)}
+          onClick={() => !creating && setShowCreateModal(false)}
         >
           <div 
             style={{
@@ -189,7 +192,7 @@ export function Trips({ user, onOpenTrip }) {
               borderRadius: 16,
               padding: 24,
               width: '100%',
-              maxWidth: 400,          // Ограничение ширины
+              maxWidth: 400,
               boxShadow: '0 4px 24px rgba(0, 0, 0, 0.5)'
             }}
             onClick={e => e.stopPropagation()}
@@ -197,7 +200,62 @@ export function Trips({ user, onOpenTrip }) {
             {/* Заголовок */}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
               <h2 style={{ margin: 0, fontSize: 20, fontWeight: 600 }}>Новое путешествие</h2>
-              <Button mode="secondary" size="s" onClick={() => setShowCreateModal(false)}>✕</Button>
+              <Button mode="secondary" size="s" disabled={creating} onClick={() => setShowCreateModal(false)}>✕</Button>
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+              <div>
+                <Text weight="2" style={{ marginBottom: 8, display: 'block' }}>Название</Text>
+                <Input 
+                  value={newTripName}
+                  onChange={e => setNewTripName(e.target.value)}
+                  placeholder="Например: Лето в Париже"
+                  disabled={creating}
+                />
+              </div>
+
+              <div>
+                <Text weight="2" style={{ marginBottom: 8, display: 'block' }}>Обложка</Text>
+                <div 
+                  onClick={() => !creating && document.getElementById('trip-photo')?.click()}
+                  style={{
+                    width: '100%',
+                    height: 150,
+                    borderRadius: 12,
+                    border: '2px dashed var(--vkui--color_separator_primary)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    cursor: creating ? 'default' : 'pointer',
+                    overflow: 'hidden',
+                    position: 'relative'
+                  }}
+                >
+                  {selectedCover ? (
+                    <img src={selectedCover} alt="Cover" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                  ) : (
+                    <div style={{ textAlign: 'center', color: 'var(--vkui--color_text_secondary)' }}>
+                      <Icon24Camera style={{ margin: '0 auto 8px' }} />
+                      <Text>Добавить фото</Text>
+                    </div>
+                  )}
+                </div>
+                <input type="file" id="trip-photo" accept="image/*" onChange={handlePhotoUpload} style={{ display: 'none' }} />
+              </div>
+
+              <Button 
+                size="l" 
+                stretched 
+                loading={creating}
+                disabled={!newTripName.trim()}
+                onClick={handleCreateTrip}
+              >
+                Создать
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
             </div>
 
             {/* Форма */}

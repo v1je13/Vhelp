@@ -12,7 +12,9 @@ import { Profile } from './components/Profile';
 import { Trips } from './components/Trips';
 import { TripPosts } from './components/TripPosts';
 import { TripNotes } from './components/TripNotes';
+import { Auth } from './components/Auth';
 import { api } from './api/client';
+import { vk } from './lib/vk';
 
 function App() {
   const [activePanel, setActivePanel] = useState('account');
@@ -20,20 +22,53 @@ function App() {
   const [isReady, setIsReady] = useState(false);
   const [selectedPostId, setSelectedPostId] = useState(null);
   const [selectedTripId, setSelectedTripId] = useState(null);
-  const [showBottomNav, setShowBottomNav] = useState(true);
   
   useEffect(() => {
+    if (isReady && !user && activePanel !== 'auth') {
+      setActivePanel('auth');
+    } else if (user && activePanel === 'auth') {
+      setActivePanel('account');
+    }
+  }, [isReady, user, activePanel]);
+
+  const showBottomNav = !!user;
+  
+  useEffect(() => {
+    // 1. Сначала проверяем localStorage
     const token = localStorage.getItem('vhelp_token');
     const savedUser = localStorage.getItem('vhelp_user');
+    
     if (token && savedUser) {
-      try { setUser(JSON.parse(savedUser)); } 
-      catch (e) { localStorage.removeItem('vhelp_user'); }
+      try { 
+        setUser(JSON.parse(savedUser));
+        setIsReady(true);
+        return;
+      } catch (e) { 
+        localStorage.removeItem('vhelp_user'); 
+      }
     }
-    setIsReady(true);
+
+    // 2. Если нет в localStorage, пробуем инициализировать VK и получить данные
+    vk.init((userData) => {
+      if (userData && userData.vk_user_id !== 'mobile_fallback') {
+        // Здесь можно было бы сделать авто-логин, если есть данные
+        // Но пока просто помечаем готовность
+      }
+      setIsReady(true);
+    }).catch(() => {
+      setIsReady(true);
+    });
   }, []);
   
-  const handleUserUpdate = (userData) => setUser(userData);
-  const handleLogout = () => { setUser(null); api.logout(); };
+  const handleAuthSuccess = (userData) => {
+    setUser(userData);
+    setActivePanel('account');
+  };
+  
+  const handleLogout = () => { 
+    setUser(null); 
+    api.logout(); 
+  };
   
   // Открыть пост из профиля
   const handleOpenPost = (postId) => {
@@ -86,9 +121,31 @@ function App() {
             }}
           >
             <View activePanel={activePanel} style={{ flex: 1 }}>
+              {/* Авторизация */}
+              <Panel id="auth">
+                <PanelHeader>Авторизация</PanelHeader>
+                <div style={{ 
+                  height: '100%', 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  justifyContent: 'center',
+                  paddingBottom: '20%' 
+                }}>
+                  <Auth onAuthSuccess={handleAuthSuccess} />
+                </div>
+              </Panel>
+
               {/* Профиль (заменил Account на Profile) */}
               <Panel id="account">
-                <PanelHeader>Профиль</PanelHeader>
+                <PanelHeader 
+                  after={user && (
+                    <Button mode="tertiary" onClick={handleLogout} size="s">
+                      Выйти
+                    </Button>
+                  )}
+                >
+                  Профиль
+                </PanelHeader>
                 {user && (
                   <Profile 
                     userId={user.id}
