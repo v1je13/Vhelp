@@ -75,11 +75,11 @@ function App() {
             console.log('App: Auto-auth success');
           } catch (err) {
             console.error('App: Auto-auth failed', err);
-            setAuthError('Проблемы с сетью. Попробуйте нажать кнопку входа.');
-            setActivePanel('auth'); // Показываем кнопку входа как fallback
+            setAuthError(err.message || 'Не удалось автоматически авторизоваться');
+            setActivePanel('auth'); 
           }
         } else {
-          console.log('App: Manual auth mode');
+          console.log('App: Manual auth mode or missing sign');
           setActivePanel('auth');
         }
       } catch (err) {
@@ -93,8 +93,15 @@ function App() {
     initApp();
   }, []);
   
-  const handleAuthSuccess = (userData) => {
-    setUser(userData);
+  const handleAuthSuccess = (response) => {
+    // Сохраняем данные при ручной авторизации
+    if (response.token && response.user) {
+      localStorage.setItem('vhelp_token', response.token);
+      localStorage.setItem('vhelp_user', JSON.stringify(response.user));
+      setUser(response.user);
+    } else {
+      setUser(response);
+    }
     setActivePanel('account');
   };
   

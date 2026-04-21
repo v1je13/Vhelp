@@ -7,36 +7,57 @@ export const api = {
     const token = localStorage.getItem('vhelp_token');
     
     for (let i = 0; i <= retries; i++) {
+      let timeoutId;
       try {
         const controller = new AbortController();
-        const timeout = setTimeout(() => controller.abort(), 10000 + (i * 5000)); // Увеличиваем таймаут при ретрае
+        // Увеличиваем базовый таймаут до 30 секунд для мобильного интернета
+        const timeoutMs = 30000 + (i * 10000);
+        timeoutId = setTimeout(() => controller.abort(), timeoutMs);
         
+        const headers = {
+          ...(token && { 'Authorization': `Bearer ${token}` }),
+          ...options.headers
+        };
+
+        // Если Content-Type не задан явно и это не FormData, ставим json
+        if (!headers['Content-Type'] && !(options.body instanceof FormData)) {
+          headers['Content-Type'] = 'application/json';
+        }
+        
+        // Если Content-Type явно задан как undefined, удаляем его (для FormData)
+        if (headers['Content-Type'] === undefined) {
+          delete headers['Content-Type'];
+        }
+
         const res = await fetch(`${API_BASE}${endpoint}`, {
           ...options,
           signal: controller.signal,
-          headers: {
-            'Content-Type': 'application/json',
-            ...(token && { 'Authorization': `Bearer ${token}` }),
-            ...options.headers
-          }
+          headers
         });
         
-        clearTimeout(timeout);
+        clearTimeout(timeoutId);
         
         if (!res.ok) {
           const data = await res.json().catch(() => ({}));
-          throw new Error(data.error || `Request failed with status ${res.status}`);
+          throw new Error(data.error || `Ошибка сервера: ${res.status}`);
         }
         
         return await res.json();
       } catch (err) {
+        if (timeoutId) clearTimeout(timeoutId);
+        
+        const isTimeout = err.name === 'AbortError';
+        const errorMessage = isTimeout 
+          ? `Превышено время ожидания (${30 + i * 10} сек). Медленное соединение.` 
+          : err.message;
+
         if (i === retries) {
-          console.error('🔥 API Final Error:', err.message);
-          throw err;
+          console.error('🔥 API Final Error:', errorMessage);
+          throw new Error(errorMessage);
         }
-        console.warn(`⚠️ API Retry ${i + 1}/${retries} for ${endpoint}:`, err.message);
-        // Ждем немного перед следующим ретраем
-        await new Promise(resolve => setTimeout(resolve, 1000 * (i + 1)));
+        
+        console.warn(`⚠️ API Retry ${i + 1}/${retries} for ${endpoint}:`, errorMessage);
+        await new Promise(resolve => setTimeout(resolve, 2000 * (i + 1)));
       }
     }
   },
@@ -140,22 +161,20 @@ export const api = {
     return res;
   },
 
-  // 
+  // 🖼️ Загрузка фото
   async uploadPhoto(file) {
     const formData = new FormData();
     formData.append('image', file);
     
-    const token = localStorage.getItem('vhelp_token');
-    const res = await fetch(`${API_BASE}/api/upload`, {
+    // Используем request для единообразия таймаутов и ретраев
+    return this.request('/api/upload', {
       method: 'POST',
+      body: formData,
+      // Для FormData fetch сам установит правильный Content-Type с boundary
       headers: {
-        ...(token && { 'Authorization': `Bearer ${token}` })
-      },
-      body: formData
+        'Content-Type': undefined 
+      }
     });
-    
-    if (!res.ok) throw new Error('Upload failed');
-    return res.json();
   },
   
   // 🚪 Выход
