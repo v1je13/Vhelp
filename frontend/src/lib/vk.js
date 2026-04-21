@@ -7,18 +7,17 @@ export const vk = {
   bridge, // Экспортируем сам bridge для прямого доступа
 
   init: async (onAuth) => {
-    // Если инициализация уже завершена, возвращаем успешный статус
     if (initPromise) return initPromise;
 
     initPromise = (async () => {
       console.log('Bridge: Initialization started...');
       
-      const isEmbedded = window.location.search.includes('vk_');
+      const search = window.location.search;
+      const hash = window.location.hash;
+      const isEmbedded = search.includes('vk_') || hash.includes('vk_');
       
       if (!isEmbedded) {
         console.warn('Bridge: Not in VK environment - finishing init flow');
-        // Даже если мы не в VK, помечаем инициализацию как "завершенную", 
-        // чтобы фронтенд убрал лоадер
         return { isEmbedded: false };
       }
 
@@ -106,10 +105,16 @@ export const vk = {
   async getAuthInfo() {
     try {
       const search = window.location.search;
-      const params = new URLSearchParams(search);
-      const authData = {};
+      const hash = window.location.hash;
       
-      // Список важных параметров от VK
+      // Объединяем параметры из search и hash (на случай использования HashRouter)
+      const searchParams = new URLSearchParams(search);
+      
+      // Для hash нужно убрать символ '#' и всё что до знака '?' внутри хэша
+      const hashPart = hash.includes('?') ? hash.split('?')[1] : hash.replace('#', '');
+      const hashParams = new URLSearchParams(hashPart);
+      
+      const authData = {};
       const vkParams = [
         'vk_user_id', 'vk_app_id', 'vk_is_app_user', 
         'vk_are_notifications_enabled', 'vk_language', 
@@ -117,12 +122,13 @@ export const vk = {
       ];
 
       vkParams.forEach(param => {
-        if (params.has(param)) {
-          authData[param] = params.get(param);
+        // Приоритет параметрам из URL (search), затем из хэша
+        const value = searchParams.get(param) || hashParams.get(param);
+        if (value) {
+          authData[param] = value;
         }
       });
 
-      // Для совместимости с Auth.jsx, который ожидает uuid
       return {
         ...authData,
         uuid: authData.vk_user_id,
@@ -130,7 +136,7 @@ export const vk = {
       };
     } catch (err) {
       console.error('Failed to get auth info:', err);
-      throw err;
+      return {};
     }
   },
   

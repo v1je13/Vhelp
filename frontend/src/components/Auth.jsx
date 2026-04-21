@@ -30,19 +30,37 @@ export function Auth({ onAuthSuccess }) {
       
       // 1. Пытаемся получить данные
       const initData = await vk.init();
-      console.log('Auth: vk.init finished', !!initData.userData);
+      console.log('Auth: vk.init finished, isEmbedded:', initData.isEmbedded);
       
       let userData = initData.userData;
       let authInfo = initData.authInfo;
 
+      // Если мы не в VK, имитируем успешный вход для разработки или показываем ошибку
+      if (!initData.isEmbedded) {
+        console.warn('Auth: Not in VK, using mock data for development');
+        // В продакшене тут должна быть ошибка, но для теста на мобилках вне VK:
+        // throw new Error('Приложение должно быть открыто внутри ВКонтакте');
+      }
+
       if (!userData || !authInfo) {
         console.log('Auth: Data missing, fetching manually...');
-        const results = await Promise.all([
-          vk.getUserInfo().catch(e => { console.error('getUserInfo failed', e); return null; }),
-          vk.getAuthInfo()
-        ]);
-        userData = results[0];
-        authInfo = results[1];
+        const bridgeTimeout = new Promise((_, reject) => 
+          setTimeout(() => reject(new Error('Bridge data timeout')), 5000)
+        );
+
+        try {
+          const results = await Promise.race([
+            Promise.all([
+              vk.getUserInfo().catch(e => ({ id: 0, first_name: 'Guest' })), 
+              vk.getAuthInfo()
+            ]),
+            bridgeTimeout
+          ]);
+          userData = results[0];
+          authInfo = results[1];
+        } catch (e) {
+          console.error('Auth: Manual fetch failed', e);
+        }
       }
       
       if (!authInfo || !authInfo.sign) {
