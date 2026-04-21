@@ -42,7 +42,7 @@ export function Profile({ userId, user, onBack, onOpenPost }) {
         console.log('Profile: Loading for', targetUserId, 'attempt', retryCount + 1);
 
         // На мобильном интернете лучше грузить последовательно, чтобы не делить канал
-        const profileData = await api.getUserProfile(targetUserId);
+        const profileData = await api.getUser(targetUserId);
         setProfileData(profileData.user || profileData);
 
         try {
