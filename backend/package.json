@@ -1,18 +1,15 @@
 {
-  "name": "vhelp-api",
-  "type": "module",
+  "name": "vhelp-backend",
+  "version": "1.0.0",
   "scripts": {
-    "dev": "wrangler dev src/index.js",
-    "deploy": "wrangler deploy --minify src/index.js"
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy"
   },
   "dependencies": {
-    "@hono/zod-validator": "^0.3.0",
-    "bcryptjs": "^2.4.3",
-    "hono": "^4.12.14",
-    "jsonwebtoken": "^9.0.2",
-    "mongoose": "^8.0.0"
+    "hono": "^3.12.0",
+    "jose": "^5.2.0"
   },
   "devDependencies": {
-    "wrangler": "^4.83.0"
+    "wrangler": "^3.0.0"
   }
 }

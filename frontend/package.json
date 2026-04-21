@@ -9,15 +9,17 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@vkontakte/vk-bridge": "2.15.11",
-    "@vkontakte/vkui": "6.4.1",
     "@vkontakte/icons": "2.100.0",
+    "@vkontakte/vk-bridge": "2.15.11",
     "@vkontakte/vk-mini-apps-router": "1.8.4",
+    "@vkontakte/vkui": "6.4.1",
+    "jose": "^6.2.2",
     "react": "18.2.0",
     "react-dom": "18.2.0"
   },
   "devDependencies": {
     "@vitejs/plugin-react": "4.2.1",
-    "vite": "5.2.0"
+    "vite": "5.2.0",
+    "wrangler": "^4.84.0"
   }
 }

@@ -1,190 +1,60 @@
-// src/api/client.js
-// Принудительно используем HTTPS для API, чтобы Android WebView не блокировал запросы
-const API_BASE = (import.meta.env.VITE_API_URL || '').replace('http://', 'https://');
+// API URL — тот же домен, что и фронтенд 
+const API_URL = 'https://vhelp-backend.traveldiary-api.workers.dev';
 
-const fetchWithRetry = async (url, options = {}, retries = 3) => {
-  for (let i = 0; i < retries; i++) {
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 15000); // 15 сек таймаут
+// приложение на Pages: /api/health 
 
-    try {
-      const response = await fetch(url, {
-        ...options,
-        signal: controller.signal,
-        // Важно для Android WebView:
-        credentials: 'include',
-        headers: {
-          ...options.headers,
-          'Cache-Control': 'no-cache',
-          'Pragma': 'no-cache'
-        }
-      });
-      clearTimeout(timeout);
-      return response;
-    } catch (err) {
-      clearTimeout(timeout);
-      if (i === retries - 1) throw err;
-      // Экспоненциальная задержка перед повтором
-      await new Promise(r => setTimeout(r, 2000 * (i + 1)));
-    }
-  }
-};
-
-export const api = {
-  async request(endpoint, options = {}) {
-    const token = localStorage.getItem('vhelp_token');
-    const headers = {
-      ...(token && { 'Authorization': `Bearer ${token}` }),
-      ...options.headers
-    };
-
-    // Если Content-Type не задан явно и это не FormData, ставим json
-    if (!headers['Content-Type'] && !(options.body instanceof FormData)) {
-      headers['Content-Type'] = 'application/json';
-    }
-
-    try {
-      const res = await fetchWithRetry(`${API_BASE}${endpoint}`, {
-        ...options,
-        headers
-      });
-
-      if (!res.ok) {
-        const data = await res.json().catch(() => ({}));
-        throw new Error(data.error || `Ошибка сервера: ${res.status}`);
-      }
-
-      return await res.json();
-    } catch (err) {
-      const isTimeout = err.name === 'AbortError';
-      const errorMessage = isTimeout 
-        ? 'Превышено время ожидания (15 сек). Медленное соединение.' 
-        : err.message;
-      
-      console.error(`🔥 API Error for ${endpoint}:`, errorMessage);
-      throw new Error(errorMessage);
-    }
-  },
+const apiFetch = async (endpoint, options = {}) => { 
+  const url = `${API_URL}/api${endpoint}`; 
   
-  // 🔐 Авторизация через VK
-  async vkAuth(vkData) {
-    const res = await this.request('/api/auth/vk', {
-      method: 'POST',
-      body: JSON.stringify(vkData)
-    });
-    return res;
-  },
+  const token = localStorage.getItem('vhelp_token'); 
+  const headers = { 
+    'Content-Type': 'application/json', 
+    ...(token && { 'Authorization': `Bearer ${token}` }), 
+    ...options.headers 
+  }; 
   
-  // 👤 Профиль
-  async getMe() {
-    return this.request('/api/auth/me');
-  },
-
-  async getUserProfile(userId) {
-    return this.request(`/api/users/${userId}`);
-  },
-
-  async getUserPosts(userId) {
-    return this.request(`/api/users/${userId}/posts`);
-  },
-
-  // 🌍 Путешествия
-  async getUserTrips() {
-    return this.request('/api/trips');
-  },
-
-  async createTrip(data) {
-    return this.request('/api/trips', {
-      method: 'POST',
-      body: JSON.stringify(data)
-    });
-  },
-
-  async deleteTrip(tripId) {
-    return this.request(`/api/trips/${tripId}`, { method: 'DELETE' });
-  },
-
-  async getTripNotes(tripId) {
-    return this.request(`/api/trips/${tripId}/notes`);
-  },
-
-  // 📰 Посты
-  async getPosts(page = 1) {
-    return this.request(`/api/posts?page=${page}`);
-  },
-
-  async getPostById(postId) {
-    return this.request(`/api/posts/${postId}`);
-  },
+  // Для Android: увеличенный таймаут и retry 
+  const controller = new AbortController(); 
+  const timeoutId = setTimeout(() => controller.abort(), 15000); 
   
-  async createPost(data) {
-    return this.request('/api/posts', {
-      method: 'POST',
-      body: JSON.stringify({
-        text: data.text || data.content,
-        images: data.images || [],
-        tags: data.tags || [],
-        trip_id: data.trip_id || null
-      })
-    });
-  },
-  
-  async toggleLike(postId) {
-    return this.request(`/api/posts/${postId}/like`, { method: 'POST' });
-  },
-
-  async likePost(postId) {
-    return this.request(`/api/posts/${postId}/like`, { method: 'POST' });
-  },
-
-  async getComments(postId) {
-    return this.request(`/api/posts/${postId}/comments`);
-  },
-
-  async addComment(postId, text) {
-    return this.request(`/api/posts/${postId}/comments`, {
-      method: 'POST',
-      body: JSON.stringify({ text })
-    });
-  },
-
-  async searchUsers(query) {
-    return this.request(`/api/users/search?q=${encodeURIComponent(query)}`);
-  },
-
-  async searchPosts(query) {
-    return this.request(`/api/posts/search?q=${encodeURIComponent(query)}`);
-  },
-
-  async getPostsByTag(tag) {
-    return this.request(`/api/tags/${encodeURIComponent(tag)}/posts`);
-  },
-
-  async uploadPhoto(file) {
-    const formData = new FormData();
-    formData.append('image', file);
+  try { 
+    const response = await fetch(url, { 
+      ...options, 
+      headers, 
+      signal: controller.signal, 
+      credentials: 'same-origin' // ← важно, тот же домен 
+    }); 
+    clearTimeout(timeoutId); 
     
-    return this.request('/api/upload', {
-      method: 'POST',
-      body: formData,
-      headers: {
-        'Content-Type': undefined 
-      }
-    });
-  },
-  
-  logout() {
-    localStorage.removeItem('vhelp_token');
-    localStorage.removeItem('vhelp_user');
-  },
-  
-  async validateToken() {
-    try {
-      await this.request('/api/auth/me');
-      return true;
-    } catch {
-      this.logout();
-      return false;
-    }
-  }
+    if (!response.ok) { 
+      const error = await response.json().catch(() => ({})); 
+      throw new Error(error.error || `HTTP ${response.status}`); 
+    } 
+    
+    return response.json(); 
+  } catch (err) { 
+    clearTimeout(timeoutId); 
+    throw err; 
+  } 
+}; 
+
+export const api = { 
+  vkAuth: (data) => apiFetch('/auth/vk', { method: 'POST', body: JSON.stringify(data) }), 
+  getMe: () => apiFetch('/auth/me'), 
+  getPosts: (page = 1) => apiFetch(`/posts?page=${page}`), 
+  getPost: (id) => apiFetch(`/posts/${id}`), 
+  createPost: (data) => apiFetch('/posts', { method: 'POST', body: JSON.stringify(data) }), 
+  likePost: (id) => apiFetch(`/posts/${id}/like`, { method: 'POST' }), 
+  getComments: (id) => apiFetch(`/posts/${id}/comments`), 
+  createComment: (id, text) => apiFetch(`/posts/${id}/comments`, { method: 'POST', body: JSON.stringify({ text }) }), 
+  getTrips: () => apiFetch('/trips'), 
+  createTrip: (data) => apiFetch('/trips', { method: 'POST', body: JSON.stringify(data) }), 
+  deleteTrip: (id) => apiFetch(`/trips/${id}`, { method: 'DELETE' }), 
+  getTripNotes: (id) => apiFetch(`/trips/${id}/notes`), 
+  getUser: (id) => apiFetch(`/users/${id}`), 
+  getUserPosts: (id) => apiFetch(`/users/${id}/posts`), 
+  searchUsers: (q) => apiFetch(`/users/search?q=${encodeURIComponent(q)}`), 
+  searchPosts: (q) => apiFetch(`/posts/search?q=${encodeURIComponent(q)}`), 
+  getTagPosts: (tag) => apiFetch(`/tags/${encodeURIComponent(tag)}/posts`), 
+  logout: () => { localStorage.removeItem('vhelp_token'); localStorage.removeItem('vhelp_user'); } 
 };
