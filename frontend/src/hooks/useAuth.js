@@ -11,7 +11,7 @@ export const AuthProvider = ({ children }) => {
   useEffect(() => {
     const initAuth = async () => {
       try {
-        const token = localStorage.getItem('token');
+        const token = localStorage.getItem('vhelp_token');
         if (token) {
           const userData = await api.getCurrentUser();
           setUser(userData);

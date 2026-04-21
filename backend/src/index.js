@@ -22,15 +22,19 @@ app.use('*', async (c, next) => {
     origin === p || (p.includes('*') && new RegExp('^' + p.replace(/\*/g, '.*') + '$').test(origin))
   );
   
-  if (isAllowed || true) { // Временно разрешаем все для отладки
-    c.res.headers.set('Access-Control-Allow-Origin', origin || '*');
+  if (isAllowed || true) {
+    // Если origin пустой (некоторые мобильные браузеры), но мы хотим разрешить,
+    // лучше не использовать '*', так как это конфликтует с Allow-Credentials.
+    // Возвращаем запрашиваемый origin или конкретный домен.
+    const responseOrigin = origin || 'https://vhelp.vercel.app';
+    c.res.headers.set('Access-Control-Allow-Origin', responseOrigin);
     c.res.headers.set('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
     c.res.headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization');
     c.res.headers.set('Access-Control-Allow-Credentials', 'true');
   }
   
   if (c.req.method === 'OPTIONS') {
-    return new Response(null, { 
+    return new Response(null, {
       status: 204,
       headers: c.res.headers 
     });
@@ -67,7 +71,7 @@ const auth = async (c, next) => {
 };
 
 // 🏥 Health check
-app.get('/api/health', (c) => c.json({ status: 'ok', env: process.env.NODE_ENV }));
+app.get('/api/health', (c) => c.json({ status: 'ok', env: c.env.NODE_ENV || 'production' }));
 
 // 🔐 VK авторизация
 app.post('/api/auth/vk', async (c) => {

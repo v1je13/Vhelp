@@ -59,7 +59,49 @@ export const vk = {
     }
   },
   
-  // 🔔 Показать уведомление
+  // � Получить данные пользователя
+  async getUserInfo() {
+    try {
+      return await bridge.send('VKWebAppGetUserInfo');
+    } catch (err) {
+      console.error('Failed to get user info:', err);
+      throw err;
+    }
+  },
+
+  // 🔑 Получить данные авторизации (launch params)
+  async getAuthInfo() {
+    try {
+      const search = window.location.search;
+      const params = new URLSearchParams(search);
+      const authData = {};
+      
+      // Список важных параметров от VK
+      const vkParams = [
+        'vk_user_id', 'vk_app_id', 'vk_is_app_user', 
+        'vk_are_notifications_enabled', 'vk_language', 
+        'vk_ref', 'vk_access_token_settings', 'sign'
+      ];
+
+      vkParams.forEach(param => {
+        if (params.has(param)) {
+          authData[param] = params.get(param);
+        }
+      });
+
+      // Для совместимости с Auth.jsx, который ожидает uuid
+      return {
+        ...authData,
+        uuid: authData.vk_user_id,
+        sign: authData.sign
+      };
+    } catch (err) {
+      console.error('Failed to get auth info:', err);
+      throw err;
+    }
+  },
+  
+  // �🔔 Показать уведомление
   async showNotification(title, message, type = 'info') {
     try {
       await bridge.send('VKWebAppShowSnackbar', {

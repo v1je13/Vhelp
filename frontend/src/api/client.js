@@ -1,9 +1,8 @@
 // src/api/client.js
-const API_BASE = import.meta.env.VITE_API_URL; // "https://.../api"
+const API_BASE = import.meta.env.VITE_API_URL || ''; // Если не задано, используем относительные пути
 
 export const api = {
   async request(endpoint, options = {}) {
-    const API_BASE = import.meta.env.VITE_API_URL;
     const token = localStorage.getItem('vhelp_token');
     
     console.log('� API Request:', {

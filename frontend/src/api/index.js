@@ -4,18 +4,19 @@ const API_BASE_URL = import.meta.env.VITE_API_URL || '/api';
 
 class ApiClient {
   constructor() {
-    this.token = localStorage.getItem('token');
+    this.token = localStorage.getItem('vhelp_token');
     this.baseURL = API_BASE_URL;
   }
 
   setToken(token) {
     this.token = token;
-    localStorage.setItem('token', token);
+    localStorage.setItem('vhelp_token', token);
   }
 
   clearToken() {
     this.token = null;
-    localStorage.removeItem('token');
+    localStorage.removeItem('vhelp_token');
+    localStorage.removeItem('vhelp_user');
   }
 
   async request(endpoint, options = {}) {
