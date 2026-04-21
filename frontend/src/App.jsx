@@ -143,6 +143,10 @@ function App() {
     setActivePanel('trips');
   };
 
+  const handleCreateTrip = () => {
+    setActivePanel('trips');
+  };
+
   if (!isReady) {
     return (
       <AppRoot mode="embedded">
@@ -220,9 +224,10 @@ function App() {
               {/* Лента постов */}
               <Panel id="feed">
                 <PanelHeader>Лента</PanelHeader>
-                <Feed 
-                  user={user} 
+                <Feed
+                  user={user}
                   onOpenPost={handleOpenPost}
+                  onCreateTrip={handleCreateTrip}
                 />
               </Panel>
               

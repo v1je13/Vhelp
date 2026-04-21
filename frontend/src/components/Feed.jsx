@@ -1,21 +1,21 @@
 // src/components/Feed.jsx
 import { useState, useEffect } from 'react';
-import { 
+import {
   Panel,
   PanelHeader,
-  Card, 
-  Avatar, 
-  Text, 
-  Button, 
-  Spinner, 
+  Card,
+  Avatar,
+  Button,
+  Spinner,
   Textarea,
   Placeholder,
   Input
 } from '@vkontakte/vkui';
+import { Icon24Add } from '@vkontakte/icons';
 import { api } from '../api/client';
 import { vk } from '../lib/vk';
 
-export function Feed({ user, onOpenPost }) {
+export function Feed({ user, onOpenPost, onCreateTrip }) {
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -155,7 +155,7 @@ export function Feed({ user, onOpenPost }) {
 
   return (
     <Panel id="feed" style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
-      <PanelHeader>Лента</PanelHeader>
+      <PanelHeader right={<Button mode="primary" size="s" before={<Icon24Add />} onClick={onCreateTrip}>Путешествие</Button>}>Лента</PanelHeader>
       <div style={{ 
         flex: 1, 
         overflowY: 'auto',
@@ -164,8 +164,8 @@ export function Feed({ user, onOpenPost }) {
       }}>
         <div style={{ padding: 10 }}>
       <Card style={{ padding: 15, marginBottom: 20 }}>
-        <Text weight="2" style={{ marginBottom: 8 }}>Что у вас новое?</Text>
-        
+        <div style={{ marginBottom: 8, fontWeight: 700 }}>Что у вас новое?</div>
+
         <Textarea 
           value={newPost}
           onChange={e => setNewPost(e.target.value)}
@@ -229,18 +229,18 @@ export function Feed({ user, onOpenPost }) {
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
               <Avatar src={post.avatar || 'https://vk.com/images/camera_200.png'} size={40} />
               <div style={{ flex: 1 }}>
-                <Text weight="2" style={{ fontSize: 15 }}>
+                <div style={{ fontSize: 15, fontWeight: 700 }}>
                   {post.first_name || 'Пользователь'} {post.last_name || ''}
-                </Text>
-                <Text caption style={{ color: '#818c99', fontSize: 12 }}>
+                </div>
+                <div style={{ color: '#818c99', fontSize: 12 }}>
                   {formatDate(post.created_at)}
-                </Text>
+                </div>
               </div>
             </div>
 
-            <Text style={{ marginBottom: 10, whiteSpace: 'pre-wrap', fontSize: 14 }}>
+            <div style={{ marginBottom: 10, whiteSpace: 'pre-wrap', fontSize: 14 }}>
               {post.text}
-            </Text>
+            </div>
 
             {post.images && post.images !== '[]' && post.images !== 'null' && (
               <div style={{ marginTop: 10 }}>

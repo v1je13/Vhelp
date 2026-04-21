@@ -1,8 +1,7 @@
 // src/components/Profile.jsx
 import { useState, useEffect } from 'react';
-import { 
-  Avatar, 
-  Text, 
+import {
+  Avatar,
   Button,
   Spinner,
   Placeholder,
@@ -72,21 +71,21 @@ export function Profile({ userId, user, onBack, onOpenPost }) {
 
   if (loading) {
     return (
-      <div style={{ 
-        display: 'flex', 
-        flexDirection: 'column', 
-        alignItems: 'center', 
-        justifyContent: 'center', 
+      <div style={{
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
         padding: 60,
         textAlign: 'center'
       }}>
         <Spinner size="large" />
-        <Text style={{ marginTop: 16, color: 'var(--vkui--color_text_secondary)' }}>
+        <div style={{ marginTop: 16, color: 'var(--vkui--color_text_secondary)' }}>
           Загружаем ваш профиль...
-        </Text>
-        <Text caption style={{ marginTop: 8, color: 'var(--vkui--color_text_tertiary)' }}>
+        </div>
+        <div style={{ marginTop: 8, color: 'var(--vkui--color_text_tertiary)', fontSize: 13 }}>
           Это может занять до минуты при слабом соединении
-        </Text>
+        </div>
       </div>
     );
   }
@@ -107,48 +106,48 @@ export function Profile({ userId, user, onBack, onOpenPost }) {
   return (
     <div style={{ paddingBottom: 80 }}>
       {/* Шапка профиля */}
-      <div style={{ 
+      <div style={{
         background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
         padding: '30px 20px',
         textAlign: 'center',
         color: 'white'
       }}>
-        <Avatar 
-          src={profileData.avatar || 'https://vk.com/images/camera_200.png'} 
+        <Avatar
+          src={profileData.avatar || 'https://vk.com/images/camera_200.png'}
           size={96}
           style={{ marginBottom: 12, border: '4px solid white', margin: '0 auto' }}
         />
-        <Text weight="2" style={{ fontSize: 22, marginBottom: 4 }}>
+        <div style={{ fontSize: 22, marginBottom: 4, fontWeight: 700 }}>
           {profileData.first_name} {profileData.last_name}
-        </Text>
+        </div>
         {profileData.bio && (
-          <Text style={{ opacity: 0.9, fontSize: 14 }}>
+          <div style={{ opacity: 0.9, fontSize: 14 }}>
             {profileData.bio}
-          </Text>
+          </div>
         )}
       </div>
 
       {/* Статистика */}
-      <div style={{ 
-        display: 'flex', 
+      <div style={{
+        display: 'flex',
         padding: '15px',
         borderBottom: '1px solid var(--vkui--color_separator_primary)'
       }}>
         <div style={{ flex: 1, textAlign: 'center' }}>
-          <Text weight="2" style={{ fontSize: 20 }}>
+          <div style={{ fontSize: 20, fontWeight: 700 }}>
             {posts.length}
-          </Text>
-          <Text caption style={{ color: 'var(--vkui--color_text_secondary)' }}>
+          </div>
+          <div style={{ color: 'var(--vkui--color_text_secondary)', fontSize: 13 }}>
             Посты
-          </Text>
+          </div>
         </div>
         <div style={{ flex: 1, textAlign: 'center' }}>
-          <Text weight="2" style={{ fontSize: 20 }}>
+          <div style={{ fontSize: 20, fontWeight: 700 }}>
             {profileData.friends_count || 0}
-          </Text>
-          <Text caption style={{ color: 'var(--vkui--color_text_secondary)' }}>
+          </div>
+          <div style={{ color: 'var(--vkui--color_text_secondary)', fontSize: 13 }}>
             Друзья
-          </Text>
+          </div>
         </div>
       </div>
 
