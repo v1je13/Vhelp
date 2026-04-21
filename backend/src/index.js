@@ -12,6 +12,8 @@ app.use('*', async (c, next) => {
   c.res.headers.set('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
   // Расширяем список разрешенных заголовков для мобильных устройств
   c.res.headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Accept, Origin');
+  // Кэшируем префлайт запросы на 24 часа для ускорения работы на мобильном интернете
+  c.res.headers.set('Access-Control-Max-Age', '86400');
   
   if (c.req.method === 'OPTIONS') {
     return new Response(null, {
