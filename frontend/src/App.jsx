@@ -27,6 +27,14 @@ function App() {
   const showBottomNav = !!user;
   
   useEffect(() => {
+    // Watchdog для App.jsx — если инициализация зависла, все равно показываем интерфейс через 6 секунд
+    const appWatchdog = setTimeout(() => {
+      if (!isReady) {
+        console.warn('App: Initialization watchdog triggered');
+        setIsReady(true);
+      }
+    }, 6000);
+
     const initApp = async () => {
       try {
         // 1. Проверяем localStorage
@@ -37,7 +45,6 @@ function App() {
           try { 
             setUser(JSON.parse(savedUser));
             setIsReady(true);
-            // Даже если есть в localStorage, инициализируем мост в фоне
             vk.init().catch(e => console.warn('Background bridge init failed:', e));
             return;
           } catch (e) { 
@@ -51,7 +58,6 @@ function App() {
         if (initData.isEmbedded && initData.userData && initData.userData.sign) {
           console.log('App: Attempting auto-auth...');
           try {
-            // Добавляем ретрай для авторизации
             let response;
             for (let i = 0; i < 2; i++) {
               try {
@@ -86,11 +92,13 @@ function App() {
         console.error('App: Init error', err);
         setActivePanel('auth');
       } finally {
+        clearTimeout(appWatchdog);
         setIsReady(true);
       }
     };
 
     initApp();
+    return () => clearTimeout(appWatchdog);
   }, []);
   
   const handleAuthSuccess = (response) => {

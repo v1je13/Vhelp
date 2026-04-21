@@ -23,10 +23,10 @@ export const vk = {
       }
 
       try {
-        // Таймаут для инициализации
+        // Таймаут для инициализации — уменьшаем до 5 секунд для отзывчивости
         const initCall = bridge.send('VKWebAppInit');
         const timeout = new Promise((_, reject) => 
-          setTimeout(() => reject(new Error('VK Bridge timeout')), 10000)
+          setTimeout(() => reject(new Error('VK Bridge timeout')), 5000)
         );
         
         await Promise.race([initCall, timeout]);
@@ -34,9 +34,16 @@ export const vk = {
         
         // Получение данных пользователя
         try {
-          const [userInfo, authInfo] = await Promise.all([
-            bridge.send('VKWebAppGetUserInfo'),
-            this.getAuthInfo()
+          const userInfoPromise = bridge.send('VKWebAppGetUserInfo');
+          const authInfoPromise = vk.getAuthInfo();
+          
+          const bridgeTimeout = new Promise((_, reject) => 
+            setTimeout(() => reject(new Error('Bridge data timeout')), 5000)
+          );
+
+          const [userInfo, authInfo] = await Promise.race([
+            Promise.all([userInfoPromise, authInfoPromise]),
+            bridgeTimeout
           ]);
           
           console.log('👤 Bridge: User and Auth info received');

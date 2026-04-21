@@ -19,50 +19,49 @@ export function Profile({ userId, user, onBack, onOpenPost }) {
   const [activeTab, setActiveTab] = useState('posts'); // posts, friends, subscribers
 
   useEffect(() => {
-    const loadProfile = async () => {
-      try {
-        setLoading(true);
-        setError(null);
-        
-        // Если userId не передан, используем текущего пользователя
-        const targetUserId = userId || user?.id;
-        
-        if (!targetUserId) {
-          console.warn('Profile: No targetUserId found');
-          setLoading(false);
-          return;
-        }
-
-        console.log('Profile: Loading for', targetUserId);
-
-        // Загружаем профиль и посты
-        const [profileResponse, postsResponse] = await Promise.allSettled([
-          api.getUserProfile(targetUserId),
-          api.getUserPosts(targetUserId)
-        ]);
-
-        if (profileResponse.status === 'fulfilled') {
-          setProfileData(profileResponse.value.user || profileResponse.value);
-        } else {
-          console.error('Failed to load profile data:', profileResponse.reason);
-          setError('Не удалось загрузить данные профиля');
-        }
-
-        if (postsResponse.status === 'fulfilled') {
-          setPosts(postsResponse.value.posts || []);
-        } else {
-          console.error('Failed to load user posts:', postsResponse.reason);
-        }
-        
-      } catch (err) {
-        console.error('Failed to load profile:', err);
-        setError(err.message);
-      } finally {
+    const profileWatchdog = setTimeout(() => {
+      if (loading) {
+        console.warn('Profile: Watchdog triggered');
         setLoading(false);
+        setError('Загрузка профиля занимает слишком много времени. Проверьте соединение.');
       }
-    };
+    }, 15000);
+
+    const loadProfile = async () => {
+        try {
+          setLoading(true);
+          setError(null);
+          
+          const targetUserId = userId || user?.id;
+          if (!targetUserId) {
+            setLoading(false);
+            return;
+          }
+
+          const [profileResponse, postsResponse] = await Promise.allSettled([
+            api.getUserProfile(targetUserId),
+            api.getUserPosts(targetUserId)
+          ]);
+
+          if (profileResponse.status === 'fulfilled') {
+            setProfileData(profileResponse.value.user || profileResponse.value);
+          } else {
+            setError('Не удалось загрузить данные профиля');
+          }
+
+          if (postsResponse.status === 'fulfilled') {
+            setPosts(postsResponse.value.posts || []);
+          }
+        } catch (err) {
+          setError(err.message);
+        } finally {
+          clearTimeout(profileWatchdog);
+          setLoading(false);
+        }
+      };
 
     loadProfile();
+    return () => clearTimeout(profileWatchdog);
   }, [userId, user?.id]);
 
   if (loading) {
