@@ -145,32 +145,35 @@ app.post('/api/posts', async (c) => {
   try {
     const authHeader = c.req.header('Authorization');
     if (!authHeader) return c.json({ error: 'No token' }, 401);
-    
+
     const token = authHeader.replace('Bearer ', '');
     const secret = getSecret(c.env);
+    console.log('JWT Secret length:', secret.length);
+    console.log('Token prefix:', token.substring(0, 50) + '...');
     const decoded = await jwt.verify(token, secret);
-    
+
     const db = c.env.DB;
     const { text, images, tags = [], trip_id = null } = await c.req.json();
-    
+
     if (!text || text.trim().length < 3) {
       return c.json({ error: 'Text required (min 3 chars)' }, 400);
     }
-    
+
     const postId = crypto.randomUUID();
     await db.prepare(`
       INSERT INTO posts (id, user_id, text, images, tags, trip_id, location, likes_count)
       VALUES (?, ?, ?, ?, ?, ?, ?, 0)
     `).bind(postId, decoded.payload.userId, text.trim(), JSON.stringify(images || []),
             JSON.stringify(tags), trip_id, JSON.stringify(null)).run();
-    
+
     const post = await db.prepare(`
       SELECT p.*, u.first_name, u.last_name, u.avatar
       FROM posts p JOIN users u ON p.user_id = u.id WHERE p.id = ?
     `).bind(postId).first();
-    
+
     return c.json({ post }, 201);
   } catch (err) {
+    console.error('JWT Verify Error:', err);
     return c.json({ error: err.message }, 500);
   }
 });
