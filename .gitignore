@@ -44,3 +44,4 @@ coverage/
 
 # VK Mini Apps / Vite specific
 .vite/
+.vercel
