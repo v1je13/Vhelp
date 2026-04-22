@@ -10,6 +10,7 @@ import {
 } from '@vkontakte/vkui';
 import { Icon24Camera } from '@vkontakte/icons';
 import { api } from '../api/client';
+import { declension } from '../utils/declension';
 
 export function Profile({ userId, user, onBack, onOpenPost }) {
   const [profileData, setProfileData] = useState(null);
@@ -188,7 +189,7 @@ export function Profile({ userId, user, onBack, onOpenPost }) {
             {posts.length}
           </div>
           <div style={{ color: 'var(--vkui--color_text_secondary)', fontSize: 13 }}>
-            Посты
+            {declension(posts.length, ['пост', 'поста', 'постов'])}
           </div>
         </div>
         <div style={{ flex: 1, textAlign: 'center' }}>
@@ -196,7 +197,7 @@ export function Profile({ userId, user, onBack, onOpenPost }) {
             {profileData.friends_count || 0}
           </div>
           <div style={{ color: 'var(--vkui--color_text_secondary)', fontSize: 13 }}>
-            Друзья
+            {declension(profileData.friends_count || 0, ['друг', 'друга', 'друзей'])}
           </div>
         </div>
       </div>
