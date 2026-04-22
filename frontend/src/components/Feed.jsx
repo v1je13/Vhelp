@@ -159,17 +159,17 @@ export function Feed({ user, onOpenPost, onCreateTrip, onPostCreated }) {
             </div>
 
             {post.images && post.images !== '[]' && post.images !== 'null' && (
-              <div style={{ marginTop: 10 }}>
+              <div style={{ marginTop: 10, overflowX: 'auto', display: 'flex', gap: 8, paddingBottom: 8 }}>
                 {(() => {
                   try {
                     const imageUrls = typeof post.images === 'string' ? JSON.parse(post.images) : post.images;
                     if (Array.isArray(imageUrls) && imageUrls.length > 0) {
-                      return imageUrls.slice(0, 1).map((url, idx) => (
+                      return imageUrls.map((url, idx) => (
                         <img
                           key={idx}
                           src={url}
                           alt=""
-                          style={{ width: '100%', maxHeight: 300, objectFit: 'cover', borderRadius: 8, display: 'block' }}
+                          style={{ flexShrink: 0, width: 200, height: 200, objectFit: 'cover', borderRadius: 8, display: 'block' }}
                           onError={(e) => { e.target.style.display = 'none'; }}
                         />
                       ));

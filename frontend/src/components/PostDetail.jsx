@@ -159,7 +159,7 @@ export function PostDetail({ id, onBack, user }) {
 
         {/* 🔥 Фото поста (полный размер) */}
         {post.images && post.images !== '[]' && post.images !== 'null' && (
-          <div style={{ marginBottom: 15 }}>
+          <div style={{ marginBottom: 15, overflowX: 'auto', display: 'flex', gap: 8, paddingBottom: 8 }}>
             {(() => {
               try {
                 const imageUrls = typeof post.images === 'string'
@@ -172,11 +172,7 @@ export function PostDetail({ id, onBack, user }) {
                       key={idx}
                       src={url}
                       alt={`Post image ${idx + 1}`}
-                      style={{
-                        width: '100%',
-                        borderRadius: 12,
-                        marginBottom: idx < imageUrls.length - 1 ? 8 : 0
-                      }}
+                      style={{ flexShrink: 0, width: 250, height: 250, objectFit: 'cover', borderRadius: 12 }}
                       onError={(e) => {
                         console.error('Failed to load image:', url);
                         e.target.style.display = 'none';

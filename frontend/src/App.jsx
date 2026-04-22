@@ -30,7 +30,7 @@ function App() {
 
   // Feed modal state
   const [feedNewPost, setFeedNewPost] = useState('');
-  const [feedSelectedPhoto, setFeedSelectedPhoto] = useState(null);
+  const [feedSelectedPhotos, setFeedSelectedPhotos] = useState([]);
   const [feedPostTags, setFeedPostTags] = useState('');
   const [feedCreating, setFeedCreating] = useState(false);
 
@@ -171,27 +171,40 @@ function App() {
 
   // Feed modal handlers
   const handleFeedPhotoUpload = (e) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+    const files = Array.from(e.target.files || []);
+    if (!files.length) return;
 
-    const reader = new FileReader();
-    reader.onloadend = () => setFeedSelectedPhoto(reader.result);
-    reader.readAsDataURL(file);
+    if (feedSelectedPhotos.length + files.length > 3) {
+      vk.showNotification('⚠️', 'Максимум 3 фото', 'warning');
+      return;
+    }
+
+    files.forEach(file => {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setFeedSelectedPhotos(prev => [...prev, reader.result]);
+      };
+      reader.readAsDataURL(file);
+    });
+  };
+
+  const handleFeedRemovePhoto = (index) => {
+    setFeedSelectedPhotos(prev => prev.filter((_, i) => i !== index));
   };
 
   const handleFeedCreatePost = async () => {
-    if (!feedNewPost.trim() && !feedSelectedPhoto) return;
+    if (!feedNewPost.trim() && feedSelectedPhotos.length === 0) return;
 
     try {
       setFeedCreating(true);
       await api.createPost({
         text: feedNewPost.trim(),
-        images: feedSelectedPhoto ? [feedSelectedPhoto] : [],
+        images: feedSelectedPhotos,
         tags: feedPostTags.split(',').map(t => t.trim()).filter(t => t),
       });
 
       setFeedNewPost('');
-      setFeedSelectedPhoto(null);
+      setFeedSelectedPhotos([]);
       setFeedPostTags('');
       setShowFeedModal(false);
 
@@ -533,18 +546,49 @@ function App() {
                     overflow: 'hidden',
                     position: 'relative'
                   }}
-                  onClick={() => !feedSelectedPhoto && document.getElementById('feed-photo-upload')?.click()}
                 >
-                  {feedSelectedPhoto ? (
-                    <img src={feedSelectedPhoto} alt="Preview" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                  {feedSelectedPhotos.length > 0 ? (
+                    <div style={{ width: '100%', height: '100%', overflowX: 'auto', display: 'flex', gap: 8, padding: 8 }}>
+                      {feedSelectedPhotos.map((photo, index) => (
+                        <div key={index} style={{ position: 'relative', flexShrink: 0, width: 120, height: 120 }}>
+                          <img src={photo} alt={`Photo ${index}`} style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: 8 }} />
+                          <Button
+                            mode="destructive"
+                            size="s"
+                            onClick={() => handleFeedRemovePhoto(index)}
+                            style={{ position: 'absolute', top: 4, right: 4, padding: 4, minWidth: 'auto', width: 24, height: 24 }}
+                          >
+                            ×
+                          </Button>
+                        </div>
+                      ))}
+                      {feedSelectedPhotos.length < 3 && (
+                        <div
+                          style={{
+                            width: 120,
+                            height: 120,
+                            borderRadius: 8,
+                            border: '2px dashed var(--vkui--color_separator_primary)',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            cursor: feedCreating ? 'default' : 'pointer',
+                            flexShrink: 0
+                          }}
+                          onClick={() => document.getElementById('feed-photo-upload')?.click()}
+                        >
+                          <Icon24Camera />
+                        </div>
+                      )}
+                    </div>
                   ) : (
-                    <div style={{ textAlign: 'center', color: 'var(--vkui--color_text_secondary)' }}>
+                    <div style={{ textAlign: 'center', color: 'var(--vkui--color_text_secondary)' }} onClick={() => document.getElementById('feed-photo-upload')?.click()}>
                       <Icon24Camera style={{ margin: '0 auto 8px' }} />
-                      <div>Добавить фото</div>
+                      <div>Добавить фото (до 3)</div>
                     </div>
                   )}
                 </div>
-                <input type="file" accept="image/*" onChange={handleFeedPhotoUpload} style={{ display: 'none' }} id="feed-photo-upload" />
+                <input type="file" accept="image/*" multiple onChange={handleFeedPhotoUpload} style={{ display: 'none' }} id="feed-photo-upload" />
 
                 <div>
                   <Input
@@ -558,7 +602,7 @@ function App() {
                 <Button
                   mode="primary"
                   onClick={handleFeedCreatePost}
-                  disabled={feedCreating || (!feedNewPost.trim() && !feedSelectedPhoto)}
+                  disabled={feedCreating || (!feedNewPost.trim() && feedSelectedPhotos.length === 0)}
                   loading={feedCreating}
                   stretched
                   size="l"
