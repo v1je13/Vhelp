@@ -8,6 +8,7 @@ CREATE TABLE IF NOT EXISTS users (
   last_name TEXT,
   avatar TEXT,
   bio TEXT DEFAULT '',
+  background_image TEXT DEFAULT '',
   created_at BIGINT DEFAULT (EXTRACT(EPOCH FROM NOW()) * 1000),
   updated_at BIGINT DEFAULT (EXTRACT(EPOCH FROM NOW()) * 1000)
 );
@@ -25,6 +26,20 @@ CREATE TABLE IF NOT EXISTS posts (
   created_at BIGINT DEFAULT (EXTRACT(EPOCH FROM NOW()) * 1000),
   FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
+
+-- Migration: Add likes_count column to existing posts table
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM information_schema.columns
+    WHERE table_name = 'posts' AND column_name = 'likes_count'
+  ) THEN
+    ALTER TABLE posts ADD COLUMN likes_count INTEGER DEFAULT 0;
+  END IF;
+END $$;
+
+-- Migration: Update existing posts to have likes_count = 0 if NULL
+UPDATE posts SET likes_count = 0 WHERE likes_count IS NULL;
 
 -- Likes table
 CREATE TABLE IF NOT EXISTS likes (
@@ -69,3 +84,14 @@ CREATE INDEX IF NOT EXISTS idx_users_name ON users(first_name, last_name);
 CREATE INDEX IF NOT EXISTS idx_posts_text ON posts(text);
 CREATE INDEX IF NOT EXISTS idx_trips_user_id ON trips(user_id);
 CREATE INDEX IF NOT EXISTS idx_posts_trip_id ON posts(trip_id);
+
+-- Migration: Add background_image column if it doesn't exist
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM information_schema.columns
+    WHERE table_name = 'users' AND column_name = 'background_image'
+  ) THEN
+    ALTER TABLE users ADD COLUMN background_image TEXT DEFAULT '';
+  END IF;
+END $$;

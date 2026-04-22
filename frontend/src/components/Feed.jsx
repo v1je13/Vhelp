@@ -7,22 +7,16 @@ import {
   Avatar,
   Button,
   Spinner,
-  Textarea,
-  Placeholder,
-  Input
+  Placeholder
 } from '@vkontakte/vkui';
-import { Icon24Add } from '@vkontakte/icons';
+import { Icon24Add, Icon24DeleteOutline } from '@vkontakte/icons';
 import { api } from '../api/client';
 import { vk } from '../lib/vk';
 
-export function Feed({ user, onOpenPost, onCreateTrip }) {
+export function Feed({ user, onOpenPost, onCreateTrip, onPostCreated }) {
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [newPost, setNewPost] = useState('');
-  const [selectedPhoto, setSelectedPhoto] = useState(null);
-  const [postTags, setPostTags] = useState('');
-  const [creating, setCreating] = useState(false);
 
   const formatDate = (dateValue) => {
     if (!dateValue) return 'Только что';
@@ -56,58 +50,33 @@ export function Feed({ user, onOpenPost, onCreateTrip }) {
       }
     };
     loadPosts();
-  }, []);
-
-  const handlePhotoUpload = (e) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    
-    const reader = new FileReader();
-    reader.onloadend = () => setSelectedPhoto(reader.result);
-    reader.readAsDataURL(file);
-  };
-
-  const handleCreatePost = async () => {
-    if (!newPost.trim() && !selectedPhoto) return;
-    
-    try {
-      setCreating(true);
-      await api.createPost({
-        text: newPost.trim(),
-        images: selectedPhoto ? [selectedPhoto] : [],
-        tags: postTags.split(',').map(t => t.trim()).filter(t => t),
-      });
-      
-      setNewPost('');
-      setSelectedPhoto(null);
-      setPostTags('');
-      
-      // Сначала уведомляем, потом обновляем ленту
-      await vk.showNotification('✅', 'Пост опубликован', 'success');
-      
-      const data = await api.getPosts(1);
-      setPosts(data.posts || []);
-    } catch (err) {
-      console.error('Create post error:', err);
-      const errorMsg = err.message || 'Не удалось создать пост';
-      await vk.showNotification('❌', errorMsg, 'error');
-    } finally {
-      setCreating(false);
-    }
-  };
+  }, [onPostCreated]);
 
   const handleLike = async (e, postId) => {
     e?.stopPropagation();
-    
+
     if (!postId) return;
-    
+
     try {
       const result = await api.likePost(postId);
-      setPosts(prev => prev.map(post => 
-        post.id === postId ? { ...post, likes_count: result.count } : post
+      setPosts(prev => prev.map(post =>
+        post.id === postId ? { ...post, likes_count: result.count || 0 } : post
       ));
     } catch (err) {
       console.error('Like error:', err);
+    }
+  };
+
+  const handleDeletePost = async (postId, e) => {
+    e?.stopPropagation();
+
+    try {
+      await api.deletePost(postId);
+      setPosts(prev => prev.filter(post => post.id !== postId));
+      await vk.showNotification('✅', 'Пост удален', 'success');
+    } catch (err) {
+      console.error('Delete post error:', err);
+      await vk.showNotification('❌', 'Ошибка удаления', 'error');
     }
   };
 
@@ -154,69 +123,16 @@ export function Feed({ user, onOpenPost, onCreateTrip }) {
   }
 
   return (
-    <Panel id="feed" style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
-      <PanelHeader right={<Button mode="primary" size="s" before={<Icon24Add />} onClick={onCreateTrip}>Путешествие</Button>}>Лента</PanelHeader>
-      <div style={{ 
-        flex: 1, 
-        overflowY: 'auto',
-        overflowX: 'hidden',
-        paddingBottom: '80px'
-      }}>
-        <div style={{ padding: 10 }}>
-      <Card style={{ padding: 15, marginBottom: 20 }}>
-        <div style={{ marginBottom: 8, fontWeight: 700 }}>Что у вас новое?</div>
-
-        <Textarea 
-          value={newPost}
-          onChange={e => setNewPost(e.target.value)}
-          placeholder="Напишите что-нибудь..."
-          rows={3}
-          style={{ marginBottom: 12 }}
-        />
-        
-        {selectedPhoto && (
-          <div style={{ position: 'relative', marginBottom: 12 }}>
-            <img 
-              src={selectedPhoto} 
-              alt="Preview" 
-              style={{ width: '100%', maxHeight: 300, objectFit: 'cover', borderRadius: 8 }}
-            />
-            <Button
-              mode="secondary"
-              size="s"
-              onClick={() => setSelectedPhoto(null)}
-              style={{ position: 'absolute', top: 8, right: 8, background: 'rgba(0,0,0,0.7)' }}
-            >
-              ✕
-            </Button>
-          </div>
-        )}
-        
-        <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
-          <input type="file" accept="image/*" onChange={handlePhotoUpload} style={{ display: 'none' }} id="photo-upload" />
-          <Button mode="secondary" size="s" onClick={() => document.getElementById('photo-upload')?.click()} before={<span>📷</span>}>
-            Добавить фото
-          </Button>
-        </div>
-        
-        <div style={{ marginBottom: 12 }}>
-          <Input 
-            value={postTags} 
-            onChange={e => setPostTags(e.target.value)} 
-            placeholder="Тэги через запятую (например: Сочи, Лето)" 
-          />
-        </div>
-        
-        <Button 
-          mode="primary" 
-          onClick={handleCreatePost}
-          disabled={creating || (!newPost.trim() && !selectedPhoto)}
-          stretched
-        >
-          {creating ? <Spinner size="small" /> : 'Опубликовать'}
-        </Button>
-      </Card>
-
+    <>
+      <Panel id="feed" style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+        <PanelHeader right={<Button mode="primary" size="s" before={<Icon24Add />} onClick={onCreateTrip}>Путешествие</Button>}>Лента</PanelHeader>
+        <div style={{
+          flex: 1,
+          overflowY: 'auto',
+          overflowX: 'hidden',
+          paddingBottom: '80px'
+        }}>
+          <div style={{ padding: 10 }}>
       {posts.map(post => {
         const postId = post.id;
         
@@ -273,9 +189,20 @@ export function Feed({ user, onOpenPost, onCreateTrip }) {
               >
                 {post.likes_count || 0}
               </Button>
-              
-              <Button 
-                mode="secondary" 
+
+              {user && (user.id === post.user_id || user.vkId === post.user_id) && (
+                <Button
+                  mode="secondary"
+                  size="s"
+                  before={<Icon24DeleteOutline />}
+                  onClick={(e) => handleDeletePost(postId, e)}
+                >
+                  Удалить
+                </Button>
+              )}
+
+              <Button
+                mode="secondary"
                 size="s"
                 onClick={(e) => {
                   e.stopPropagation();
@@ -291,5 +218,6 @@ export function Feed({ user, onOpenPost, onCreateTrip }) {
       </div>
     </div>
   </Panel>
+  </>
   );
 }

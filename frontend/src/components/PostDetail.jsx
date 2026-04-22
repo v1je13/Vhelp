@@ -1,17 +1,16 @@
 // src/components/PostDetail.jsx
 import { useState, useEffect } from 'react';
-import { 
-  Panel, 
-  PanelHeader, 
-  Avatar, 
-  Text, 
+import {
+  PanelHeader,
+  Avatar,
+  Text,
   Button,
   Spinner,
   Input,
   Placeholder,
   Alert
 } from '@vkontakte/vkui';
-import { Icon28ChevronLeft, Icon28ArrowLeft } from '@vkontakte/icons';
+import { Icon28ChevronLeft, Icon24DeleteOutline } from '@vkontakte/icons';
 import { api } from '../api/client';
 import { vk } from '../lib/vk';
 
@@ -47,20 +46,45 @@ export function PostDetail({ id, onBack, user }) {
 
   const handleAddComment = async () => {
     if (!commentText.trim()) return;
-    
+
     try {
       setSubmitting(true);
-      const { comment } = await api.addComment(id, commentText);
-      
+      const { comment } = await api.createComment(id, commentText);
+
       setComments(prev => [...prev, comment]);
       setCommentText('');
-      
+
       await vk.showNotification('✅', 'Комментарий добавлен', 'success');
     } catch (err) {
       console.error('Comment error:', err);
       await vk.showNotification('❌', 'Не удалось добавить комментарий', 'error');
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  const handleDeletePost = async () => {
+    if (!user || post.user_id !== user.id) {
+      await vk.showNotification('❌', 'Вы можете удалять только свои посты', 'error');
+      return;
+    }
+
+    const confirmed = await new Promise((resolve) => {
+      Alert.show('Удалить пост?', 'Это действие нельзя отменить', [
+        { title: 'Отмена', action: () => resolve(false) },
+        { title: 'Удалить', action: () => resolve(true), mode: 'destructive' }
+      ]);
+    });
+
+    if (!confirmed) return;
+
+    try {
+      await api.deletePost(id);
+      await vk.showNotification('✅', 'Пост удален', 'success');
+      onBack();
+    } catch (err) {
+      console.error('Delete post error:', err);
+      await vk.showNotification('❌', 'Не удалось удалить пост', 'error');
     }
   };
 
@@ -81,36 +105,37 @@ export function PostDetail({ id, onBack, user }) {
 
   if (loading) {
     return (
-      <Panel id="post-detail">
-        <PanelHeader 
-          left={<Button mode="secondary" onClick={onBack} size="s">← Назад</Button>}
-        >
+      <>
+        <PanelHeader before={<Button mode="tertiary" onClick={onBack} size="s">← Назад</Button>}>
           Загрузка...
         </PanelHeader>
         <div style={{ padding: 20, textAlign: 'center' }}>
           <Spinner size="large" />
         </div>
-      </Panel>
+      </>
     );
   }
 
   if (!post) {
     return (
-      <Panel id="post-detail">
-        <PanelHeader 
-          left={<Button mode="secondary" onClick={onBack} size="s">← Назад</Button>}
-        >
+      <>
+        <PanelHeader before={<Button mode="tertiary" onClick={onBack} size="s">← Назад</Button>}>
           Пост не найден
         </PanelHeader>
         <Placeholder>Пост не найден</Placeholder>
-      </Panel>
+      </>
     );
   }
 
   return (
-    <Panel id="post-detail">
-      <PanelHeader 
-        left={<Button mode="secondary" onClick={onBack} size="s">← Назад</Button>}
+    <>
+      <PanelHeader
+        before={<Button mode="tertiary" onClick={onBack} size="s">← Назад</Button>}
+        right={user && post.user_id === user.id && (
+          <Button mode="secondary" size="s" before={<Icon24DeleteOutline />} onClick={handleDeletePost}>
+            Удалить
+          </Button>
+        )}
       >
         Пост
       </PanelHeader>
@@ -137,10 +162,10 @@ export function PostDetail({ id, onBack, user }) {
           <div style={{ marginBottom: 15 }}>
             {(() => {
               try {
-                const imageUrls = typeof post.images === 'string' 
-                  ? JSON.parse(post.images) 
+                const imageUrls = typeof post.images === 'string'
+                  ? JSON.parse(post.images)
                   : post.images;
-                
+
                 if (Array.isArray(imageUrls) && imageUrls.length > 0) {
                   return imageUrls.map((url, idx) => (
                     <img
@@ -267,6 +292,6 @@ export function PostDetail({ id, onBack, user }) {
           </div>
         </div>
       </div>
-    </Panel>
+    </>
   );
 }

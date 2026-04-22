@@ -146,6 +146,22 @@ export const vk = {
       }
     }
   },
+
+  async showConfirmBox(message) {
+    try {
+      const currentBridge = window.VKBridge || bridge;
+      const result = await currentBridge.send('VKWebAppShowAlertBox', {
+        title: 'Подтверждение',
+        text: message,
+        button_text: 'OK',
+        negative_button_text: 'Отмена'
+      });
+      return result.result === true || result.button === 'OK';
+    } catch (err) {
+      console.warn('VKWebAppShowAlertBox failed, falling back to window.confirm:', err);
+      return window.confirm(message);
+    }
+  },
   
   async requestNotificationPermission() {
     try {

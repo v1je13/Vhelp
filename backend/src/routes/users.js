@@ -40,10 +40,11 @@ users.put('/:id', auth, async (c) => {
       return c.json({ message: 'Not authorized' }, 403);
     }
 
-    const { bio, avatar } = await c.req.json();
-    
+    const { bio, avatar, background_image } = await c.req.json();
+
     if (bio !== undefined) user.bio = bio;
     if (avatar !== undefined) user.avatar = avatar;
+    if (background_image !== undefined) user.background_image = background_image;
     user.updatedAt = Date.now();
 
     await user.save();
@@ -54,10 +55,41 @@ users.put('/:id', auth, async (c) => {
       firstName: user.firstName,
       lastName: user.lastName,
       avatar: user.avatar,
-      bio: user.bio
+      bio: user.bio,
+      background_image: user.background_image
     });
   } catch (error) {
     console.error('Update user error:', error);
+    return c.json({ message: 'Server error' }, 500);
+  }
+});
+
+// Update user background image
+users.put('/:id/background', auth, async (c) => {
+  try {
+    const user = await User.findById(c.req.param('id'));
+
+    if (!user) {
+      return c.json({ message: 'User not found' }, 404);
+    }
+
+    if (user._id.toString() !== c.get('user')._id.toString()) {
+      return c.json({ message: 'Not authorized' }, 403);
+    }
+
+    const { background_image } = await c.req.json();
+
+    if (background_image !== undefined) {
+      user.background_image = background_image;
+      user.updatedAt = Date.now();
+      await user.save();
+    }
+
+    return c.json({
+      background_image: user.background_image
+    });
+  } catch (error) {
+    console.error('Update background error:', error);
     return c.json({ message: 'Server error' }, 500);
   }
 });

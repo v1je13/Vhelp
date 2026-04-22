@@ -1,9 +1,11 @@
 // src/App.jsx — для VKUI 7.8.0
 import { useState, useEffect } from 'react';
-import { 
-  AdaptivityProvider, AppRoot, SplitLayout, SplitCol, 
-  View, Panel, PanelHeader, Text, Spinner, Button
+import {
+  AdaptivityProvider, AppRoot, SplitLayout, SplitCol,
+  View, Panel, PanelHeader, Text, Spinner, Button,
+  Textarea, Input
 } from '@vkontakte/vkui';
+import { Icon24Add, Icon24Camera } from '@vkontakte/icons';
 import '@vkontakte/vkui/dist/vkui.css';
 
 import { Feed } from './components/Feed';
@@ -23,7 +25,20 @@ function App() {
   const [selectedPostId, setSelectedPostId] = useState(null);
   const [selectedTripId, setSelectedTripId] = useState(null);
   const [authError, setAuthError] = useState(null);
-  
+  const [showFeedModal, setShowFeedModal] = useState(false);
+  const [showTripsModal, setShowTripsModal] = useState(false);
+
+  // Feed modal state
+  const [feedNewPost, setFeedNewPost] = useState('');
+  const [feedSelectedPhoto, setFeedSelectedPhoto] = useState(null);
+  const [feedPostTags, setFeedPostTags] = useState('');
+  const [feedCreating, setFeedCreating] = useState(false);
+
+  // Trips modal state
+  const [tripsNewTripName, setTripsNewTripName] = useState('');
+  const [tripsSelectedCover, setTripsSelectedCover] = useState(null);
+  const [tripsCreating, setTripsCreating] = useState(false);
+
   const showBottomNav = !!user;
   
   useEffect(() => {
@@ -127,10 +142,12 @@ function App() {
   // Открыть пост из профиля
   const handleOpenPost = (postId) => {
     setSelectedPostId(postId);
+    setActivePanel('post-detail');
   };
 
   const handleClosePost = () => {
     setSelectedPostId(null);
+    setActivePanel('feed');
   };
 
   const handleOpenTrip = (tripId) => {
@@ -145,6 +162,82 @@ function App() {
 
   const handleCreateTrip = () => {
     setActivePanel('trips');
+  };
+
+  const handleFeedPostCreated = () => {
+    // Trigger refresh in Feed by re-rendering
+    setActivePanel('feed');
+  };
+
+  // Feed modal handlers
+  const handleFeedPhotoUpload = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onloadend = () => setFeedSelectedPhoto(reader.result);
+    reader.readAsDataURL(file);
+  };
+
+  const handleFeedCreatePost = async () => {
+    if (!feedNewPost.trim() && !feedSelectedPhoto) return;
+
+    try {
+      setFeedCreating(true);
+      await api.createPost({
+        text: feedNewPost.trim(),
+        images: feedSelectedPhoto ? [feedSelectedPhoto] : [],
+        tags: feedPostTags.split(',').map(t => t.trim()).filter(t => t),
+      });
+
+      setFeedNewPost('');
+      setFeedSelectedPhoto(null);
+      setFeedPostTags('');
+      setShowFeedModal(false);
+
+      await vk.showNotification('✅', 'Пост опубликован', 'success');
+      handleFeedPostCreated();
+    } catch (err) {
+      console.error('Create post error:', err);
+      const errorMsg = err.message || 'Не удалось создать пост';
+      await vk.showNotification('❌', errorMsg, 'error');
+    } finally {
+      setFeedCreating(false);
+    }
+  };
+
+  // Trips modal handlers
+  const handleTripsCoverUpload = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onloadend = () => setTripsSelectedCover(reader.result);
+    reader.readAsDataURL(file);
+  };
+
+  const handleTripsCreateTrip = async () => {
+    if (!tripsNewTripName.trim()) return;
+
+    try {
+      setTripsCreating(true);
+      await api.createTrip({
+        name: tripsNewTripName.trim(),
+        cover_image: tripsSelectedCover,
+      });
+
+      setTripsNewTripName('');
+      setTripsSelectedCover(null);
+      setShowTripsModal(false);
+
+      await vk.showNotification('✅', 'Путешествие создано', 'success');
+    } catch (err) {
+      console.error('Create trip error:', err);
+      const errorMsg = err.message || 'Не удалось создать путешествие';
+      await vk.showNotification('❌', errorMsg, 'error');
+    } finally {
+      setTripsCreating(false);
+    }
   };
 
   if (!isReady) {
@@ -228,12 +321,13 @@ function App() {
                   user={user}
                   onOpenPost={handleOpenPost}
                   onCreateTrip={handleCreateTrip}
+                  onPostCreated={handleFeedPostCreated}
                 />
               </Panel>
               
               {/* Дневник путешествий */}
               <Panel id="trips">
-                <Trips 
+                <Trips
                   user={user}
                   onOpenTrip={handleOpenTrip}
                 />
@@ -252,18 +346,18 @@ function App() {
                   />
                 )}
               </Panel>
-            </View>
 
-            {/* PostDetail - условный рендеринг */}
-            {selectedPostId && (
-              <Panel id="post-detail" style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, zIndex: 100 }}>
-                <PostDetail 
-                  id={selectedPostId}
-                  onBack={handleClosePost}
-                  user={user}
-                />
-              </Panel>
-            )}
+              {/* PostDetail Panel */}
+              {selectedPostId && (
+                <Panel id="post-detail">
+                  <PostDetail
+                    id={selectedPostId}
+                    onBack={handleClosePost}
+                    user={user}
+                  />
+                </Panel>
+              )}
+            </View>
 
             {/* Нижняя навигация */}
             {showBottomNav && (
@@ -332,13 +426,233 @@ function App() {
                     padding: 4
                   }}
                 >
-                  <span style={{ fontSize: 24 }}>�</span>
+                  <span style={{ fontSize: 24 }}>🗓️</span>
                   <span style={{ fontSize: 11 }}>Дневник</span>
                 </button>
               </div>
             )}
           </SplitCol>
-        </SplitLayout>
+
+        {/* FAB Buttons */}
+        {activePanel === 'feed' && (
+          <Button
+            mode="primary"
+            size="l"
+            before={<Icon24Add />}
+            onClick={() => setShowFeedModal(true)}
+            style={{
+              position: 'fixed',
+              bottom: 100,
+              right: 20,
+              width: 56,
+              height: 56,
+              borderRadius: '50%',
+              padding: 0,
+              zIndex: 2000,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center'
+            }}
+          />
+        )}
+        {activePanel === 'trips' && (
+          <Button
+            mode="primary"
+            size="l"
+            before={<Icon24Add />}
+            onClick={() => setShowTripsModal(true)}
+            style={{
+              position: 'fixed',
+              bottom: 100,
+              right: 20,
+              width: 56,
+              height: 56,
+              borderRadius: '50%',
+              padding: 0,
+              zIndex: 2000,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center'
+            }}
+          />
+        )}
+
+        {/* Feed Post Creation Modal */}
+        {showFeedModal && (
+          <div
+            style={{
+              position: 'fixed',
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              backgroundColor: 'rgba(0, 0, 0, 0.7)',
+              zIndex: 3000,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              padding: 20
+            }}
+            onClick={() => !feedCreating && setShowFeedModal(false)}
+          >
+            <div
+              style={{
+                backgroundColor: 'var(--vkui--color_background_content)',
+                borderRadius: 16,
+                padding: 24,
+                width: '100%',
+                maxWidth: 400,
+                boxShadow: '0 4px 24px rgba(0, 0, 0, 0.5)'
+              }}
+              onClick={e => e.stopPropagation()}
+            >
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+                <h2 style={{ margin: 0, fontSize: 20, fontWeight: 600 }}>Новый пост</h2>
+                <Button mode="secondary" size="s" disabled={feedCreating} onClick={() => setShowFeedModal(false)}>✕</Button>
+              </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                <Textarea
+                  value={feedNewPost}
+                  onChange={e => setFeedNewPost(e.target.value)}
+                  placeholder="Напишите что-нибудь..."
+                  rows={4}
+                  disabled={feedCreating}
+                />
+
+                <div
+                  style={{
+                    width: '100%',
+                    height: 150,
+                    borderRadius: 12,
+                    border: '2px dashed var(--vkui--color_separator_primary)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    cursor: feedCreating ? 'default' : 'pointer',
+                    overflow: 'hidden',
+                    position: 'relative'
+                  }}
+                  onClick={() => !feedSelectedPhoto && document.getElementById('feed-photo-upload')?.click()}
+                >
+                  {feedSelectedPhoto ? (
+                    <img src={feedSelectedPhoto} alt="Preview" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                  ) : (
+                    <div style={{ textAlign: 'center', color: 'var(--vkui--color_text_secondary)' }}>
+                      <Icon24Camera style={{ margin: '0 auto 8px' }} />
+                      <div>Добавить фото</div>
+                    </div>
+                  )}
+                </div>
+                <input type="file" accept="image/*" onChange={handleFeedPhotoUpload} style={{ display: 'none' }} id="feed-photo-upload" />
+
+                <div>
+                  <Input
+                    value={feedPostTags}
+                    onChange={e => setFeedPostTags(e.target.value)}
+                    placeholder="Тэги через запятую (например: Сочи, Лето)"
+                    disabled={feedCreating}
+                  />
+                </div>
+
+                <Button
+                  mode="primary"
+                  onClick={handleFeedCreatePost}
+                  disabled={feedCreating || (!feedNewPost.trim() && !feedSelectedPhoto)}
+                  loading={feedCreating}
+                  stretched
+                  size="l"
+                >
+                  Опубликовать
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Trips Creation Modal */}
+        {showTripsModal && (
+          <div
+            style={{
+              position: 'fixed',
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              backgroundColor: 'rgba(0, 0, 0, 0.7)',
+              zIndex: 3000,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              padding: 20
+            }}
+            onClick={() => !tripsCreating && setShowTripsModal(false)}
+          >
+            <div
+              style={{
+                backgroundColor: 'var(--vkui--color_background_content)',
+                borderRadius: 16,
+                padding: 24,
+                width: '100%',
+                maxWidth: 400,
+                boxShadow: '0 4px 24px rgba(0, 0, 0, 0.5)'
+              }}
+              onClick={e => e.stopPropagation()}
+            >
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+                <h2 style={{ margin: 0, fontSize: 20, fontWeight: 600 }}>Новое путешествие</h2>
+                <Button mode="secondary" size="s" disabled={tripsCreating} onClick={() => setShowTripsModal(false)}>✕</Button>
+              </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                <Input
+                  value={tripsNewTripName}
+                  onChange={e => setTripsNewTripName(e.target.value)}
+                  placeholder="Название путешествия"
+                  disabled={tripsCreating}
+                />
+
+                <div
+                  onClick={() => !tripsCreating && document.getElementById('trips-cover-upload')?.click()}
+                  style={{
+                    width: '100%',
+                    height: 150,
+                    borderRadius: 12,
+                    border: '2px dashed var(--vkui--color_separator_primary)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    cursor: tripsCreating ? 'default' : 'pointer',
+                    overflow: 'hidden',
+                    position: 'relative'
+                  }}
+                >
+                  {tripsSelectedCover ? (
+                    <img src={tripsSelectedCover} alt="Preview" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                  ) : (
+                    <div style={{ textAlign: 'center', color: 'var(--vkui--color_text_secondary)' }}>
+                      <Icon24Camera style={{ margin: '0 auto 8px' }} />
+                      <div>Добавить обложку</div>
+                    </div>
+                  )}
+                </div>
+                <input type="file" accept="image/*" onChange={handleTripsCoverUpload} style={{ display: 'none' }} id="trips-cover-upload" />
+
+                <Button
+                  mode="primary"
+                  onClick={handleTripsCreateTrip}
+                  disabled={tripsCreating || !tripsNewTripName.trim()}
+                  loading={tripsCreating}
+                  stretched
+                  size="l"
+                >
+                  Создать путешествие
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
+      </SplitLayout>
       </AppRoot>
     </AdaptivityProvider>
   );

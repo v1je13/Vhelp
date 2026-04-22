@@ -102,6 +102,33 @@ const routes = {
     sendJson(res, { status: 'ok' });
   },
 
+  'POST /api/migrate': async (url, req, res) => {
+    try {
+      // Add background_image column to users table if it doesn't exist
+      await pool.query(`
+        ALTER TABLE users
+        ADD COLUMN IF NOT EXISTS background_image TEXT
+      `);
+      // Add friends_count column to users table if it doesn't exist
+      await pool.query(`
+        ALTER TABLE users
+        ADD COLUMN IF NOT EXISTS friends_count INTEGER DEFAULT 0
+      `);
+      // Add likes_count column to posts table if it doesn't exist
+      await pool.query(`
+        ALTER TABLE posts
+        ADD COLUMN IF NOT EXISTS likes_count INTEGER DEFAULT 0
+      `);
+      // Update existing posts to have likes_count = 0 if NULL
+      await pool.query(`
+        UPDATE posts SET likes_count = 0 WHERE likes_count IS NULL
+      `);
+      sendJson(res, { success: true, message: 'Migration completed' });
+    } catch (err) {
+      sendJson(res, { error: err.message }, 500);
+    }
+  },
+
   'POST /api/auth/vk': async (url, req, res) => {
     try {
       const body = await parseBody(req);
@@ -162,10 +189,48 @@ const routes = {
         firstName: user.first_name,
         lastName: user.last_name,
         avatar: user.avatar,
-        bio: user.bio
+        bio: user.bio,
+        background_image: user.background_image,
+        friends_count: user.friends_count
       });
     } catch (err) {
       sendJson(res, { error: 'Invalid token' }, 401);
+    }
+  },
+
+  'PATCH /api/auth/me': async (url, req, res) => {
+    try {
+      const authHeader = req.headers['authorization'];
+      if (!authHeader) return sendJson(res, { error: 'No token' }, 401);
+
+      const token = authHeader.replace('Bearer ', '');
+      const secret = getSecret();
+      const decoded = await jwt.verify(token, secret);
+
+      const { background_image } = await parseBody(req);
+
+      if (background_image) {
+        await pool.query(
+          'UPDATE users SET background_image = $1 WHERE id = $2',
+          [background_image, decoded.payload.userId]
+        );
+      }
+
+      const user = (await pool.query('SELECT * FROM users WHERE id = $1', [decoded.payload.userId])).rows[0];
+
+      if (!user) return sendJson(res, { error: 'User not found' }, 404);
+
+      sendJson(res, {
+        id: user.id,
+        vkId: user.vk_id,
+        firstName: user.first_name,
+        lastName: user.last_name,
+        avatar: user.avatar,
+        bio: user.bio,
+        background_image: user.background_image
+      });
+    } catch (err) {
+      sendJson(res, { error: err.message }, 500);
     }
   },
 
@@ -268,6 +333,40 @@ const routes = {
     }
   },
 
+  'GET /api/auth/me/friends': async (url, req, res) => {
+    try {
+      const authHeader = req.headers['authorization'];
+      if (!authHeader) return sendJson(res, { error: 'No token' }, 401);
+
+      const token = authHeader.replace('Bearer ', '');
+      const secret = getSecret();
+      const decoded = await jwt.verify(token, secret);
+
+      const user = (await pool.query('SELECT * FROM users WHERE id = $1', [decoded.payload.userId])).rows[0];
+      if (!user) return sendJson(res, { error: 'User not found' }, 404);
+
+      // Fetch friends from VK API using the user's VK ID
+      const vkResponse = await fetch(`https://api.vk.com/method/friends.get?user_id=${user.vk_id}&fields=photo_100,first_name,last_name&access_token=${process.env.VK_ACCESS_TOKEN}&v=5.131`);
+      const vkData = await vkResponse.json();
+
+      if (vkData.error) {
+        return sendJson(res, { error: vkData.error.error_msg }, 400);
+      }
+
+      const friends = vkData.response?.items || [];
+      
+      // Update friends count in database
+      await pool.query(
+        'UPDATE users SET friends_count = $1 WHERE id = $2',
+        [friends.length, decoded.payload.userId]
+      );
+
+      sendJson(res, { friends, count: friends.length });
+    } catch (err) {
+      sendJson(res, { error: err.message }, 500);
+    }
+  },
+
   'GET /api/users/:id': async (url, req, res) => {
     try {
       const userId = getPathParam(url, 2);
@@ -281,7 +380,9 @@ const routes = {
         firstName: user.first_name,
         lastName: user.last_name,
         avatar: user.avatar,
-        bio: user.bio
+        bio: user.bio,
+        background_image: user.background_image,
+        friends_count: user.friends_count
       });
     } catch (err) {
       sendJson(res, { error: err.message }, 500);
@@ -380,6 +481,38 @@ const routes = {
     }
   },
 
+  'DELETE /api/posts/:id': async (url, req, res) => {
+    try {
+      const authHeader = req.headers['authorization'];
+      if (!authHeader) return sendJson(res, { error: 'No token' }, 401);
+
+      const token = authHeader.replace('Bearer ', '');
+      const secret = getSecret();
+      const decoded = await jwt.verify(token, secret);
+
+      const postId = getPathParam(url, 2);
+
+      // Check if post exists and belongs to user
+      const post = (await pool.query(`
+        SELECT * FROM posts WHERE id = $1
+      `, [postId])).rows[0];
+
+      if (!post) return sendJson(res, { error: 'Post not found' }, 404);
+
+      if (post.user_id !== decoded.payload.userId) {
+        return sendJson(res, { error: 'Unauthorized' }, 403);
+      }
+
+      // Delete comments first, then post
+      await pool.query('DELETE FROM comments WHERE post_id = $1', [postId]);
+      await pool.query('DELETE FROM posts WHERE id = $1', [postId]);
+
+      sendJson(res, { success: true });
+    } catch (err) {
+      sendJson(res, { error: err.message }, 500);
+    }
+  },
+
   'GET /api/users/:id/posts': async (url, req, res) => {
     try {
       const userId = getPathParam(url, 2);
@@ -390,6 +523,35 @@ const routes = {
       `, [userId]);
 
       sendJson(res, { posts: rows });
+    } catch (err) {
+      sendJson(res, { error: err.message }, 500);
+    }
+  },
+
+  'PUT /api/users/:id/background': async (url, req, res) => {
+    try {
+      const authHeader = req.headers['authorization'];
+      if (!authHeader) return sendJson(res, { error: 'No token' }, 401);
+
+      const token = authHeader.replace('Bearer ', '');
+      const secret = getSecret();
+      const decoded = await jwt.verify(token, secret);
+
+      const userId = getPathParam(url, 2);
+      const { background_image } = await parseBody(req);
+
+      if (decoded.payload.userId !== userId) {
+        return sendJson(res, { error: 'Unauthorized' }, 403);
+      }
+
+      await pool.query(
+        'UPDATE users SET background_image = $1 WHERE id = $2',
+        [background_image, userId]
+      );
+
+      const user = (await pool.query('SELECT * FROM users WHERE id = $1', [userId])).rows[0];
+
+      sendJson(res, { background_image: user.background_image });
     } catch (err) {
       sendJson(res, { error: err.message }, 500);
     }
@@ -430,17 +592,240 @@ const routes = {
 
       const tripId = getPathParam(url, 2);
 
-      const trip = (await pool.query('SELECT id FROM trips WHERE id = $1 AND user_id = $2', [tripId, decoded.payload.userId])).rows[0];
-
-      if (!trip) return sendJson(res, { error: 'Trip not found' }, 404);
-
       const { rows } = await pool.query(`
-        SELECT p.*, u.first_name, u.last_name, u.avatar
-        FROM posts p JOIN users u ON p.user_id = u.id
-        WHERE p.trip_id = $1 ORDER BY p.created_at DESC
+        SELECT * FROM posts WHERE trip_id = $1 ORDER BY created_at DESC
       `, [tripId]);
 
       sendJson(res, { notes: rows });
+    } catch (err) {
+      sendJson(res, { error: err.message }, 500);
+    }
+  },
+
+  'GET /api/users/:id': async (url, req, res) => {
+    try {
+      const userId = getPathParam(url, 2);
+      const user = (await pool.query('SELECT * FROM users WHERE id = $1', [userId])).rows[0];
+
+      if (!user) return sendJson(res, { error: 'User not found' }, 404);
+
+      sendJson(res, {
+        id: user.id,
+        vkId: user.vk_id,
+        firstName: user.first_name,
+        lastName: user.last_name,
+        avatar: user.avatar,
+        bio: user.bio,
+        background_image: user.background_image,
+        friends_count: user.friends_count
+      });
+    } catch (err) {
+      sendJson(res, { error: err.message }, 500);
+    }
+  },
+
+  'GET /api/posts/:id': async (url, req, res) => {
+    try {
+      const postId = getPathParam(url, 2);
+      const post = (await pool.query(`
+        SELECT p.*, u.first_name, u.last_name, u.avatar
+        FROM posts p JOIN users u ON p.user_id = u.id WHERE p.id = $1
+      `, [postId])).rows[0];
+
+      if (!post) return sendJson(res, { error: 'Post not found' }, 404);
+
+      sendJson(res, { post });
+    } catch (err) {
+      sendJson(res, { error: err.message }, 500);
+    }
+  },
+
+  'POST /api/posts/:id/like': async (url, req, res) => {
+    try {
+      const authHeader = req.headers['authorization'];
+      if (!authHeader) return sendJson(res, { error: 'No token' }, 401);
+
+      const token = authHeader.replace('Bearer ', '');
+      const secret = getSecret();
+      const decoded = await jwt.verify(token, secret);
+
+      const postId = getPathParam(url, 2);
+
+      const existingLike = (await pool.query(
+        'SELECT * FROM likes WHERE post_id = $1 AND user_id = $2',
+        [postId, decoded.payload.userId]
+      )).rows[0];
+
+      if (existingLike) {
+        await pool.query('DELETE FROM likes WHERE id = $1', [existingLike.id]);
+        await pool.query('UPDATE posts SET likes_count = likes_count - 1 WHERE id = $1', [postId]);
+        const post = (await pool.query('SELECT likes_count FROM posts WHERE id = $1', [postId])).rows[0];
+        sendJson(res, { liked: false, count: post.likes_count });
+      } else {
+        const likeId = randomUUID();
+        await pool.query(
+          'INSERT INTO likes (id, post_id, user_id) VALUES ($1, $2, $3)',
+          [likeId, postId, decoded.payload.userId]
+        );
+        await pool.query('UPDATE posts SET likes_count = likes_count + 1 WHERE id = $1', [postId]);
+        const post = (await pool.query('SELECT likes_count FROM posts WHERE id = $1', [postId])).rows[0];
+        sendJson(res, { liked: true, count: post.likes_count });
+      }
+    } catch (err) {
+      sendJson(res, { error: err.message }, 500);
+    }
+  },
+
+  'GET /api/posts/:id/comments': async (url, req, res) => {
+    try {
+      const postId = getPathParam(url, 2);
+      const { rows } = await pool.query(`
+        SELECT c.*, u.first_name, u.last_name, u.avatar
+        FROM comments c JOIN users u ON c.user_id = u.id WHERE c.post_id = $1 ORDER BY c.created_at ASC
+      `, [postId]);
+
+      sendJson(res, { comments: rows });
+    } catch (err) {
+      sendJson(res, { error: err.message }, 500);
+    }
+  },
+
+  'POST /api/posts/:id/comments': async (url, req, res) => {
+    try {
+      const authHeader = req.headers['authorization'];
+      if (!authHeader) return sendJson(res, { error: 'No token' }, 401);
+
+      const token = authHeader.replace('Bearer ', '');
+      const secret = getSecret();
+      const decoded = await jwt.verify(token, secret);
+
+      const postId = getPathParam(url, 2);
+      const { text } = await parseBody(req);
+
+      if (!text || text.trim().length < 1) {
+        return sendJson(res, { error: 'Text required' }, 400);
+      }
+
+      const commentId = randomUUID();
+      await pool.query(`
+        INSERT INTO comments (id, post_id, user_id, text)
+        VALUES ($1, $2, $3, $4)
+      `, [commentId, postId, decoded.payload.userId, text.trim()]);
+
+      const comment = (await pool.query(`
+        SELECT c.*, u.first_name, u.last_name, u.avatar
+        FROM comments c JOIN users u ON c.user_id = u.id WHERE c.id = $1
+      `, [commentId])).rows[0];
+
+      sendJson(res, { comment }, 201);
+    } catch (err) {
+      sendJson(res, { error: err.message }, 500);
+    }
+  },
+
+  'DELETE /api/posts/:id': async (url, req, res) => {
+    try {
+      const authHeader = req.headers['authorization'];
+      if (!authHeader) return sendJson(res, { error: 'No token' }, 401);
+
+      const token = authHeader.replace('Bearer ', '');
+      const secret = getSecret();
+      const decoded = await jwt.verify(token, secret);
+
+      const postId = getPathParam(url, 2);
+
+      const post = (await pool.query('SELECT id FROM posts WHERE id = $1 AND user_id = $2', [postId, decoded.payload.userId])).rows[0];
+
+      if (!post) return sendJson(res, { error: 'Post not found' }, 404);
+
+      await pool.query('DELETE FROM comments WHERE post_id = $1', [postId]);
+      await pool.query('DELETE FROM likes WHERE post_id = $1', [postId]);
+      await pool.query('DELETE FROM posts WHERE id = $1', [postId]);
+
+      sendJson(res, { success: true });
+    } catch (err) {
+      sendJson(res, { error: err.message }, 500);
+    }
+  },
+
+  'GET /api/users/:id/posts': async (url, req, res) => {
+    try {
+      const userId = getPathParam(url, 2);
+      const { rows } = await pool.query(`
+        SELECT p.*, u.first_name, u.last_name, u.avatar
+        FROM posts p JOIN users u ON p.user_id = u.id WHERE p.user_id = $1 ORDER BY p.created_at DESC
+      `, [userId]);
+
+      sendJson(res, { posts: rows });
+    } catch (err) {
+      sendJson(res, { error: err.message }, 500);
+    }
+  },
+
+  'PUT /api/users/:id/background': async (url, req, res) => {
+    try {
+      const authHeader = req.headers['authorization'];
+      if (!authHeader) return sendJson(res, { error: 'No token' }, 401);
+
+      const token = authHeader.replace('Bearer ', '');
+      const secret = getSecret();
+      const decoded = await jwt.verify(token, secret);
+
+      const userId = getPathParam(url, 2);
+      const { background_image } = await parseBody(req);
+
+      if (userId !== decoded.payload.userId) {
+        return sendJson(res, { error: 'Unauthorized' }, 403);
+      }
+
+      await pool.query(
+        'UPDATE users SET background_image = $1 WHERE id = $2',
+        [background_image, userId]
+      );
+
+      sendJson(res, { success: true });
+    } catch (err) {
+      sendJson(res, { error: err.message }, 500);
+    }
+  },
+
+  'GET /api/users/search': async (url, req, res) => {
+    try {
+      const q = getUrlParam(url, 'q');
+      const { rows } = await pool.query(`
+        SELECT id, vk_id, first_name, last_name, avatar
+        FROM users WHERE first_name ILIKE $1 OR last_name ILIKE $1 LIMIT 20
+      `, [`%${q}%`]);
+
+      sendJson(res, { users: rows });
+    } catch (err) {
+      sendJson(res, { error: err.message }, 500);
+    }
+  },
+
+  'GET /api/posts/search': async (url, req, res) => {
+    try {
+      const q = getUrlParam(url, 'q');
+      const { rows } = await pool.query(`
+        SELECT p.*, u.first_name, u.last_name, u.avatar
+        FROM posts p JOIN users u ON p.user_id = u.id WHERE p.text ILIKE $1 ORDER BY p.created_at DESC LIMIT 20
+      `, [`%${q}%`]);
+
+      sendJson(res, { posts: rows });
+    } catch (err) {
+      sendJson(res, { error: err.message }, 500);
+    }
+  },
+
+  'GET /api/tags/:tag/posts': async (url, req, res) => {
+    try {
+      const tag = getPathParam(url, 2);
+      const { rows } = await pool.query(`
+        SELECT p.*, u.first_name, u.last_name, u.avatar
+        FROM posts p JOIN users u ON p.user_id = u.id WHERE p.tags::jsonb ? $1 ORDER BY p.created_at DESC
+      `, [tag]);
+
+      sendJson(res, { posts: rows });
     } catch (err) {
       sendJson(res, { error: err.message }, 500);
     }
@@ -454,7 +839,7 @@ export default async function handler(req, res) {
   // Handle OPTIONS requests
   if (req.method === 'OPTIONS') {
     res.setHeader('Access-Control-Allow-Origin', origin);
-    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, PATCH, OPTIONS');
     res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Accept, Origin, X-VK-Sign');
     res.setHeader('Access-Control-Allow-Credentials', 'true');
     res.setHeader('Access-Control-Max-Age', '86400');
@@ -466,7 +851,7 @@ export default async function handler(req, res) {
 
   // Add CORS headers to all responses
   res.setHeader('Access-Control-Allow-Origin', origin);
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, PATCH, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Accept, Origin, X-VK-Sign');
   res.setHeader('Access-Control-Allow-Credentials', 'true');
   res.setHeader('Vary', 'Origin');
@@ -478,10 +863,16 @@ export default async function handler(req, res) {
   // Route matching with dynamic parameters
   if (pathname === '/api/health' && method === 'GET') {
     return await routes['GET /api/health'](url, req, res);
+  } else if (pathname === '/api/migrate' && method === 'POST') {
+    return await routes['POST /api/migrate'](url, req, res);
   } else if (pathname === '/api/auth/vk' && method === 'POST') {
     return await routes['POST /api/auth/vk'](url, req, res);
   } else if (pathname === '/api/auth/me' && method === 'GET') {
     return await routes['GET /api/auth/me'](url, req, res);
+  } else if (pathname === '/api/auth/me' && method === 'PATCH') {
+    return await routes['PATCH /api/auth/me'](url, req, res);
+  } else if (pathname === '/api/auth/me/friends' && method === 'GET') {
+    return await routes['GET /api/auth/me/friends'](url, req, res);
   } else if (pathname === '/api/posts' && method === 'GET') {
     return await routes['GET /api/posts'](url, req, res);
   } else if (pathname === '/api/posts' && method === 'POST') {
@@ -492,6 +883,8 @@ export default async function handler(req, res) {
     return await routes['GET /api/posts/:id/comments'](url, req, res);
   } else if (pathname.startsWith('/api/posts/') && pathname.endsWith('/comments') && method === 'POST') {
     return await routes['POST /api/posts/:id/comments'](url, req, res);
+  } else if (pathname.startsWith('/api/posts/') && method === 'DELETE' && pathname.split('/').length === 4) {
+    return await routes['DELETE /api/posts/:id'](url, req, res);
   } else if (pathname.startsWith('/api/posts/') && method === 'GET' && pathname.split('/').length === 4) {
     return await routes['GET /api/posts/:id'](url, req, res);
   } else if (pathname === '/api/trips' && method === 'GET') {
@@ -504,6 +897,8 @@ export default async function handler(req, res) {
     return await routes['DELETE /api/trips/:id'](url, req, res);
   } else if (pathname.startsWith('/api/users/') && pathname.endsWith('/posts') && method === 'GET') {
     return await routes['GET /api/users/:id/posts'](url, req, res);
+  } else if (pathname.startsWith('/api/users/') && pathname.endsWith('/background') && method === 'PUT') {
+    return await routes['PUT /api/users/:id/background'](url, req, res);
   } else if (pathname.startsWith('/api/users/') && method === 'GET' && pathname.split('/').length === 4) {
     return await routes['GET /api/users/:id'](url, req, res);
   } else {

@@ -8,6 +8,7 @@ import {
   Separator,
   HorizontalScroll
 } from '@vkontakte/vkui';
+import { Icon24Camera } from '@vkontakte/icons';
 import { api } from '../api/client';
 
 export function Profile({ userId, user, onBack, onOpenPost }) {
@@ -16,6 +17,15 @@ export function Profile({ userId, user, onBack, onOpenPost }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [activeTab, setActiveTab] = useState('posts'); // posts, friends, subscribers
+  const [backgroundImage, setBackgroundImage] = useState(null);
+  const [updatingBackground, setUpdatingBackground] = useState(false);
+
+  useEffect(() => {
+    // Load background from profile data when it changes
+    if (profileData?.background_image) {
+      setBackgroundImage(profileData.background_image);
+    }
+  }, [profileData?.background_image]);
 
   useEffect(() => {
     // Увеличиваем до 40 секунд для мобильного интернета
@@ -69,6 +79,28 @@ export function Profile({ userId, user, onBack, onOpenPost }) {
     return () => clearTimeout(profileWatchdog);
   }, [userId, user?.id]);
 
+  const handleBackgroundUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    try {
+      setUpdatingBackground(true);
+
+      const reader = new FileReader();
+      reader.onloadend = async () => {
+        const backgroundData = reader.result;
+        await api.updateProfileBackground(user.id, backgroundData);
+        setBackgroundImage(backgroundData);
+        setProfileData(prev => ({ ...prev, background_image: backgroundData }));
+      };
+      reader.readAsDataURL(file);
+    } catch (err) {
+      console.error('Update background error:', err);
+    } finally {
+      setUpdatingBackground(false);
+    }
+  };
+
   if (loading) {
     return (
       <div style={{
@@ -107,18 +139,36 @@ export function Profile({ userId, user, onBack, onOpenPost }) {
     <div style={{ paddingBottom: 80 }}>
       {/* Шапка профиля */}
       <div style={{
-        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+        background: backgroundImage ? `url(${backgroundImage}) center/cover` : 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
         padding: '30px 20px',
         textAlign: 'center',
-        color: 'white'
+        color: 'white',
+        position: 'relative'
       }}>
+        {isOwnProfile && (
+          <Button
+            mode="secondary"
+            size="s"
+            before={<Icon24Camera />}
+            onClick={() => document.getElementById('background-photo')?.click()}
+            style={{
+              position: 'absolute',
+              top: 10,
+              right: 10,
+              background: 'rgba(255,255,255,0.9)'
+            }}
+          >
+            Сменить фон
+          </Button>
+        )}
+        <input type="file" id="background-photo" accept="image/*" onChange={handleBackgroundUpload} style={{ display: 'none' }} />
         <Avatar
           src={profileData.avatar || 'https://vk.com/images/camera_200.png'}
           size={96}
           style={{ marginBottom: 12, border: '4px solid white', margin: '0 auto' }}
         />
         <div style={{ fontSize: 22, marginBottom: 4, fontWeight: 700 }}>
-          {profileData.first_name} {profileData.last_name}
+          {profileData.first_name || profileData.firstName || 'Имя'} {profileData.last_name || profileData.lastName || 'Фамилия'}
         </div>
         {profileData.bio && (
           <div style={{ opacity: 0.9, fontSize: 14 }}>
