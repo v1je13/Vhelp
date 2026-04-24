@@ -5,7 +5,7 @@ import {
   View, Panel, PanelHeader, Text, Spinner, Button,
   Textarea, Input
 } from '@vkontakte/vkui';
-import { Icon24Add, Icon24Camera, Icon24UserOutline, Icon24NewsfeedOutline, Icon24NotebookOutline } from '@vkontakte/icons';
+import { Icon24Add, Icon24Camera, Icon24UserOutline, Icon24NewsfeedOutline, Icon24DocumentOutline } from '@vkontakte/icons';
 import '@vkontakte/vkui/dist/vkui.css';
 import './styles/travel-theme.css';
 
@@ -513,7 +513,7 @@ function App() {
                     padding: 4
                   }}
                 >
-                  <Icon24NotebookOutline width={24} height={24} />
+                  <Icon24DocumentOutline width={24} height={24} />
                   <span style={{ fontSize: 11 }}>Дневник</span>
                 </button>
               </div>
