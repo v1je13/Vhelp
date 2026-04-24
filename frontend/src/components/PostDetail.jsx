@@ -8,9 +8,10 @@ import {
   Spinner,
   Input,
   Placeholder,
-  Alert
+  Alert,
+  Textarea
 } from '@vkontakte/vkui';
-import { Icon28ChevronLeft, Icon24DeleteOutline } from '@vkontakte/icons';
+import { Icon28ChevronLeft, Icon24DeleteOutline, Icon24Camera } from '@vkontakte/icons';
 import { api } from '../api/client';
 import { vk } from '../lib/vk';
 
@@ -20,6 +21,10 @@ export function PostDetail({ id, onBack, user }) {
   const [commentText, setCommentText] = useState('');
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editText, setEditText] = useState('');
+  const [editPhotos, setEditPhotos] = useState([]);
+  const [editing, setEditing] = useState(false);
 
   useEffect(() => {
     const loadPost = async () => {
@@ -61,6 +66,42 @@ export function PostDetail({ id, onBack, user }) {
     } finally {
       setSubmitting(false);
     }
+  };
+
+  const handleUpdatePost = async () => {
+    try {
+      setEditing(true);
+      await api.updatePost(id, {
+        text: editText,
+        images: editPhotos
+      });
+
+      setPost(prev => ({ ...prev, text: editText, images: JSON.stringify(editPhotos) }));
+      setShowEditModal(false);
+      await vk.showNotification('✅', 'Пост обновлен', 'success');
+    } catch (err) {
+      console.error('Update post error:', err);
+      await vk.showNotification('❌', 'Не удалось обновить пост', 'error');
+    } finally {
+      setEditing(false);
+    }
+  };
+
+  const handleRemoveEditPhoto = (index) => {
+    setEditPhotos(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const handleEditPhotoUpload = (e) => {
+    const files = Array.from(e.target.files || []);
+    if (files.length === 0) return;
+
+    files.forEach(file => {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setEditPhotos(prev => [...prev, reader.result]);
+      };
+      reader.readAsDataURL(file);
+    });
   };
 
   const handleDeletePost = async () => {
@@ -132,9 +173,18 @@ export function PostDetail({ id, onBack, user }) {
       <PanelHeader
         before={<Button mode="secondary" onClick={onBack} size="m" className="vh-btn">← Назад</Button>}
         right={user && post.user_id === user.id && (
-          <Button mode="secondary" size="s" before={<Icon24DeleteOutline />} onClick={handleDeletePost} className="vh-btn">
-            Удалить
-          </Button>
+          <div style={{ display: 'flex', gap: 8 }}>
+            <Button mode="secondary" size="s" onClick={() => {
+              setEditText(post.text || '');
+              setEditPhotos(post.images && typeof post.images === 'string' ? JSON.parse(post.images) : (post.images || []));
+              setShowEditModal(true);
+            }} className="vh-btn">
+              Редактировать
+            </Button>
+            <Button mode="secondary" size="s" before={<Icon24DeleteOutline />} onClick={handleDeletePost} className="vh-btn">
+              Удалить
+            </Button>
+          </div>
         )}
       >
         Пост
@@ -257,6 +307,7 @@ export function PostDetail({ id, onBack, user }) {
           {/* Форма добавления комментария */}
           <div className="vh-comment-form">
             <Input
+              key={`comment-input-${comments.length}`}
               className="vh-comment-form__input"
               value={commentText}
               onChange={e => setCommentText(e.target.value)}
@@ -275,6 +326,134 @@ export function PostDetail({ id, onBack, user }) {
           </div>
         </div>
       </div>
+
+      {/* Edit Modal */}
+      {showEditModal && (
+        <div
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: 'rgba(0, 0, 0, 0.7)',
+            zIndex: 3000,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: 20
+          }}
+          onClick={() => !editing && setShowEditModal(false)}
+        >
+          <div
+            className="vh-modal"
+            style={{
+              backgroundColor: '#FFFFFF',
+              borderRadius: 16,
+              padding: 24,
+              width: '100%',
+              maxWidth: 400,
+              boxShadow: '0 4px 24px rgba(0, 0, 0, 0.5)'
+            }}
+            onClick={e => e.stopPropagation()}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+              <h2 className="vh-modal__title" style={{ margin: 0 }}>Редактировать пост</h2>
+              <Button mode="secondary" size="s" disabled={editing} onClick={() => setShowEditModal(false)} className="vh-btn vh-modal__close-btn">✕</Button>
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+              <Textarea
+                className="vh-modal__textarea"
+                value={editText}
+                onChange={e => setEditText(e.target.value)}
+                placeholder="Описание..."
+                rows={4}
+                disabled={editing}
+              />
+
+              {/* Превью фото */}
+              {editPhotos.length > 0 && (
+                <div style={{ display: 'flex', gap: 8, overflowX: 'auto', paddingBottom: 8 }}>
+                  {editPhotos.map((photo, index) => (
+                    <div key={index} style={{ position: 'relative', flexShrink: 0, width: 100, height: 100 }}>
+                      <img
+                        src={photo}
+                        alt="Preview"
+                        style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: 8 }}
+                      />
+                      <Button
+                        mode="secondary"
+                        size="s"
+                        onClick={() => handleRemoveEditPhoto(index)}
+                        className="vh-btn"
+                        style={{ position: 'absolute', top: 4, right: 4, padding: 4, minWidth: 'auto', width: 24, height: 24 }}
+                      >
+                        ×
+                      </Button>
+                    </div>
+                  ))}
+                  {editPhotos.length < 3 && (
+                    <div
+                      style={{
+                        width: 100,
+                        height: 100,
+                        borderRadius: 8,
+                        border: '2px dashed #E8E4DB',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        cursor: editing ? 'default' : 'pointer',
+                        flexShrink: 0
+                      }}
+                      onClick={() => document.getElementById('edit-photo-upload')?.click()}
+                    >
+                      <Icon24Camera />
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Кнопка загрузки фото */}
+              {editPhotos.length === 0 && (
+                <div
+                  onClick={() => !editing && document.getElementById('edit-photo-upload')?.click()}
+                  style={{
+                    width: '100%',
+                    height: 120,
+                    borderRadius: 12,
+                    border: '2px dashed #E8E4DB',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    cursor: editing ? 'default' : 'pointer',
+                    overflow: 'hidden',
+                    position: 'relative'
+                  }}
+                >
+                  <div style={{ textAlign: 'center', color: '#6B7280' }}>
+                    <Icon24Camera style={{ margin: '0 auto 8px' }} />
+                    <div>Добавить фото (до 3)</div>
+                  </div>
+                </div>
+              )}
+              <input type="file" accept="image/*" multiple onChange={handleEditPhotoUpload} style={{ display: 'none' }} id="edit-photo-upload" />
+
+              <Button
+                mode="primary"
+                onClick={handleUpdatePost}
+                disabled={editing}
+                loading={editing}
+                stretched
+                size="l"
+                className="vh-btn"
+              >
+                Сохранить
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 }
