@@ -291,7 +291,7 @@ function App() {
         <SplitLayout>
           <SplitCol>
             <View activePanel="loading">
-              <Panel id="loading" centered>
+              <Panel id="loading" centered style={{ backgroundColor: '#F6F2E9' }}>
                 <Spinner size="large" />
                 <Text style={{ marginTop: 10 }}>Загрузка...</Text>
               </Panel>
@@ -304,22 +304,23 @@ function App() {
   
   return (
     <AdaptivityProvider>
-      <AppRoot mode="embedded" style={{ height: '100vh' }}>
-        <SplitLayout 
+      <AppRoot mode="embedded" style={{ height: '100vh', backgroundColor: '#F6F2E9' }}>
+        <SplitLayout
           header={false}
-          style={{ height: '100%' }}
+          style={{ height: '100%', backgroundColor: '#F6F2E9' }}
         >
-          <SplitCol 
-            style={{ 
+          <SplitCol
+            style={{
               height: '100%',
               display: 'flex',
-              flexDirection: 'column'
+              flexDirection: 'column',
+              backgroundColor: '#F6F2E9'
             }}
           >
             <View activePanel={activePanel} style={{ flex: 1 }}>
               {/* Авторизация */}
-              <Panel id="auth">
-                <PanelHeader>Авторизация</PanelHeader>
+              <Panel id="auth" style={{ backgroundColor: '#F6F2E9' }}>
+                <PanelHeader style={{ backgroundColor: '#F6F2E9' }}>Авторизация</PanelHeader>
                 <div style={{ 
                   height: '100%', 
                   display: 'flex', 
@@ -339,8 +340,9 @@ function App() {
               </Panel>
 
               {/* Профиль (заменил Account на Profile) */}
-              <Panel id="account">
+              <Panel id="account" style={{ backgroundColor: '#F6F2E9' }}>
                 <PanelHeader 
+                  style={{ backgroundColor: '#F6F2E9' }}
                   after={user && (
                     <Button mode="tertiary" onClick={handleLogout} size="s" className="vh-btn">
                       Выйти
@@ -360,8 +362,8 @@ function App() {
               </Panel>
               
               {/* Лента постов */}
-              <Panel id="feed">
-                <PanelHeader>Лента</PanelHeader>
+              <Panel id="feed" style={{ backgroundColor: '#F6F2E9' }}>
+                <PanelHeader style={{ backgroundColor: '#F6F2E9' }}>Лента</PanelHeader>
                 <Feed
                   user={user}
                   onOpenPost={handleOpenPost}
@@ -371,7 +373,7 @@ function App() {
               </Panel>
               
               {/* Дневник путешествий */}
-              <Panel id="trips">
+              <Panel id="trips" style={{ backgroundColor: '#F6F2E9' }}>
                 <Trips
                   user={user}
                   onOpenTrip={handleOpenTrip}
@@ -379,7 +381,7 @@ function App() {
               </Panel>
               
               {/* TripNotes - заметки путешествия */}
-              <Panel id="trip-notes">
+              <Panel id="trip-notes" style={{ backgroundColor: '#F6F2E9' }}>
                 {selectedTripId && (
                   <TripNotes 
                     tripId={selectedTripId}
@@ -394,7 +396,7 @@ function App() {
 
               {/* PostDetail Panel */}
               {selectedPostId && (
-                <Panel id="post-detail">
+                <Panel id="post-detail" style={{ backgroundColor: '#F6F2E9' }}>
                   <PostDetail
                     id={selectedPostId}
                     onBack={handleClosePost}
