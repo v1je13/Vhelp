@@ -12,13 +12,13 @@ import { Icon24DeleteOutline } from '@vkontakte/icons';
 import { api } from '../api/client';
 import { vk } from '../lib/vk';
 
-export function Trips({ user, onOpenTrip }) {
+export function Trips({ user, onOpenTrip, onTripCreated }) {
   const [trips, setTrips] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     loadTrips();
-  }, []);
+  }, [onTripCreated]);
 
   const loadTrips = async () => {
     try {

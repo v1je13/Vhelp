@@ -39,6 +39,7 @@ function App() {
   const [tripsNewTripName, setTripsNewTripName] = useState('');
   const [tripsSelectedCover, setTripsSelectedCover] = useState(null);
   const [tripsCreating, setTripsCreating] = useState(false);
+  const [tripsCreated, setTripsCreated] = useState(0);
 
   const showBottomNav = !!user;
   
@@ -274,6 +275,7 @@ function App() {
       setTripsNewTripName('');
       setTripsSelectedCover(null);
       setShowTripsModal(false);
+      setTripsCreated(prev => prev + 1);
 
       await vk.showNotification('✅', 'Путешествие создано', 'success');
     } catch (err) {
@@ -394,6 +396,7 @@ function App() {
                 <Trips
                   user={user}
                   onOpenTrip={handleOpenTrip}
+                  onTripCreated={tripsCreated}
                 />
               </Panel>
               
