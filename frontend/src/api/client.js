@@ -53,6 +53,7 @@ export const api = {
   getPost: (id) => apiFetch(`/posts/${id}`),
   getPostById: (id) => apiFetch(`/posts/${id}`),
   createPost: (data) => apiFetch('/posts', { method: 'POST', body: JSON.stringify(data) }),
+  updatePost: (id, data) => apiFetch(`/posts/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
   deletePost: (id) => apiFetch(`/posts/${id}`, { method: 'DELETE' }),
   likePost: (id) => apiFetch(`/posts/${id}/like`, { method: 'POST' }),
   getComments: (id) => apiFetch(`/posts/${id}/comments`),
