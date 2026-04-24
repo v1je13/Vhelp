@@ -420,13 +420,14 @@ function App() {
               {/* TripNotes - заметки путешествия */}
               <Panel id="trip-notes" style={{ backgroundColor: '#F6F2E9' }}>
                 {selectedTripId && (
-                  <TripNotes 
+                  <TripNotes
                     tripId={selectedTripId}
                     onBack={() => {
                       setSelectedTripId(null);
                       setActivePanel('trips');
                     }}
                     user={user}
+                    onOpenPost={handleOpenPost}
                   />
                 )}
               </Panel>

@@ -1,5 +1,5 @@
 // src/components/PostDetail.jsx
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import {
   PanelHeader,
   Avatar,
@@ -25,6 +25,7 @@ export function PostDetail({ id, onBack, user }) {
   const [editText, setEditText] = useState('');
   const [editPhotos, setEditPhotos] = useState([]);
   const [editing, setEditing] = useState(false);
+  const commentInputRef = useRef(null);
 
   useEffect(() => {
     const loadPost = async () => {
@@ -58,6 +59,11 @@ export function PostDetail({ id, onBack, user }) {
 
       setComments(prev => [...prev, comment]);
       setCommentText('');
+
+      // Force input to reset
+      if (commentInputRef.current) {
+        commentInputRef.current.value = '';
+      }
 
       await vk.showNotification('✅', 'Комментарий добавлен', 'success');
     } catch (err) {
@@ -307,7 +313,7 @@ export function PostDetail({ id, onBack, user }) {
           {/* Форма добавления комментария */}
           <div className="vh-comment-form">
             <Input
-              key={`comment-input-${comments.length}`}
+              getRef={commentInputRef}
               className="vh-comment-form__input"
               value={commentText}
               onChange={e => setCommentText(e.target.value)}

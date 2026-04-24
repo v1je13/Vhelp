@@ -20,7 +20,7 @@ export function TripNotes({ tripId, onBack, user, onOpenPost }) {
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [newNote, setNewNote] = useState('');
-  const [selectedPhotos, setSelectedPhotos] = useState([]);
+  const [selectedPhoto, setSelectedPhoto] = useState(null);
   const [creating, setCreating] = useState(false);
   const [tripName, setTripName] = useState('');
 
@@ -47,31 +47,25 @@ export function TripNotes({ tripId, onBack, user, onOpenPost }) {
 
   // 🔥 Загрузка фото
   const handlePhotoUpload = (e) => {
-    const files = Array.from(e.target.files || []);
-    if (files.length === 0) return;
+    const file = e.target.files?.[0];
+    if (!file) return;
 
-    files.forEach(file => {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setSelectedPhotos(prev => [...prev, reader.result]);
-      };
-      reader.readAsDataURL(file);
-    });
-  };
-
-  const handleRemovePhoto = (index) => {
-    setSelectedPhotos(prev => prev.filter((_, i) => i !== index));
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setSelectedPhoto(reader.result);
+    };
+    reader.readAsDataURL(file);
   };
 
   // 🔥 Создание заметки с фото
   const handleCreateNote = async () => {
-    if (!newNote.trim() && selectedPhotos.length === 0) return;
+    if (!newNote.trim() && !selectedPhoto) return;
 
     try {
       setCreating(true);
       const result = await api.createPost({
         text: newNote,
-        images: selectedPhotos,
+        images: selectedPhoto ? [selectedPhoto] : [],
         trip_id: tripId
       });
 
@@ -81,7 +75,7 @@ export function TripNotes({ tripId, onBack, user, onOpenPost }) {
       }
 
       setNewNote('');
-      setSelectedPhotos([]);
+      setSelectedPhoto(null);
       setShowModal(false);
       await vk.showNotification('✅', 'Заметка добавлена', 'success');
     } catch (err) {
@@ -197,7 +191,7 @@ export function TripNotes({ tripId, onBack, user, onOpenPost }) {
         before={<Icon24Add />}
         onClick={() => {
           setNewNote('');
-          setSelectedPhotos([]);
+          setSelectedPhoto(null);
           setCreating(false);
           setShowModal(true);
         }}
@@ -250,49 +244,27 @@ export function TripNotes({ tripId, onBack, user, onOpenPost }) {
               />
 
               {/* Превью фото */}
-              {selectedPhotos.length > 0 && (
-                <div style={{ display: 'flex', gap: 8, overflowX: 'auto', paddingBottom: 8 }}>
-                  {selectedPhotos.map((photo, index) => (
-                    <div key={index} style={{ position: 'relative', flexShrink: 0, width: 100, height: 100 }}>
-                      <img
-                        src={photo}
-                        alt="Preview"
-                        style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: 8 }}
-                      />
-                      <Button
-                        mode="secondary"
-                        size="s"
-                        onClick={() => handleRemovePhoto(index)}
-                        className="vh-btn"
-                        style={{ position: 'absolute', top: 4, right: 4, padding: 4, minWidth: 'auto', width: 24, height: 24 }}
-                      >
-                        ×
-                      </Button>
-                    </div>
-                  ))}
-                  {selectedPhotos.length < 3 && (
-                    <div
-                      style={{
-                        width: 100,
-                        height: 100,
-                        borderRadius: 8,
-                        border: '2px dashed #E8E4DB',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        cursor: creating ? 'default' : 'pointer',
-                        flexShrink: 0
-                      }}
-                      onClick={() => document.getElementById('trip-photo-upload')?.click()}
-                    >
-                      <Icon24Camera />
-                    </div>
-                  )}
+              {selectedPhoto && (
+                <div style={{ position: 'relative', marginBottom: 12 }}>
+                  <img
+                    src={selectedPhoto}
+                    alt="Preview"
+                    style={{ width: '100%', maxHeight: 200, objectFit: 'cover', borderRadius: 8 }}
+                  />
+                  <Button
+                    mode="secondary"
+                    size="s"
+                    onClick={() => setSelectedPhoto(null)}
+                    className="vh-btn"
+                    style={{ position: 'absolute', top: 8, right: 8, background: 'rgba(0,0,0,0.7)' }}
+                  >
+                    ✕
+                  </Button>
                 </div>
               )}
 
               {/* Кнопка загрузки фото */}
-              {selectedPhotos.length === 0 && (
+              {!selectedPhoto && (
                 <div
                   onClick={() => !creating && document.getElementById('trip-photo-upload')?.click()}
                   style={{
@@ -310,16 +282,16 @@ export function TripNotes({ tripId, onBack, user, onOpenPost }) {
                 >
                   <div style={{ textAlign: 'center', color: '#6B7280' }}>
                     <Icon24Camera style={{ margin: '0 auto 8px' }} />
-                    <div>Добавить фото (до 3)</div>
+                    <div>Добавить фото</div>
                   </div>
                 </div>
               )}
-              <input type="file" accept="image/*" multiple onChange={handlePhotoUpload} style={{ display: 'none' }} id="trip-photo-upload" />
+              <input type="file" accept="image/*" onChange={handlePhotoUpload} style={{ display: 'none' }} id="trip-photo-upload" />
 
               <Button
                 mode="primary"
                 onClick={handleCreateNote}
-                disabled={creating || (!newNote.trim() && selectedPhotos.length === 0)}
+                disabled={creating || (!newNote.trim() && !selectedPhoto)}
                 loading={creating}
                 stretched
                 size="l"
