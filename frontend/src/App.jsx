@@ -7,6 +7,7 @@ import {
 } from '@vkontakte/vkui';
 import { Icon24Add, Icon24Camera } from '@vkontakte/icons';
 import '@vkontakte/vkui/dist/vkui.css';
+import './styles/travel-theme.css';
 
 import { Feed } from './components/Feed';
 import { PostDetail } from './components/PostDetail';
@@ -341,7 +342,7 @@ function App() {
               <Panel id="account">
                 <PanelHeader 
                   after={user && (
-                    <Button mode="tertiary" onClick={handleLogout} size="s">
+                    <Button mode="tertiary" onClick={handleLogout} size="s" className="vh-btn">
                       Выйти
                     </Button>
                   )}
@@ -405,7 +406,7 @@ function App() {
 
             {/* Нижняя навигация */}
             {showBottomNav && (
-              <div style={{
+              <div className="vh-bottom-nav" style={{
                 position: 'fixed',
                 bottom: 0,
                 left: 0,
@@ -418,6 +419,7 @@ function App() {
                 zIndex: 100
               }}>
                 <button
+                  className={`vh-bottom-nav__item ${activePanel === 'account' ? 'vh-bottom-nav__item--active' : ''}`}
                   onClick={() => setActivePanel('account')}
                   style={{
                     flex: 1,
@@ -437,6 +439,7 @@ function App() {
                 </button>
 
                 <button
+                  className={`vh-bottom-nav__item ${activePanel === 'feed' ? 'vh-bottom-nav__item--active' : ''}`}
                   onClick={() => setActivePanel('feed')}
                   style={{
                     flex: 1,
@@ -456,6 +459,7 @@ function App() {
                 </button>
 
                 <button
+                  className={`vh-bottom-nav__item ${activePanel === 'trips' ? 'vh-bottom-nav__item--active' : ''}`}
                   onClick={() => setActivePanel('trips')}
                   style={{
                     flex: 1,
@@ -481,9 +485,9 @@ function App() {
         {activePanel === 'feed' && (
           <Button
             mode="primary"
-            size="l"
             before={<Icon24Add />}
             onClick={() => setShowFeedModal(true)}
+            className="vh-btn vh-fab"
             style={{
               position: 'fixed',
               bottom: 100,
@@ -502,9 +506,9 @@ function App() {
         {activePanel === 'trips' && (
           <Button
             mode="primary"
-            size="l"
             before={<Icon24Add />}
             onClick={() => setShowTripsModal(true)}
+            className="vh-btn vh-fab"
             style={{
               position: 'fixed',
               bottom: 100,
@@ -540,6 +544,7 @@ function App() {
             onClick={() => !feedCreating && setShowFeedModal(false)}
           >
             <div
+              className="vh-modal"
               style={{
                 backgroundColor: 'var(--vkui--color_background_content)',
                 borderRadius: 16,
@@ -552,7 +557,7 @@ function App() {
             >
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
                 <h2 style={{ margin: 0, fontSize: 20, fontWeight: 600 }}>Новый пост</h2>
-                <Button mode="secondary" size="s" disabled={feedCreating} onClick={() => setShowFeedModal(false)}>✕</Button>
+                <Button mode="secondary" size="s" disabled={feedCreating} onClick={() => setShowFeedModal(false)} className="vh-btn">✕</Button>
               </div>
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
@@ -587,6 +592,7 @@ function App() {
                             mode="destructive"
                             size="s"
                             onClick={() => handleFeedRemovePhoto(index)}
+                            className="vh-btn"
                             style={{ position: 'absolute', top: 4, right: 4, padding: 4, minWidth: 'auto', width: 24, height: 24 }}
                           >
                             ×
@@ -637,6 +643,7 @@ function App() {
                   loading={feedCreating}
                   stretched
                   size="l"
+                  className="vh-btn"
                 >
                   Опубликовать
                 </Button>
@@ -664,6 +671,7 @@ function App() {
             onClick={() => !tripsCreating && setShowTripsModal(false)}
           >
             <div
+              className="vh-modal"
               style={{
                 backgroundColor: 'var(--vkui--color_background_content)',
                 borderRadius: 16,
@@ -676,7 +684,7 @@ function App() {
             >
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
                 <h2 style={{ margin: 0, fontSize: 20, fontWeight: 600 }}>Новое путешествие</h2>
-                <Button mode="secondary" size="s" disabled={tripsCreating} onClick={() => setShowTripsModal(false)}>✕</Button>
+                <Button mode="secondary" size="s" disabled={tripsCreating} onClick={() => setShowTripsModal(false)} className="vh-btn">✕</Button>
               </div>
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
@@ -720,6 +728,7 @@ function App() {
                   loading={tripsCreating}
                   stretched
                   size="l"
+                  className="vh-btn"
                 >
                   Создать путешествие
                 </Button>

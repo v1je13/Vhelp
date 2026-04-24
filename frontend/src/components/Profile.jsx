@@ -138,7 +138,7 @@ export function Profile({ userId, user, onBack, onOpenPost }) {
   return (
     <div style={{ paddingBottom: 80 }}>
       {/* Шапка профиля */}
-      <div style={{
+      <div className="vh-profile-card" style={{
         background: backgroundImage ? `url(${backgroundImage}) center/cover` : 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
         padding: '30px 20px',
         textAlign: 'center',

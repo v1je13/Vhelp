@@ -171,9 +171,10 @@ export function TripNotes({ tripId, onBack, user, onOpenPost }) {
           notes.map(note => (
             <Card
               key={note.id}
+              className="vh-note-card"
               onClick={() => onOpenPost?.(note.id)}
-              style={{ 
-                padding: 15, 
+              style={{
+                padding: 15,
                 marginBottom: 12,
                 cursor: 'pointer'
               }}

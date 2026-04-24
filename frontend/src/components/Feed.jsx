@@ -137,8 +137,9 @@ export function Feed({ user, onOpenPost, onCreateTrip, onPostCreated }) {
         const postId = post.id;
         
         return (
-          <Card 
-            key={postId} 
+          <Card
+            key={postId}
+            className="vh-post-card"
             style={{ padding: 15, marginBottom: 15, cursor: 'pointer' }}
             onClick={() => onOpenPost?.(postId)}
           >

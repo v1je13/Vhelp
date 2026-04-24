@@ -1,0 +1,645 @@
+/* =========================================
+   VHELP TRAVEL DIARY THEME
+   Exact Figma Colors + Roboto Font
+   ========================================= */
+
+@import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap');
+
+:root {
+  /* 🎨 Exact colors from Figma */
+  --vh-bg-page: #F6F2E9;
+  --vh-bg-post: #435427;
+  --vh-bg-menu: #DBE38D;
+  --vh-btn: #F2BD25;
+  --vh-btn-text: #FFFFFF;
+  
+  /* Derived colors for consistency */
+  --vh-text-primary: #2C3E50;
+  --vh-text-secondary: #6B7280;
+  --vh-text-on-dark: #FFFFFF;
+  --vh-border: #E8E4DB;
+  --vh-shadow: 0 2px 12px rgba(67, 84, 39, 0.15);
+  
+  /* Typography */
+  --vh-font-header: 14px;
+  --vh-font-body: 12px;
+  --vh-font-weight-bold: 700;
+  --vh-font-weight-normal: 400;
+  
+  /* Spacing & Radius */
+  --vh-radius: 16px;
+  --vh-radius-sm: 12px;
+  --vh-spacing-sm: 8px;
+  --vh-spacing-md: 12px;
+  --vh-spacing-lg: 16px;
+}
+
+/* =========================================
+   GLOBAL RESETS & BASE
+   ========================================= */
+
+#root, .vkui__root {
+  background-color: var(--vh-bg-page) !important;
+}
+
+body {
+  font-family: 'Roboto', -apple-system, BlinkMacSystemFont, sans-serif;
+  background-color: var(--vh-bg-page);
+}
+
+/* Override VKUI background variables */
+:root {
+  --vkui--color_background: var(--vh-bg-page);
+  --vkui--color_background_content: #FFFFFF;
+  --vkui--color_text_primary: var(--vh-text-primary);
+  --vkui--color_text_secondary: var(--vh-text-secondary);
+  --vkui--font_family: 'Roboto', sans-serif;
+}
+
+/* =========================================
+   TYPOGRAPHY
+   ========================================= */
+
+.vh-header {
+  font-family: 'Roboto', sans-serif;
+  font-size: var(--vh-font-header);
+  font-weight: var(--vh-font-weight-bold);
+  line-height: 1.3;
+  color: var(--vh-text-primary);
+}
+
+.vh-text {
+  font-family: 'Roboto', sans-serif;
+  font-size: var(--vh-font-body);
+  font-weight: var(--vh-font-weight-normal);
+  line-height: 1.5;
+  color: var(--vh-text-primary);
+}
+
+.vh-text--muted {
+  color: var(--vh-text-secondary);
+}
+
+.vh-text--on-dark {
+  color: var(--vh-text-on-dark);
+  opacity: 0.95;
+}
+
+/* Panel headers */
+.vkuiPanelHeader__in {
+  background-color: var(--vh-bg-page) !important;
+}
+
+.vkuiPanelHeader__content--in {
+  font-family: 'Roboto', sans-serif !important;
+  font-size: var(--vh-font-header) !important;
+  font-weight: var(--vh-font-weight-bold) !important;
+  color: var(--vh-text-primary) !important;
+}
+
+/* =========================================
+   BOTTOM NAVIGATION MENU
+   ========================================= */
+
+.vh-bottom-nav {
+  background-color: var(--vh-bg-menu) !important;
+  border-top: 1px solid rgba(67, 84, 39, 0.1);
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+.vh-bottom-nav__item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 8px 4px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--vh-text-primary);
+  font-family: 'Roboto', sans-serif;
+  font-size: 11px;
+  font-weight: 500;
+  transition: opacity 0.2s;
+}
+
+.vh-bottom-nav__item--active {
+  color: var(--vh-bg-post);
+  font-weight: 700;
+}
+
+.vh-bottom-nav__item:active {
+  opacity: 0.7;
+}
+
+.vh-bottom-nav__icon {
+  font-size: 24px;
+  line-height: 1;
+}
+
+/* =========================================
+   BUTTONS
+   ========================================= */
+
+.vh-btn {
+  background-color: var(--vh-btn) !important;
+  color: var(--vh-btn-text) !important;
+  font-family: 'Roboto', sans-serif !important;
+  font-size: 14px !important;
+  font-weight: 500 !important;
+  border: none !important;
+  border-radius: var(--vh-radius-sm) !important;
+  padding: 10px 20px !important;
+  box-shadow: 0 2px 8px rgba(242, 189, 37, 0.3) !important;
+  transition: all 0.2s ease !important;
+}
+
+.vh-btn:hover:not(:disabled) {
+  background-color: #E5B11F !important;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(242, 189, 37, 0.4) !important;
+}
+
+.vh-btn:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.vh-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.vh-btn--small {
+  padding: 6px 12px !important;
+  font-size: 12px !important;
+}
+
+.vh-btn--icon {
+  width: 44px !important;
+  height: 44px !important;
+  padding: 0 !important;
+  border-radius: 50% !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+/* FAB button */
+.vh-fab {
+  position: fixed !important;
+  bottom: 100px !important;
+  right: 20px !important;
+  width: 56px !important;
+  height: 56px !important;
+  border-radius: 50% !important;
+  padding: 0 !important;
+  z-index: 2000 !important;
+  box-shadow: 0 4px 20px rgba(242, 189, 37, 0.5) !important;
+}
+
+/* =========================================
+   POST CARDS (Feed component)
+   ========================================= */
+
+.vh-post-card {
+  background-color: var(--vh-bg-post) !important;
+  border-radius: var(--vh-radius) !important;
+  padding: var(--vh-spacing-md) !important;
+  margin-bottom: var(--vh-spacing-md) !important;
+  color: var(--vh-text-on-dark) !important;
+  box-shadow: var(--vh-shadow);
+}
+
+.vh-post-card__header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: var(--vh-spacing-sm);
+}
+
+.vh-post-card__avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background-color: var(--vh-btn);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 14px;
+  color: var(--vh-btn-text);
+  flex-shrink: 0;
+}
+
+.vh-post-card__username {
+  font-family: 'Roboto', sans-serif;
+  font-size: var(--vh-font-header);
+  font-weight: var(--vh-font-weight-bold);
+  color: var(--vh-text-on-dark);
+  margin: 0;
+}
+
+.vh-post-card__time {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.7);
+  margin-top: 2px;
+}
+
+.vh-post-card__text {
+  font-size: var(--vh-font-body);
+  line-height: 1.5;
+  color: rgba(255, 255, 255, 0.95);
+  margin: var(--vh-spacing-sm) 0;
+}
+
+.vh-post-card__image {
+  width: 100%;
+  height: 180px;
+  border-radius: var(--vh-radius-sm);
+  object-fit: cover;
+  background-color: rgba(255, 255, 255, 0.1);
+  margin: var(--vh-spacing-sm) 0;
+}
+
+.vh-post-card__images-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+  margin: var(--vh-spacing-sm) 0;
+}
+
+.vh-post-card__footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: var(--vh-spacing-md);
+  padding-top: var(--vh-spacing-md);
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.vh-post-card__meta {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+/* =========================================
+   PROFILE COMPONENT
+   ========================================= */
+
+.vh-profile-card {
+  background-color: #FFFFFF;
+  border-radius: var(--vh-radius);
+  padding: var(--vh-spacing-lg);
+  margin-bottom: var(--vh-spacing-md);
+  box-shadow: var(--vh-shadow);
+}
+
+.vh-profile-avatar {
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  background-color: var(--vh-btn);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 24px;
+  color: var(--vh-btn-text);
+  margin: 0 auto var(--vh-spacing-md);
+}
+
+.vh-profile-name {
+  font-family: 'Roboto', sans-serif;
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--vh-text-primary);
+  text-align: center;
+  margin-bottom: 4px;
+}
+
+.vh-profile-stats {
+  display: flex;
+  justify-content: center;
+  gap: 24px;
+  margin-top: var(--vh-spacing-md);
+}
+
+.vh-profile-stat {
+  text-align: center;
+}
+
+.vh-profile-stat__value {
+  font-family: 'Roboto', sans-serif;
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--vh-bg-post);
+}
+
+.vh-profile-stat__label {
+  font-size: 11px;
+  color: var(--vh-text-secondary);
+}
+
+/* =========================================
+   TRIPS COMPONENT
+   ========================================= */
+
+.vh-trip-card {
+  background-color: #FFFFFF;
+  border-radius: var(--vh-radius);
+  overflow: hidden;
+  margin-bottom: var(--vh-spacing-md);
+  box-shadow: var(--vh-shadow);
+  cursor: pointer;
+  transition: transform 0.2s;
+}
+
+.vh-trip-card:hover {
+  transform: translateY(-2px);
+}
+
+.vh-trip-card__cover {
+  width: 100%;
+  height: 140px;
+  background-color: var(--vh-bg-post);
+  background-image: linear-gradient(135deg, var(--vh-bg-post), #5A7247);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--vh-btn-text);
+  font-size: 48px;
+}
+
+.vh-trip-card__content {
+  padding: var(--vh-spacing-md);
+}
+
+.vh-trip-card__title {
+  font-family: 'Roboto', sans-serif;
+  font-size: var(--vh-font-header);
+  font-weight: var(--vh-font-weight-bold);
+  color: var(--vh-text-primary);
+  margin: 0 0 var(--vh-spacing-sm);
+}
+
+.vh-trip-card__meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 11px;
+  color: var(--vh-text-secondary);
+}
+
+.vh-trip-card__posts-count {
+  background-color: var(--vh-bg-menu);
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-weight: 500;
+  color: var(--vh-text-primary);
+}
+
+/* =========================================
+   TRIP NOTES (inside a trip)
+   ========================================= */
+
+.vh-trip-notes-header {
+  background-color: var(--vh-bg-post);
+  border-radius: var(--vh-radius);
+  padding: var(--vh-spacing-lg);
+  margin-bottom: var(--vh-spacing-md);
+  color: var(--vh-text-on-dark);
+}
+
+.vh-trip-notes-header__title {
+  font-family: 'Roboto', sans-serif;
+  font-size: 18px;
+  font-weight: 700;
+  margin: 0 0 var(--vh-spacing-sm);
+}
+
+.vh-trip-notes-header__meta {
+  font-size: 12px;
+  opacity: 0.9;
+}
+
+.vh-note-card {
+  background-color: #FFFFFF;
+  border-radius: var(--vh-radius-sm);
+  padding: var(--vh-spacing-md);
+  margin-bottom: var(--vh-spacing-sm);
+  border-left: 4px solid var(--vh-btn);
+}
+
+.vh-note-card__date {
+  font-size: 11px;
+  color: var(--vh-text-secondary);
+  margin-bottom: 4px;
+}
+
+.vh-note-card__text {
+  font-size: var(--vh-font-body);
+  line-height: 1.5;
+  color: var(--vh-text-primary);
+}
+
+/* =========================================
+   MODALS (Feed/Trips creation)
+   ========================================= */
+
+.vh-modal {
+  background-color: #FFFFFF !important;
+  border-radius: var(--vh-radius) !important;
+  padding: var(--vh-spacing-lg) !important;
+}
+
+.vh-modal__title {
+  font-family: 'Roboto', sans-serif;
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--vh-text-primary);
+  margin: 0 0 var(--vh-spacing-lg);
+}
+
+.vh-modal__input {
+  font-family: 'Roboto', sans-serif !important;
+  font-size: var(--vh-font-body) !important;
+}
+
+.vh-modal__textarea {
+  font-family: 'Roboto', sans-serif !important;
+  font-size: var(--vh-font-body) !important;
+}
+
+.vh-modal__upload-area {
+  width: 100%;
+  height: 150px;
+  border-radius: var(--vh-radius-sm);
+  border: 2px dashed var(--vh-border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  background-color: rgba(242, 189, 37, 0.05);
+  transition: border-color 0.2s;
+}
+
+.vh-modal__upload-area:hover {
+  border-color: var(--vh-btn);
+}
+
+.vh-modal__upload-area--has-image {
+  border-style: solid;
+  background-color: transparent;
+}
+
+.vh-modal__preview {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: var(--vh-radius-sm);
+}
+
+.vh-modal__preview-grid {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding: 8px 0;
+}
+
+.vh-modal__preview-item {
+  position: relative;
+  flex-shrink: 0;
+  width: 120px;
+  height: 120px;
+  border-radius: var(--vh-radius-sm);
+  overflow: hidden;
+}
+
+.vh-modal__preview-item img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.vh-modal__remove-btn {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background-color: rgba(0, 0, 0, 0.6);
+  color: white;
+  border: none;
+  font-size: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  padding: 0;
+}
+
+/* =========================================
+   SEARCH & INPUTS
+   ========================================= */
+
+.vh-search {
+  background-color: #FFFFFF;
+  border-radius: var(--vh-radius-sm);
+  padding: 10px 14px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: var(--vh-spacing-md);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+.vh-search__input {
+  flex: 1;
+  border: none;
+  outline: none;
+  font-family: 'Roboto', sans-serif;
+  font-size: 14px;
+  color: var(--vh-text-primary);
+  background: transparent;
+}
+
+.vh-search__input::placeholder {
+  color: var(--vh-text-secondary);
+}
+
+/* Override VKUI Input styles */
+.vkuiInput__el,
+.vkuiTextarea__el {
+  font-family: 'Roboto', sans-serif !important;
+  font-size: var(--vh-font-body) !important;
+}
+
+/* =========================================
+   UTILITIES & ANIMATIONS
+   ========================================= */
+
+.vh-section {
+  padding: 0 var(--vh-spacing-lg);
+  margin-bottom: var(--vh-spacing-lg);
+}
+
+.vh-section__title {
+  font-family: 'Roboto', sans-serif;
+  font-size: var(--vh-font-header);
+  font-weight: var(--vh-font-weight-bold);
+  color: var(--vh-text-primary);
+  margin-bottom: var(--vh-spacing-md);
+}
+
+.vh-divider {
+  height: 1px;
+  background-color: var(--vh-border);
+  margin: var(--vh-spacing-md) 0;
+}
+
+@keyframes vh-fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.vh-animate {
+  animation: vh-fadeInUp 0.3s ease forwards;
+}
+
+.vh-animate--delay-1 { animation-delay: 0.05s; }
+.vh-animate--delay-2 { animation-delay: 0.1s; }
+.vh-animate--delay-3 { animation-delay: 0.15s; }
+
+/* =========================================
+   DARK MODE SUPPORT (optional)
+   ========================================= */
+
+[data-color-scheme="dark"] {
+  --vh-bg-page: #1A1A2E;
+  --vh-bg-post: #2D3A24;
+  --vh-text-primary: #ECF0F1;
+  --vh-text-secondary: #95A5A6;
+  --vh-border: #3A4A5A;
+}
+
+/* =========================================
+   RESPONSIVE
+   ========================================= */
+
+@media (max-width: 360px) {
+  :root {
+    --vh-radius: 14px;
+    --vh-radius-sm: 10px;
+  }
+  
+  .vh-post-card__images-grid {
+    grid-template-columns: 1fr;
+  }
+}

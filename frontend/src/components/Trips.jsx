@@ -68,7 +68,7 @@ export function Trips({ user, onOpenTrip }) {
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
               {trips.map(trip => (
-                <div key={trip.id} style={{ position: 'relative', borderRadius: 12, overflow: 'hidden', cursor: 'pointer', boxShadow: '0 2px 8px rgba(0,0,0,0.15)', minHeight: 150 }}>
+                <div key={trip.id} className="vh-trip-card" style={{ position: 'relative', borderRadius: 12, overflow: 'hidden', cursor: 'pointer', boxShadow: '0 2px 8px rgba(0,0,0,0.15)', minHeight: 150 }}>
                   {/* Фон (если есть) */}
                   {trip.cover_image ? (
                     <img
