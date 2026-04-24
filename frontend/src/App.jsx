@@ -5,7 +5,7 @@ import {
   View, Panel, PanelHeader, Text, Spinner, Button,
   Textarea, Input
 } from '@vkontakte/vkui';
-import { Icon24Add, Icon24Camera } from '@vkontakte/icons';
+import { Icon24Add, Icon24Camera, Icon24UserOutline, Icon24NewsfeedOutline, Icon24NotebookOutline } from '@vkontakte/icons';
 import '@vkontakte/vkui/dist/vkui.css';
 import './styles/travel-theme.css';
 
@@ -469,11 +469,11 @@ function App() {
                     background: 'none',
                     border: 'none',
                     cursor: 'pointer',
-                    color: activePanel === 'account' ? '#0077FF' : '#818c99',
+                    color: activePanel === 'account' ? '#000000' : '#000000',
                     padding: 4
                   }}
                 >
-                  <span style={{ fontSize: 24 }}>👤</span>
+                  <Icon24UserOutline width={24} height={24} />
                   <span style={{ fontSize: 11 }}>Профиль</span>
                 </button>
 
@@ -489,11 +489,11 @@ function App() {
                     background: 'none',
                     border: 'none',
                     cursor: 'pointer',
-                    color: activePanel === 'feed' ? '#0077FF' : '#818c99',
+                    color: activePanel === 'feed' ? '#000000' : '#000000',
                     padding: 4
                   }}
                 >
-                  <span style={{ fontSize: 24 }}>📰</span>
+                  <Icon24NewsfeedOutline width={24} height={24} />
                   <span style={{ fontSize: 11 }}>Лента</span>
                 </button>
 
@@ -509,11 +509,11 @@ function App() {
                     background: 'none',
                     border: 'none',
                     cursor: 'pointer',
-                    color: activePanel === 'trips' ? '#0077FF' : '#818c99',
+                    color: activePanel === 'trips' ? '#000000' : '#000000',
                     padding: 4
                   }}
                 >
-                  <span style={{ fontSize: 24 }}>🗓️</span>
+                  <Icon24NotebookOutline width={24} height={24} />
                   <span style={{ fontSize: 11 }}>Дневник</span>
                 </button>
               </div>

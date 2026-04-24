@@ -145,10 +145,14 @@ body {
 .vh-bottom-nav {
   background-color: var(--vh-bg-menu) !important;
   border-top: 1px solid rgba(67, 84, 39, 0.1);
-  padding-bottom: env(safe-area-inset-bottom);
   border-radius: 20px 20px 0 0 !important;
-  margin: 0 12px !important;
-  padding: 12px 16px env(safe-area-inset-bottom) 16px !important;
+  margin: 0 12px 12px 12px !important;
+  padding: 12px 16px !important;
+  position: fixed !important;
+  bottom: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  z-index: 1000 !important;
 }
 
 .vh-bottom-nav__item {
