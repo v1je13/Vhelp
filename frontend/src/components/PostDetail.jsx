@@ -227,31 +227,25 @@ export function PostDetail({ id, onBack, user }) {
           ) : (
             <div style={{ marginBottom: 15 }}>
               {comments.map(comment => (
-                <div 
-                  key={comment.id} 
-                  style={{ 
-                    display: 'flex', 
-                    gap: 12, 
-                    marginBottom: 15,
-                    padding: 12,
-                    background: '#f5f5f5',
-                    borderRadius: 8
-                  }}
+                <div
+                  key={comment.id}
+                  className="vh-comment"
                 >
-                  <Avatar 
-                    src={comment.avatar || 'https://vk.com/images/camera_200.png'} 
+                  <Avatar
+                    src={comment.avatar || 'https://vk.com/images/camera_200.png'}
                     size={40}
+                    className="vh-comment__avatar"
                   />
-                  <div style={{ flex: 1 }}>
-                    <div style={{ marginBottom: 4 }}>
-                      <Text weight="2" style={{ fontSize: 14 }}>
+                  <div className="vh-comment__content">
+                    <div className="vh-comment__header">
+                      <Text weight="2" className="vh-comment__name">
                         {comment.first_name} {comment.last_name}
                       </Text>
-                      <Text caption style={{ color: '#818c99', fontSize: 12 }}>
+                      <Text caption className="vh-comment__date">
                         {formatDate(comment.created_at)}
                       </Text>
                     </div>
-                    <Text style={{ fontSize: 14, lineHeight: 1.4 }}>
+                    <Text className="vh-comment__text">
                       {comment.text}
                     </Text>
                   </div>

@@ -606,12 +606,13 @@ function App() {
               onClick={e => e.stopPropagation()}
             >
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
-                <h2 style={{ margin: 0, fontSize: 20, fontWeight: 600 }}>Новый пост</h2>
-                <Button mode="secondary" size="s" disabled={feedCreating} onClick={() => setShowFeedModal(false)} className="vh-btn">✕</Button>
+                <h2 className="vh-modal__title" style={{ margin: 0 }}>Новый пост</h2>
+                <Button mode="secondary" size="s" disabled={feedCreating} onClick={() => setShowFeedModal(false)} className="vh-btn vh-modal__close-btn">✕</Button>
               </div>
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
                 <Textarea
+                  className="vh-modal__textarea"
                   value={feedNewPost}
                   onChange={e => setFeedNewPost(e.target.value)}
                   placeholder="Напишите что-нибудь..."
@@ -679,6 +680,7 @@ function App() {
 
                 <div>
                   <Input
+                    className="vh-modal__input"
                     value={feedPostTags}
                     onChange={e => setFeedPostTags(e.target.value)}
                     placeholder="Тэги через запятую (например: Сочи, Лето)"
@@ -733,12 +735,13 @@ function App() {
               onClick={e => e.stopPropagation()}
             >
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
-                <h2 style={{ margin: 0, fontSize: 20, fontWeight: 600 }}>Новое путешествие</h2>
-                <Button mode="secondary" size="s" disabled={tripsCreating} onClick={() => setShowTripsModal(false)} className="vh-btn">✕</Button>
+                <h2 className="vh-modal__title" style={{ margin: 0 }}>Новое путешествие</h2>
+                <Button mode="secondary" size="s" disabled={tripsCreating} onClick={() => setShowTripsModal(false)} className="vh-btn vh-modal__close-btn">✕</Button>
               </div>
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
                 <Input
+                  className="vh-modal__input"
                   value={tripsNewTripName}
                   onChange={e => setTripsNewTripName(e.target.value)}
                   placeholder="Название путешествия"
