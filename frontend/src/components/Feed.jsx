@@ -41,7 +41,9 @@ export function Feed({ user, onOpenPost, onCreateTrip, onPostCreated }) {
       try {
         setLoading(true);
         const data = await api.getPosts(1);
-        setPosts(data.posts || []);
+        // Filter out posts that belong to trips - show only general posts
+        const generalPosts = (data.posts || []).filter(post => !post.trip_id);
+        setPosts(generalPosts);
       } catch (err) {
         console.error('❌ Ошибка загрузки постов:', err);
         setError(err.message);
