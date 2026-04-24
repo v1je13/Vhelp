@@ -444,7 +444,7 @@ function App() {
             </View>
 
             {/* Нижняя навигация */}
-            {showBottomNav && (
+            {showBottomNav && activePanel !== 'post-detail' && (
               <div className="vh-bottom-nav" style={{
                 position: 'fixed',
                 bottom: 0,
