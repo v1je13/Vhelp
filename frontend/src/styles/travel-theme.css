@@ -80,8 +80,11 @@ body {
 :root {
   --vkui--color_background: #F6F2E9 !important;
   --vkui--color_background_content: #F6F2E9 !important;
-  --vkui--color_text_primary: var(--vh-text-primary);
-  --vkui--color_text_secondary: var(--vh-text-secondary);
+  --vkui--color_text_primary: #000000 !important;
+  --vkui--color_text_secondary: #000000 !important;
+  --vkui--color_text_subhead: #000000 !important;
+  --vkui--color_text_tertiary: #000000 !important;
+  --vkui--color_text_link: #000000 !important;
   --vkui--font_family: 'Roboto', sans-serif;
 }
 
@@ -238,10 +241,18 @@ body {
   justify-content: center !important;
 }
 
-.vh-fab::before {
+.vh-fab .vkuiButton__in {
   display: flex !important;
   align-items: center !important;
   justify-content: center !important;
+  padding: 0 !important;
+}
+
+.vh-fab .vkuiButton__before {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  margin: 0 !important;
 }
 
 /* =========================================
@@ -262,12 +273,14 @@ body {
    ========================================= */
 
 .vh-comment {
-  background-color: #F5F5F5 !important;
+  background-color: #FFFFFF !important;
+  border: 1px solid #E8E4DB !important;
   border-radius: var(--vh-radius-sm) !important;
-  padding: 12px !important;
+  padding: 16px !important;
   margin-bottom: 12px !important;
   display: flex !important;
   gap: 12px !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05) !important;
 }
 
 .vh-comment__avatar {
@@ -279,24 +292,27 @@ body {
 }
 
 .vh-comment__header {
-  margin-bottom: 4px !important;
+  margin-bottom: 8px !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
 }
 
 .vh-comment__name {
   font-weight: 700 !important;
-  font-size: 14px !important;
-  color: var(--vh-text-primary) !important;
+  font-size: 15px !important;
+  color: #000000 !important;
 }
 
 .vh-comment__date {
   font-size: 12px !important;
-  color: var(--vh-text-secondary) !important;
+  color: #6B7280 !important;
 }
 
 .vh-comment__text {
-  font-size: 14px !important;
-  line-height: 1.4 !important;
-  color: var(--vh-text-primary) !important;
+  font-size: 15px !important;
+  line-height: 1.5 !important;
+  color: #000000 !important;
 }
 
 .vh-post-card__header {
