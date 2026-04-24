@@ -129,7 +129,7 @@ export function TripNotes({ tripId, onBack, user, onOpenPost }) {
                   boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
                   minHeight: 150
                 }}
-                onClick={() => onOpenPost?.(note.id)}
+                onClick={() => onOpenPost?.(note.id, true)}
               >
                 {/* Фон (если есть фото) */}
                 {note.images && note.images !== '[]' && (() => {

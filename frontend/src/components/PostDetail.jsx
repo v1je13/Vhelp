@@ -15,13 +15,17 @@ import { Icon28ChevronLeft, Icon24DeleteOutline, Icon24Camera } from '@vkontakte
 import { api } from '../api/client';
 import { vk } from '../lib/vk';
 
-export function PostDetail({ id, onBack, user }) {
+export function PostDetail({ id, onBack, user, showComments = true }) {
   const [post, setPost] = useState(null);
+  const [comments, setComments] = useState([]);
+  const [commentText, setCommentText] = useState('');
   const [loading, setLoading] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [editText, setEditText] = useState('');
   const [editPhotos, setEditPhotos] = useState([]);
   const [editing, setEditing] = useState(false);
+  const commentInputRef = useRef(null);
 
   useEffect(() => {
     const loadPost = async () => {
@@ -29,6 +33,11 @@ export function PostDetail({ id, onBack, user }) {
         setLoading(true);
         const postData = await api.getPostById(id);
         setPost(postData.post || postData);
+
+        if (showComments) {
+          const commentsData = await api.getComments(id);
+          setComments(commentsData.comments || []);
+        }
       } catch (err) {
         console.error('Failed to load post:', err);
         await vk.showNotification('❌', 'Не удалось загрузить пост', 'error');
@@ -38,7 +47,31 @@ export function PostDetail({ id, onBack, user }) {
     };
 
     loadPost();
-  }, [id]);
+  }, [id, showComments]);
+
+  const handleAddComment = async () => {
+    if (!commentText.trim()) return;
+
+    try {
+      setSubmitting(true);
+      const { comment } = await api.createComment(id, commentText);
+
+      setComments(prev => [...prev, comment]);
+      setCommentText('');
+
+      // Force input to reset
+      if (commentInputRef.current) {
+        commentInputRef.current.value = '';
+      }
+
+      await vk.showNotification('✅', 'Комментарий добавлен', 'success');
+    } catch (err) {
+      console.error('Comment error:', err);
+      await vk.showNotification('❌', 'Не удалось добавить комментарий', 'error');
+    } finally {
+      setSubmitting(false);
+    }
+  };
 
   const handleUpdatePost = async () => {
     try {
@@ -231,6 +264,74 @@ export function PostDetail({ id, onBack, user }) {
           borderTop: '1px solid #e7e8ec',
           margin: '20px 0'
         }} />
+
+        {/* 🔥 Комментарии */}
+        {showComments && (
+          <div style={{ marginBottom: 20 }}>
+            <Text weight="2" style={{ marginBottom: 15, fontSize: 16 }}>
+              Комментарии ({comments.length})
+            </Text>
+
+            {/* Список комментариев */}
+            {comments.length === 0 ? (
+              <Placeholder
+                header="Пока нет комментариев"
+                style={{ padding: '20px 0' }}
+              >
+                Будьте первым, кто прокомментирует!
+              </Placeholder>
+            ) : (
+              <div style={{ marginBottom: 15 }}>
+                {comments.map(comment => (
+                  <div
+                    key={comment.id}
+                    className="vh-comment"
+                  >
+                    <Avatar
+                      src={comment.avatar || 'https://vk.com/images/camera_200.png'}
+                      size={40}
+                      className="vh-comment__avatar"
+                    />
+                    <div className="vh-comment__content">
+                      <div className="vh-comment__header">
+                        <Text weight="2" className="vh-comment__name">
+                          {comment.first_name} {comment.last_name}
+                        </Text>
+                        <Text caption className="vh-comment__date">
+                          {formatDate(comment.created_at)}
+                        </Text>
+                      </div>
+                      <Text className="vh-comment__text">
+                        {comment.text}
+                      </Text>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Форма добавления комментария */}
+            <div className="vh-comment-form">
+              <Input
+                getRef={commentInputRef}
+                className="vh-comment-form__input"
+                value={commentText}
+                onChange={e => setCommentText(e.target.value)}
+                placeholder="Написать комментарий..."
+                disabled={submitting}
+              />
+              <Button
+                mode="primary"
+                size="s"
+                onClick={handleAddComment}
+                disabled={!commentText.trim() || submitting}
+                className="vh-comment-form__button"
+              >
+                {submitting ? <Spinner size="small" /> : 'Отправить'}
+              </Button>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Edit Modal */}

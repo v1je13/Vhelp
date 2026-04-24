@@ -25,6 +25,7 @@ function App() {
   const [isReady, setIsReady] = useState(false);
   const [selectedPostId, setSelectedPostId] = useState(null);
   const [selectedTripId, setSelectedTripId] = useState(null);
+  const [postFromTrip, setPostFromTrip] = useState(false);
   const [authError, setAuthError] = useState(null);
   const [showFeedModal, setShowFeedModal] = useState(false);
   const [showTripsModal, setShowTripsModal] = useState(false);
@@ -151,13 +152,15 @@ function App() {
   };
   
   // Открыть пост из профиля
-  const handleOpenPost = (postId) => {
+  const handleOpenPost = (postId, fromTrip = false) => {
     setSelectedPostId(postId);
+    setPostFromTrip(fromTrip);
     setActivePanel('post-detail');
   };
 
   const handleClosePost = () => {
     setSelectedPostId(null);
+    setPostFromTrip(false);
     setActivePanel('feed');
   };
 
@@ -439,6 +442,7 @@ function App() {
                     id={selectedPostId}
                     onBack={handleClosePost}
                     user={user}
+                    showComments={!postFromTrip}
                   />
                 </Panel>
               )}
