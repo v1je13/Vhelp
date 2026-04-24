@@ -1,14 +1,15 @@
 import { useState, useEffect } from 'react';
-import { 
-  Panel, 
-  PanelHeader, 
+import {
+  Panel,
+  PanelHeader,
   Button,
   Spinner,
   Placeholder,
   Avatar,
   Text,
   Textarea,
-  Card
+  Card,
+  Input
 } from '@vkontakte/vkui';
 import { Icon24Add, Icon24Camera } from '@vkontakte/icons';
 import { api } from '../api/client';
@@ -17,6 +18,7 @@ import { vk } from '../lib/vk';
 export function TripNotes({ tripId, onBack, user, onOpenPost }) {
   const [notes, setNotes] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [showModal, setShowModal] = useState(false);
   const [newNote, setNewNote] = useState('');
   const [selectedPhoto, setSelectedPhoto] = useState(null);
   const [creating, setCreating] = useState(false);
@@ -64,7 +66,7 @@ export function TripNotes({ tripId, onBack, user, onOpenPost }) {
       const result = await api.createPost({
         text: newNote,
         images: selectedPhoto ? [selectedPhoto] : [],
-        trip_id: tripId // ← Привязываем к путешествию
+        trip_id: tripId
       });
 
       // Optimistic update - добавляем заметку сразу в список
@@ -74,6 +76,7 @@ export function TripNotes({ tripId, onBack, user, onOpenPost }) {
 
       setNewNote('');
       setSelectedPhoto(null);
+      setShowModal(false);
       await vk.showNotification('✅', 'Заметка добавлена', 'success');
     } catch (err) {
       console.error('Create note error:', err);
@@ -100,149 +103,214 @@ export function TripNotes({ tripId, onBack, user, onOpenPost }) {
 
   return (
     <Panel id="trip-notes">
-      <PanelHeader left={<Button mode="secondary" onClick={onBack} size="s">← Назад</Button>}>
+      <PanelHeader left={<Button mode="secondary" onClick={onBack} size="s" className="vh-btn">← Назад</Button>}>
         {tripName || 'Путешествие'}
       </PanelHeader>
-      
-      <div style={{ padding: 10, paddingBottom: 100 }}>
-        {/* 🔥 Форма создания заметки (как в ленте) */}
-        <Card style={{ padding: 15, marginBottom: 20 }}>
-          <Text weight="2" style={{ marginBottom: 8 }}>Новая заметка</Text>
-          
-          <Textarea
-            value={newNote}
-            onChange={e => setNewNote(e.target.value)}
-            placeholder="Расскажите о своём путешествии..."
-            rows={3}
-            style={{ marginBottom: 12 }}
-          />
-          
-          {/* 🔥 Превью фото */}
-          {selectedPhoto && (
-            <div style={{ position: 'relative', marginBottom: 12 }}>
-              <img 
-                src={selectedPhoto} 
-                alt="Preview" 
-                style={{ width: '100%', maxHeight: 300, objectFit: 'cover', borderRadius: 8 }}
-              />
-              <Button
-                mode="secondary"
-                size="s"
-                onClick={() => setSelectedPhoto(null)}
-                style={{ position: 'absolute', top: 8, right: 8, background: 'rgba(0,0,0,0.7)' }}
-              >
-                ✕
-              </Button>
-            </div>
-          )}
-          
-          {/* 🔥 Кнопка загрузки фото */}
-          <div style={{ marginBottom: 12 }}>
-            <input
-              type="file"
-              accept="image/*"
-              onChange={handlePhotoUpload}
-              style={{ display: 'none' }}
-              id="trip-photo-upload"
-            />
-            <Button
-              mode="secondary"
-              size="s"
-              onClick={() => document.getElementById('trip-photo-upload')?.click()}
-              before={<Icon24Camera />}
-            >
-              Добавить фото
-            </Button>
-          </div>
-          
-          <Button
-            mode="primary"
-            onClick={handleCreateNote}
-            disabled={creating || (!newNote.trim() && !selectedPhoto)}
-            stretched
-          >
-            {creating ? <Spinner size="small" /> : 'Добавить'}
-          </Button>
-        </Card>
 
+      <div style={{ padding: 10, paddingBottom: 80 }}>
         {/* 🔥 Список заметок */}
         {notes.length === 0 ? (
           <Placeholder
             header="Пока нет заметок"
-            action={<Button mode="primary" onClick={() => document.getElementById('trip-photo-upload')?.click()}>Добавить первую заметку</Button>}
           >
             Добавьте первую заметку об этом путешествии
           </Placeholder>
         ) : (
-          notes.map(note => (
-            <Card
-              key={note.id}
-              className="vh-note-card"
-              onClick={() => onOpenPost?.(note.id)}
-              style={{
-                padding: 15,
-                marginBottom: 12,
-                cursor: 'pointer'
-              }}
-            >
-              {/* Шапка заметки */}
-              <div style={{ display: 'flex', gap: 10, marginBottom: 10 }}>
-                <Avatar src={note.avatar} size={40} />
-                <div>
-                  <Text weight="2">{note.first_name} {note.last_name}</Text>
-                  <Text caption style={{ color: 'var(--vkui--color_text_subhead)' }}>
-                    {new Date(note.created_at).toLocaleDateString('ru-RU')}
-                  </Text>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+            {notes.map(note => (
+              <div
+                key={note.id}
+                className="vh-note-card"
+                style={{
+                  position: 'relative',
+                  borderRadius: 12,
+                  overflow: 'hidden',
+                  cursor: 'pointer',
+                  boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
+                  minHeight: 150
+                }}
+                onClick={() => onOpenPost?.(note.id)}
+              >
+                {/* Фон (если есть фото) */}
+                {note.images && note.images !== '[]' && (() => {
+                  try {
+                    const urls = typeof note.images === 'string' ? JSON.parse(note.images) : note.images;
+                    if (Array.isArray(urls) && urls.length > 0) {
+                      return (
+                        <img
+                          src={urls[0]}
+                          alt={note.text}
+                          style={{
+                            position: 'absolute', top: 0, left: 0, width: '100%', height: '100%',
+                            objectFit: 'cover', zIndex: 0
+                          }}
+                        />
+                      );
+                    }
+                  } catch { return null; }
+                })()}
+
+                {/* Градиент если нет фото */}
+                {(!note.images || note.images === '[]') && (
+                  <div style={{
+                    position: 'absolute', top: 0, left: 0, width: '100%', height: '100%',
+                    background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', zIndex: 0
+                  }} />
+                )}
+
+                {/* Затемнение */}
+                <div style={{
+                  position: 'absolute', top: 0, left: 0, width: '100%', height: '100%',
+                  background: 'rgba(0,0,0,0.4)', zIndex: 1
+                }} />
+
+                {/* Контент */}
+                <div style={{
+                  position: 'relative', zIndex: 2, padding: 15, color: 'white',
+                  minHeight: 150, display: 'flex', flexDirection: 'column', justifyContent: 'space-between'
+                }}>
+                  <div>
+                    <div style={{ fontSize: 16, fontWeight: 600, marginBottom: 4 }}>
+                      {note.text ? note.text.substring(0, 50) + (note.text.length > 50 ? '...' : '') : 'Без текста'}
+                    </div>
+                    <div style={{ fontSize: 13, opacity: 0.8 }}>
+                      {new Date(note.created_at).toLocaleDateString('ru-RU')}
+                    </div>
+                  </div>
+
+                  <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', alignItems: 'center' }}>
+                    {note.likes_count !== undefined && (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 14 }}>
+                        <span>❤️</span>
+                        <span>{note.likes_count}</span>
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
-
-              {/* Текст */}
-              {note.text && (
-                <Text style={{ whiteSpace: 'pre-wrap', marginBottom: 10 }}>
-                  {note.text}
-                </Text>
-              )}
-
-              {/* 🔥 Фото */}
-              {note.images && note.images !== '[]' && (
-                <div style={{ marginTop: 10 }}>
-                  {(() => {
-                    try {
-                      const urls = typeof note.images === 'string' 
-                        ? JSON.parse(note.images) 
-                        : note.images;
-                      if (Array.isArray(urls) && urls.length > 0) {
-                        return urls.slice(0, 3).map((url, idx) => (
-                          <img
-                            key={idx}
-                            src={url}
-                            alt=""
-                            style={{
-                              width: '100%',
-                              maxHeight: 300,
-                              objectFit: 'cover',
-                              borderRadius: 8,
-                              marginBottom: idx < urls.length - 1 ? 8 : 0
-                            }}
-                          />
-                        ));
-                      }
-                    } catch { return null; }
-                  })()}
-                </div>
-              )}
-
-              {/* Лайки (если есть) */}
-              {note.likes_count !== undefined && (
-                <div style={{ marginTop: 10, display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <span>❤️</span>
-                  <Text caption>{note.likes_count}</Text>
-                </div>
-              )}
-            </Card>
-          ))
+            ))}
+          </div>
         )}
       </div>
+
+      {/* FAB Button */}
+      <Button
+        mode="primary"
+        before={<Icon24Add />}
+        onClick={() => {
+          setNewNote('');
+          setSelectedPhoto(null);
+          setCreating(false);
+          setShowModal(true);
+        }}
+        className="vh-btn vh-fab"
+      />
+
+      {/* Modal */}
+      {showModal && (
+        <div
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: 'rgba(0, 0, 0, 0.7)',
+            zIndex: 3000,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: 20
+          }}
+          onClick={() => !creating && setShowModal(false)}
+        >
+          <div
+            className="vh-modal"
+            style={{
+              backgroundColor: '#FFFFFF',
+              borderRadius: 16,
+              padding: 24,
+              width: '100%',
+              maxWidth: 400,
+              boxShadow: '0 4px 24px rgba(0, 0, 0, 0.5)'
+            }}
+            onClick={e => e.stopPropagation()}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+              <h2 className="vh-modal__title" style={{ margin: 0 }}>Новая заметка</h2>
+              <Button mode="secondary" size="s" disabled={creating} onClick={() => setShowModal(false)} className="vh-btn vh-modal__close-btn">✕</Button>
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+              <Textarea
+                className="vh-modal__textarea"
+                value={newNote}
+                onChange={e => setNewNote(e.target.value)}
+                placeholder="Расскажите о своём путешествии..."
+                rows={4}
+                disabled={creating}
+              />
+
+              {/* Превью фото */}
+              {selectedPhoto && (
+                <div style={{ position: 'relative', marginBottom: 12 }}>
+                  <img
+                    src={selectedPhoto}
+                    alt="Preview"
+                    style={{ width: '100%', maxHeight: 200, objectFit: 'cover', borderRadius: 8 }}
+                  />
+                  <Button
+                    mode="secondary"
+                    size="s"
+                    onClick={() => setSelectedPhoto(null)}
+                    className="vh-btn"
+                    style={{ position: 'absolute', top: 8, right: 8, background: 'rgba(0,0,0,0.7)' }}
+                  >
+                    ✕
+                  </Button>
+                </div>
+              )}
+
+              {/* Кнопка загрузки фото */}
+              <div
+                onClick={() => !creating && document.getElementById('trip-photo-upload')?.click()}
+                style={{
+                  width: '100%',
+                  height: 120,
+                  borderRadius: 12,
+                  border: '2px dashed #E8E4DB',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  cursor: creating ? 'default' : 'pointer',
+                  overflow: 'hidden',
+                  position: 'relative'
+                }}
+              >
+                {!selectedPhoto && (
+                  <div style={{ textAlign: 'center', color: '#6B7280' }}>
+                    <Icon24Camera style={{ margin: '0 auto 8px' }} />
+                    <div>Добавить фото</div>
+                  </div>
+                )}
+              </div>
+              <input type="file" accept="image/*" onChange={handlePhotoUpload} style={{ display: 'none' }} id="trip-photo-upload" />
+
+              <Button
+                mode="primary"
+                onClick={handleCreateNote}
+                disabled={creating || (!newNote.trim() && !selectedPhoto)}
+                loading={creating}
+                stretched
+                size="l"
+                className="vh-btn"
+              >
+                Добавить
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </Panel>
   );
 }

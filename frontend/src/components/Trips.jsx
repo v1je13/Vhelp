@@ -113,64 +113,42 @@ export function Trips({ user, onOpenTrip, onTripCreated, newTrip }) {
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
               {trips.map(trip => (
-                <div
-                  key={trip.id}
-                  className="vh-trip-card"
-                  style={{
-                    backgroundColor: '#FFFFFF',
-                    borderRadius: 12,
-                    padding: 16,
-                    cursor: 'pointer',
-                    boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
-                    border: '1px solid #E8E4DB',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    gap: 12
-                  }}
-                  onClick={() => onOpenTrip?.(trip.id)}
-                >
-                  {/* Header with cover image or gradient */}
-                  <div style={{
-                    position: 'relative',
-                    height: 120,
-                    borderRadius: 8,
-                    overflow: 'hidden',
-                    marginBottom: 8
-                  }}>
-                    {trip.cover_image ? (
-                      <img
-                        src={trip.cover_image}
-                        alt={trip.name}
-                        style={{
-                          width: '100%',
-                          height: '100%',
-                          objectFit: 'cover'
-                        }}
-                      />
-                    ) : (
-                      <div style={{
-                        width: '100%',
-                        height: '100%',
-                        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)'
-                      }} />
-                    )}
-                  </div>
+                <div key={trip.id} className="vh-trip-card" style={{ position: 'relative', borderRadius: 12, overflow: 'hidden', cursor: 'pointer', boxShadow: '0 2px 8px rgba(0,0,0,0.15)', minHeight: 150 }} onClick={() => onOpenTrip?.(trip.id)}>
+                  {/* Фон (если есть) */}
+                  {trip.cover_image ? (
+                    <img
+                      src={trip.cover_image}
+                      alt={trip.name}
+                      style={{
+                        position: 'absolute', top: 0, left: 0, width: '100%', height: '100%',
+                        objectFit: 'cover', zIndex: 0
+                      }}
+                    />
+                  ) : (
+                    <div style={{
+                      position: 'absolute', top: 0, left: 0, width: '100%', height: '100%',
+                      background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', zIndex: 0
+                    }} />
+                  )}
 
-                  {/* Content */}
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  {/* Затемнение */}
+                  <div style={{
+                    position: 'absolute', top: 0, left: 0, width: '100%', height: '100%',
+                    background: 'rgba(0,0,0,0.4)', zIndex: 1
+                  }} />
+
+                  {/* Контент */}
+                  <div style={{
+                    position: 'relative', zIndex: 2, padding: 15, color: 'white',
+                    minHeight: 150, display: 'flex', flexDirection: 'column', justifyContent: 'space-between'
+                  }}>
                     <div>
-                      <div style={{ fontSize: 18, fontWeight: 700, color: '#000000', marginBottom: 4 }}>{trip.name}</div>
-                      <div style={{ fontSize: 13, color: '#6B7280' }}>{trip.notes_count || 0} заметок</div>
+                      <div style={{ fontSize: 20, fontWeight: 600, marginBottom: 4 }}>{trip.name}</div>
+                      <div style={{ fontSize: 13, opacity: 0.8 }}>{trip.notes_count || 0} заметок</div>
                     </div>
 
-                    <div style={{ display: 'flex', gap: 8 }}>
-                      <Button
-                        mode="secondary"
-                        size="s"
-                        before={<Icon24DeleteOutline />}
-                        onClick={(e) => { e.stopPropagation(); handleDeleteTrip(trip.id, e); }}
-                        className="vh-btn"
-                      />
+                    <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+                      <Button mode="secondary" size="s" before={<Icon24DeleteOutline />} onClick={(e) => { e.stopPropagation(); handleDeleteTrip(trip.id, e); }} style={{ background: 'rgba(255,255,255,0.9)' }} />
                     </div>
                   </div>
                 </div>
