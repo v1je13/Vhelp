@@ -38,22 +38,31 @@
    GLOBAL RESETS & BASE
    ========================================= */
 
-#root, .vkui__root {
+#root, .vkui__root, .vkui__root--embedded {
   background-color: var(--vh-bg-page) !important;
 }
 
 body {
   font-family: 'Roboto', -apple-system, BlinkMacSystemFont, sans-serif;
-  background-color: var(--vh-bg-page);
+  background-color: var(--vh-bg-page) !important;
 }
 
 /* Override VKUI background variables */
 :root {
-  --vkui--color_background: var(--vh-bg-page);
+  --vkui--color_background: var(--vh-bg-page) !important;
   --vkui--color_background_content: #FFFFFF;
   --vkui--color_text_primary: var(--vh-text-primary);
   --vkui--color_text_secondary: var(--vh-text-secondary);
   --vkui--font_family: 'Roboto', sans-serif;
+}
+
+/* Ensure all VKUI panels use the theme background */
+.vkui__panel,
+.vkui__panel__in,
+.vkui__view,
+.vkui__split-layout,
+.vkui__split-col {
+  background-color: var(--vh-bg-page) !important;
 }
 
 /* =========================================
