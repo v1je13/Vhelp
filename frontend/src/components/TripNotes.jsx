@@ -58,22 +58,28 @@ export function TripNotes({ tripId, onBack, user, onOpenPost }) {
   // 🔥 Создание заметки с фото
   const handleCreateNote = async () => {
     if (!newNote.trim() && !selectedPhoto) return;
-    
+
     try {
       setCreating(true);
-      await api.createPost({
+      const result = await api.createPost({
         text: newNote,
         images: selectedPhoto ? [selectedPhoto] : [],
         trip_id: tripId // ← Привязываем к путешествию
       });
-      
+
+      // Optimistic update - добавляем заметку сразу в список
+      if (result.post) {
+        setNotes(prev => [result.post, ...prev]);
+      }
+
       setNewNote('');
       setSelectedPhoto(null);
-      await loadNotes();
       await vk.showNotification('✅', 'Заметка добавлена', 'success');
     } catch (err) {
       console.error('Create note error:', err);
       await vk.showNotification('❌', 'Не удалось создать заметку', 'error');
+      // Если ошибка, перезагружаем список
+      await loadNotes();
     } finally {
       setCreating(false);
     }
