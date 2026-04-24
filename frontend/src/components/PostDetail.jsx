@@ -106,7 +106,7 @@ export function PostDetail({ id, onBack, user }) {
   if (loading) {
     return (
       <>
-        <PanelHeader before={<Button mode="tertiary" onClick={onBack} size="s">← Назад</Button>}>
+        <PanelHeader before={<Button mode="secondary" onClick={onBack} size="m" className="vh-btn">← Назад</Button>}>
           Загрузка...
         </PanelHeader>
         <div style={{ padding: 20, textAlign: 'center' }}>
@@ -119,7 +119,7 @@ export function PostDetail({ id, onBack, user }) {
   if (!post) {
     return (
       <>
-        <PanelHeader before={<Button mode="tertiary" onClick={onBack} size="s">← Назад</Button>}>
+        <PanelHeader before={<Button mode="secondary" onClick={onBack} size="m" className="vh-btn">← Назад</Button>}>
           Пост не найден
         </PanelHeader>
         <Placeholder>Пост не найден</Placeholder>
@@ -130,9 +130,9 @@ export function PostDetail({ id, onBack, user }) {
   return (
     <>
       <PanelHeader
-        before={<Button mode="tertiary" onClick={onBack} size="s">← Назад</Button>}
+        before={<Button mode="secondary" onClick={onBack} size="m" className="vh-btn">← Назад</Button>}
         right={user && post.user_id === user.id && (
-          <Button mode="secondary" size="s" before={<Icon24DeleteOutline />} onClick={handleDeletePost}>
+          <Button mode="secondary" size="s" before={<Icon24DeleteOutline />} onClick={handleDeletePost} className="vh-btn">
             Удалить
           </Button>
         )}
@@ -255,29 +255,22 @@ export function PostDetail({ id, onBack, user }) {
           )}
           
           {/* Форма добавления комментария */}
-          <div style={{ 
-            display: 'flex', 
-            gap: 8,
-            position: 'sticky',
-            bottom: 0,
-            background: 'white',
-            padding: '12px 0',
-            borderTop: '1px solid #e7e8ec'
-          }}>
+          <div className="vh-comment-form">
             <Input
+              className="vh-comment-form__input"
               value={commentText}
               onChange={e => setCommentText(e.target.value)}
               placeholder="Написать комментарий..."
-              style={{ flex: 1 }}
               disabled={submitting}
             />
-            <Button 
-              mode="primary" 
+            <Button
+              mode="primary"
               size="s"
               onClick={handleAddComment}
               disabled={!commentText.trim() || submitting}
+              className="vh-comment-form__button"
             >
-              {submitting ? <Spinner size="small" /> : '➤'}
+              {submitting ? <Spinner size="small" /> : 'Отправить'}
             </Button>
           </div>
         </div>
