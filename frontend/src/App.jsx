@@ -548,32 +548,6 @@ function App() {
             }}
           />
         )}
-        {activePanel === 'trips' && (
-          <Button
-            mode="primary"
-            before={<Icon24Add />}
-            onClick={() => {
-              setTripsNewTripName('');
-              setTripsSelectedCover(null);
-              setTripsCreating(false);
-              setShowTripsModal(true);
-            }}
-            className="vh-btn vh-fab"
-            style={{
-              position: 'fixed',
-              bottom: 100,
-              right: 20,
-              width: 56,
-              height: 56,
-              borderRadius: '50%',
-              padding: 0,
-              zIndex: 2000,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center'
-            }}
-          />
-        )}
 
         {/* Feed Post Creation Modal */}
         {showFeedModal && (

@@ -146,8 +146,8 @@ body {
 
 .vh-bottom-nav {
   background-color: var(--vh-bg-menu) !important;
-  border-top: 1px solid rgba(67, 84, 39, 0.1);
-  border-radius: 20px 20px 0 0 !important;
+  border: 1px solid rgba(67, 84, 39, 0.1) !important;
+  border-radius: 20px !important;
   margin: 0 12px 20px 12px !important;
   padding: 12px 16px calc(12px + env(safe-area-inset-bottom)) 16px !important;
   position: fixed !important;
