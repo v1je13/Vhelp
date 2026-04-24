@@ -40,9 +40,18 @@ function App() {
   const [tripsSelectedCover, setTripsSelectedCover] = useState(null);
   const [tripsCreating, setTripsCreating] = useState(false);
   const [tripsCreated, setTripsCreated] = useState(0);
+  const [newTrip, setNewTrip] = useState(null);
 
   const showBottomNav = !!user;
-  
+
+  // Reset newTrip after it's been used by Trips component
+  useEffect(() => {
+    if (newTrip) {
+      const timer = setTimeout(() => setNewTrip(null), 100);
+      return () => clearTimeout(timer);
+    }
+  }, [newTrip]);
+
   useEffect(() => {
     // Watchdog для App.jsx — если инициализация зависла, все равно показываем интерфейс через 6 секунд
     const appWatchdog = setTimeout(() => {
@@ -267,7 +276,7 @@ function App() {
 
     try {
       setTripsCreating(true);
-      await api.createTrip({
+      const result = await api.createTrip({
         name: tripsNewTripName.trim(),
         cover_image: tripsSelectedCover,
       });
@@ -275,6 +284,13 @@ function App() {
       setTripsNewTripName('');
       setTripsSelectedCover(null);
       setShowTripsModal(false);
+
+      // Optimistic update - add trip immediately via callback
+      if (result.trip) {
+        setNewTrip(result.trip);
+      }
+
+      // Also trigger reload to ensure consistency
       setTripsCreated(prev => prev + 1);
 
       await vk.showNotification('✅', 'Путешествие создано', 'success');
@@ -397,6 +413,7 @@ function App() {
                   user={user}
                   onOpenTrip={handleOpenTrip}
                   onTripCreated={tripsCreated}
+                  newTrip={newTrip}
                 />
               </Panel>
               
