@@ -304,20 +304,37 @@ function App() {
   
   return (
     <AdaptivityProvider>
-      <AppRoot mode="embedded" style={{ height: '100vh', backgroundColor: '#F6F2E9' }}>
+      <AppRoot
+        mode="embedded"
+        style={{
+          height: '100vh',
+          backgroundColor: '#F6F2E9',
+          '--vkui--color_background': '#F6F2E9',
+          '--vkui--color_background_content': '#F6F2E9',
+        }}
+      >
         <SplitLayout
           header={false}
-          style={{ height: '100%', backgroundColor: '#F6F2E9' }}
+          style={{
+            height: '100%',
+            backgroundColor: '#F6F2E9',
+          }}
         >
           <SplitCol
             style={{
               height: '100%',
               display: 'flex',
               flexDirection: 'column',
-              backgroundColor: '#F6F2E9'
+              backgroundColor: '#F6F2E9',
             }}
           >
-            <View activePanel={activePanel} style={{ flex: 1 }}>
+            <View
+              activePanel={activePanel}
+              style={{
+                flex: 1,
+                backgroundColor: '#F6F2E9',
+              }}
+            >
               {/* Авторизация */}
               <Panel id="auth" style={{ backgroundColor: '#F6F2E9' }}>
                 <PanelHeader style={{ backgroundColor: '#F6F2E9' }}>Авторизация</PanelHeader>
