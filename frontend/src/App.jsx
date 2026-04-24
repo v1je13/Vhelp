@@ -505,7 +505,13 @@ function App() {
           <Button
             mode="primary"
             before={<Icon24Add />}
-            onClick={() => setShowFeedModal(true)}
+            onClick={() => {
+              setFeedNewPost('');
+              setFeedSelectedPhotos([]);
+              setFeedPostTags('');
+              setFeedCreating(false);
+              setShowFeedModal(true);
+            }}
             className="vh-btn vh-fab"
             style={{
               position: 'fixed',
@@ -526,7 +532,12 @@ function App() {
           <Button
             mode="primary"
             before={<Icon24Add />}
-            onClick={() => setShowTripsModal(true)}
+            onClick={() => {
+              setTripsNewTripName('');
+              setTripsSelectedCover(null);
+              setTripsCreating(false);
+              setShowTripsModal(true);
+            }}
             className="vh-btn vh-fab"
             style={{
               position: 'fixed',
