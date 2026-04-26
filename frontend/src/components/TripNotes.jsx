@@ -15,7 +15,7 @@ import { Icon24Add, Icon24Camera } from '@vkontakte/icons';
 import { api } from '../api/client';
 import { vk } from '../lib/vk';
 
-export function TripNotes({ tripId, onBack, user, onOpenPost }) {
+export function TripNotes({ tripId, onBack, user, onOpenPost, onOpenNoteEdit }) {
   const [notes, setNotes] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
@@ -129,7 +129,7 @@ export function TripNotes({ tripId, onBack, user, onOpenPost }) {
                   boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
                   minHeight: 150
                 }}
-                onClick={() => onOpenPost?.(note.id, true)}
+                onClick={() => onOpenNoteEdit?.(note.id)}
               >
                 {/* Фон (если есть фото) */}
                 {note.images && note.images !== '[]' && (() => {

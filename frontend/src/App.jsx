@@ -15,6 +15,7 @@ import { Profile } from './components/Profile';
 import { Trips } from './components/Trips';
 import { TripPosts } from './components/TripPosts';
 import { TripNotes } from './components/TripNotes';
+import { TripNoteEdit } from './components/TripNoteEdit';
 import { Auth } from './components/Auth';
 import { api } from './api/client';
 import { vk } from './lib/vk';
@@ -25,6 +26,7 @@ function App() {
   const [isReady, setIsReady] = useState(false);
   const [selectedPostId, setSelectedPostId] = useState(null);
   const [selectedTripId, setSelectedTripId] = useState(null);
+  const [selectedNoteId, setSelectedNoteId] = useState(null);
   const [postFromTrip, setPostFromTrip] = useState(false);
   const [authError, setAuthError] = useState(null);
   const [showFeedModal, setShowFeedModal] = useState(false);
@@ -172,6 +174,16 @@ function App() {
   const handleCloseTrip = () => {
     setSelectedTripId(null);
     setActivePanel('trips');
+  };
+
+  const handleOpenNoteEdit = (noteId) => {
+    setSelectedNoteId(noteId);
+    setActivePanel('trip-note-edit');
+  };
+
+  const handleCloseNoteEdit = () => {
+    setSelectedNoteId(null);
+    setActivePanel('trip-notes');
   };
 
   const handleCreateTrip = () => {
@@ -431,9 +443,22 @@ function App() {
                     }}
                     user={user}
                     onOpenPost={handleOpenPost}
+                    onOpenNoteEdit={handleOpenNoteEdit}
                   />
                 )}
               </Panel>
+
+              {/* TripNoteEdit Panel */}
+              {selectedNoteId && (
+                <Panel id="trip-note-edit" style={{ backgroundColor: '#F6F2E9' }}>
+                  <TripNoteEdit
+                    id={selectedNoteId}
+                    tripId={selectedTripId}
+                    onBack={handleCloseNoteEdit}
+                    user={user}
+                  />
+                </Panel>
+              )}
 
               {/* PostDetail Panel */}
               {selectedPostId && (
