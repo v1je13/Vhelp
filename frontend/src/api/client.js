@@ -1,4 +1,4 @@
-const API_URL = ''; // Use same origin for Cloudflare Functions
+const API_URL = 'https://vhelp-backend.vercel.app';
 
 const apiFetch = async (endpoint, options = {}, retries = 2) => {
   const url = `${API_URL}/api${endpoint}`;
