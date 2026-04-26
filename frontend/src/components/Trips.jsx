@@ -63,10 +63,15 @@ export function Trips({ user, onOpenTrip, onTripCreated, newTrip }) {
 
     try {
       setCreating(true);
-      await api.createTrip({
+      const result = await api.createTrip({
         name: tripName.trim(),
         cover_image: selectedCover,
       });
+
+      // Add the new trip to the list immediately
+      if (result.trip) {
+        setTrips(prev => [result.trip, ...prev]);
+      }
 
       setTripName('');
       setSelectedCover(null);

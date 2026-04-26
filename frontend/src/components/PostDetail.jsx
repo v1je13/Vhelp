@@ -64,12 +64,12 @@ export function PostDetail({ id, onBack, user, showComments = true }) {
         commentInputRef.current.value = '';
       }
 
-      await vk.showNotification('✅', 'Комментарий добавлен', 'success');
+      setSubmitting(false);
+      vk.showNotification('✅', 'Комментарий добавлен', 'success');
     } catch (err) {
       console.error('Comment error:', err);
-      await vk.showNotification('❌', 'Не удалось добавить комментарий', 'error');
-    } finally {
       setSubmitting(false);
+      vk.showNotification('❌', 'Не удалось добавить комментарий', 'error');
     }
   };
 
