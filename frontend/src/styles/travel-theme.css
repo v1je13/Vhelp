@@ -626,7 +626,6 @@ body {
   border-radius: var(--vh-radius-sm);
   padding: var(--vh-spacing-md);
   margin-bottom: var(--vh-spacing-sm);
-  border-left: 4px solid var(--vh-btn);
 }
 
 .vh-note-card__date {
