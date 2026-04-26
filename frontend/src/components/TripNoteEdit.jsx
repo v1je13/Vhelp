@@ -53,13 +53,13 @@ export function TripNoteEdit({ id, tripId, onBack, user }) {
       });
 
       setNote(prev => ({ ...prev, text: editText, images: JSON.stringify(editPhotos) }));
-      await vk.showNotification('✅', 'Заметка обновлена', 'success');
+      setSaving(false);
+      vk.showNotification('✅', 'Заметка обновлена', 'success');
       onBack();
     } catch (err) {
       console.error('Update note error:', err);
-      await vk.showNotification('❌', 'Не удалось обновить заметку', 'error');
-    } finally {
       setSaving(false);
+      vk.showNotification('❌', 'Не удалось обновить заметку', 'error');
     }
   };
 
