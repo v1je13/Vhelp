@@ -94,16 +94,14 @@ export function TripNoteEdit({ id, tripId, onBack, user }) {
   };
 
   const handlePhotoUpload = (e) => {
-    const files = Array.from(e.target.files || []);
-    if (files.length === 0) return;
+    const file = e.target.files?.[0];
+    if (!file) return;
 
-    files.forEach(file => {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setEditPhotos(prev => [...prev, reader.result]);
-      };
-      reader.readAsDataURL(file);
-    });
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setEditPhotos([reader.result]);
+    };
+    reader.readAsDataURL(file);
   };
 
   const formatDate = (dateValue) => {
@@ -186,50 +184,28 @@ export function TripNoteEdit({ id, tripId, onBack, user }) {
             Фото
           </Text>
           {editPhotos.length > 0 ? (
-            <div style={{ display: 'flex', gap: 8, overflowX: 'auto', paddingBottom: 8 }}>
-              {editPhotos.map((photo, index) => (
-                <div key={index} style={{ position: 'relative', flexShrink: 0, width: 100, height: 100 }}>
-                  <img
-                    src={photo}
-                    alt="Preview"
-                    style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: 8 }}
-                  />
-                  <Button
-                    mode="secondary"
-                    size="s"
-                    onClick={() => handleRemovePhoto(index)}
-                    className="vh-btn"
-                    style={{ position: 'absolute', top: 4, right: 4, padding: 4, minWidth: 'auto', width: 24, height: 24 }}
-                  >
-                    ×
-                  </Button>
-                </div>
-              ))}
-              {editPhotos.length < 3 && (
-                <div
-                  style={{
-                    width: 100,
-                    height: 100,
-                    borderRadius: 8,
-                    border: '2px dashed #E8E4DB',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    cursor: saving ? 'default' : 'pointer',
-                    flexShrink: 0
-                  }}
-                  onClick={() => document.getElementById('note-photo-upload')?.click()}
-                >
-                  <Icon24Camera />
-                </div>
-              )}
+            <div style={{ position: 'relative', marginBottom: 12 }}>
+              <img
+                src={editPhotos[0]}
+                alt="Preview"
+                style={{ width: '100%', maxHeight: 300, objectFit: 'cover', borderRadius: 12 }}
+              />
+              <Button
+                mode="secondary"
+                size="s"
+                onClick={() => setEditPhotos([])}
+                className="vh-btn"
+                style={{ position: 'absolute', top: 8, right: 8, background: 'rgba(0,0,0,0.7)' }}
+              >
+                ✕
+              </Button>
             </div>
           ) : (
             <div
               onClick={() => !saving && document.getElementById('note-photo-upload')?.click()}
               style={{
                 width: '100%',
-                height: 120,
+                height: 200,
                 borderRadius: 12,
                 border: '2px dashed #E8E4DB',
                 display: 'flex',
@@ -242,11 +218,11 @@ export function TripNoteEdit({ id, tripId, onBack, user }) {
             >
               <div style={{ textAlign: 'center', color: '#6B7280' }}>
                 <Icon24Camera style={{ margin: '0 auto 8px' }} />
-                <div>Добавить фото (до 3)</div>
+                <div>Добавить фото</div>
               </div>
             </div>
           )}
-          <input type="file" accept="image/*" multiple onChange={handlePhotoUpload} style={{ display: 'none' }} id="note-photo-upload" />
+          <input type="file" accept="image/*" onChange={handlePhotoUpload} style={{ display: 'none' }} id="note-photo-upload" />
         </div>
 
         {/* Текст */}
@@ -255,12 +231,12 @@ export function TripNoteEdit({ id, tripId, onBack, user }) {
             Описание
           </Text>
           <Textarea
+            className="vh-modal__textarea"
             value={editText}
             onChange={e => setEditText(e.target.value)}
             placeholder="Описание..."
             rows={6}
             disabled={saving}
-            style={{ width: '100%' }}
           />
         </div>
       </div>

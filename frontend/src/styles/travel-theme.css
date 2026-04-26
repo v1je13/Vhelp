@@ -73,10 +73,10 @@
 
 /* Back button styling */
 .vkuiPanelHeader .vkuiButton {
-  padding: 8px 16px !important;
-  font-size: 14px !important;
+  padding: 6px 12px !important;
+  font-size: 13px !important;
   font-weight: 500 !important;
-  border-radius: 8px !important;
+  border-radius: 6px !important;
   background-color: transparent !important;
   color: #000000 !important;
   border: 1px solid #E8E4DB !important;
