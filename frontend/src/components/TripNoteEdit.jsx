@@ -161,7 +161,7 @@ export function TripNoteEdit({ id, tripId, onBack, user }) {
         Редактирование заметки
       </PanelHeader>
 
-      <div style={{ padding: 15 }}>
+      <div style={{ padding: 15, paddingBottom: 100 }}>
         {/* Шапка заметки: автор и дата */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 15 }}>
           <Avatar
@@ -238,6 +238,30 @@ export function TripNoteEdit({ id, tripId, onBack, user }) {
             rows={6}
             disabled={saving}
           />
+        </div>
+
+        {/* Кнопка сохранения внизу */}
+        <div style={{
+          position: 'fixed',
+          bottom: 0,
+          left: 0,
+          right: 0,
+          padding: '16px 20px calc(16px + env(safe-area-inset-bottom))',
+          backgroundColor: '#F6F2E9',
+          borderTop: '1px solid #E8E4DB',
+          zIndex: 100
+        }}>
+          <Button
+            mode="primary"
+            onClick={handleSave}
+            disabled={saving}
+            loading={saving}
+            stretched
+            size="l"
+            className="vh-btn"
+          >
+            Сохранить изменения
+          </Button>
         </div>
       </div>
     </Panel>
