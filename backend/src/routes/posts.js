@@ -99,9 +99,9 @@ posts.put('/:id', auth, async (c) => {
       return c.json({ message: 'Not authorized' }, 403);
     }
 
-    const { content, images, location } = await c.req.json();
-    
-    post.content = content || post.content;
+    const { text, content, images, location } = await c.req.json();
+
+    post.content = text || content || post.content;
     post.images = images || post.images;
     post.location = location || post.location;
     post.updatedAt = Date.now();
