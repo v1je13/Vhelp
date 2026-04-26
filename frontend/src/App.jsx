@@ -27,6 +27,7 @@ function App() {
   const [selectedPostId, setSelectedPostId] = useState(null);
   const [selectedTripId, setSelectedTripId] = useState(null);
   const [selectedNoteId, setSelectedNoteId] = useState(null);
+  const [noteEditRefresh, setNoteEditRefresh] = useState(0);
   const [postFromTrip, setPostFromTrip] = useState(false);
   const [authError, setAuthError] = useState(null);
   const [showFeedModal, setShowFeedModal] = useState(false);
@@ -184,6 +185,8 @@ function App() {
   const handleCloseNoteEdit = () => {
     setSelectedNoteId(null);
     setActivePanel('trip-notes');
+    // Force refresh by setting a timestamp
+    setNoteEditRefresh(Date.now());
   };
 
   const handleCreateTrip = () => {
@@ -444,6 +447,7 @@ function App() {
                     user={user}
                     onOpenPost={handleOpenPost}
                     onOpenNoteEdit={handleOpenNoteEdit}
+                    refreshTrigger={noteEditRefresh}
                   />
                 )}
               </Panel>

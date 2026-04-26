@@ -47,15 +47,17 @@ export function TripNoteEdit({ id, tripId, onBack, user }) {
   const handleSave = async () => {
     try {
       setSaving(true);
-      await api.updatePost(id, {
+      console.log('Saving note:', { id, editText, editPhotos });
+      const result = await api.updatePost(id, {
         text: editText,
         images: editPhotos
       });
+      console.log('Save result:', result);
 
       setNote(prev => ({ ...prev, text: editText, images: JSON.stringify(editPhotos) }));
       setSaving(false);
       vk.showNotification('✅', 'Заметка обновлена', 'success');
-      onBack();
+      setTimeout(() => onBack(), 500);
     } catch (err) {
       console.error('Update note error:', err);
       setSaving(false);

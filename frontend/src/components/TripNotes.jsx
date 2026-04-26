@@ -15,7 +15,7 @@ import { Icon24Add, Icon24Camera } from '@vkontakte/icons';
 import { api } from '../api/client';
 import { vk } from '../lib/vk';
 
-export function TripNotes({ tripId, onBack, user, onOpenPost, onOpenNoteEdit }) {
+export function TripNotes({ tripId, onBack, user, onOpenPost, onOpenNoteEdit, refreshTrigger }) {
   const [notes, setNotes] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
@@ -26,7 +26,7 @@ export function TripNotes({ tripId, onBack, user, onOpenPost, onOpenNoteEdit }) 
 
   useEffect(() => {
     loadNotes();
-  }, [tripId]);
+  }, [tripId, refreshTrigger]);
 
   const loadNotes = async () => {
     try {
