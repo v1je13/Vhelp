@@ -249,7 +249,7 @@ export function TripNoteEdit({ id, tripId, onBack, user }) {
           padding: '16px 20px calc(16px + env(safe-area-inset-bottom))',
           backgroundColor: '#F6F2E9',
           borderTop: '1px solid #E8E4DB',
-          zIndex: 100
+          zIndex: 1000
         }}>
           <Button
             mode="primary"
