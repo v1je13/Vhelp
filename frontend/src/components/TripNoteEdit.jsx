@@ -57,7 +57,7 @@ export function TripNoteEdit({ id, tripId, onBack, user }) {
       setNote(prev => ({ ...prev, text: editText, images: JSON.stringify(editPhotos) }));
       setSaving(false);
       vk.showNotification('✅', 'Заметка обновлена', 'success');
-      setTimeout(() => onBack(), 500);
+      setTimeout(() => onBack(), 1000);
     } catch (err) {
       console.error('Update note error:', err);
       setSaving(false);
