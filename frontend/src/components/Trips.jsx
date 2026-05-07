@@ -18,6 +18,7 @@ export function Trips({ user, onOpenTrip, onTripCreated, newTrip }) {
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [tripName, setTripName] = useState('');
+  const [tripDescription, setTripDescription] = useState('');
   const [selectedCover, setSelectedCover] = useState(null);
   const [creating, setCreating] = useState(false);
 
@@ -65,6 +66,7 @@ export function Trips({ user, onOpenTrip, onTripCreated, newTrip }) {
       setCreating(true);
       const result = await api.createTrip({
         name: tripName.trim(),
+        description: tripDescription.trim(),
         cover_image: selectedCover,
       });
 
@@ -74,6 +76,7 @@ export function Trips({ user, onOpenTrip, onTripCreated, newTrip }) {
       }
 
       setTripName('');
+      setTripDescription('');
       setSelectedCover(null);
       setShowModal(false);
       onTripCreated?.();
@@ -168,6 +171,7 @@ export function Trips({ user, onOpenTrip, onTripCreated, newTrip }) {
           before={<Icon24Add />}
           onClick={() => {
             setTripName('');
+            setTripDescription('');
             setSelectedCover(null);
             setCreating(false);
             setShowModal(true);
@@ -215,8 +219,18 @@ export function Trips({ user, onOpenTrip, onTripCreated, newTrip }) {
                   className="vh-modal__input"
                   value={tripName}
                   onChange={e => setTripName(e.target.value)}
-                  placeholder="Название путешествия"
+                  placeholder="Название города"
                   disabled={creating}
+                />
+
+                <Input
+                  className="vh-modal__input"
+                  value={tripDescription}
+                  onChange={e => setTripDescription(e.target.value)}
+                  placeholder="Описание путешествия"
+                  disabled={creating}
+                  multiline
+                  rows={3}
                 />
 
                 <div

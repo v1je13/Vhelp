@@ -15,6 +15,7 @@ export function TripPosts({ tripId, onBack, onOpenPost }) {
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [tripName, setTripName] = useState('');
+  const [tripDescription, setTripDescription] = useState('');
 
   useEffect(() => {
     const load = async () => {
@@ -23,10 +24,13 @@ export function TripPosts({ tripId, onBack, onOpenPost }) {
         const data = await api.getTripNotes(tripId);
         setPosts(data.notes || data.posts || []);
         
-        // Получаем название путешествия
+        // Получаем название и описание путешествия
         const tripsData = await api.getUserTrips();
         const trip = tripsData.trips?.find(t => t.id === tripId);
-        if (trip) setTripName(trip.name);
+        if (trip) {
+          setTripName(trip.name);
+          setTripDescription(trip.description || '');
+        }
       } catch (err) {
         console.error('Failed to load trip posts:', err);
       } finally {
@@ -54,6 +58,18 @@ export function TripPosts({ tripId, onBack, onOpenPost }) {
       <PanelHeader left={<Button mode="secondary" onClick={onBack} size="s">← Назад</Button>}>
         {tripName || 'Путешествие'}
       </PanelHeader>
+      {tripDescription && (
+        <div style={{ 
+          padding: '10px 16px', 
+          background: 'var(--vkui--color_background_secondary)', 
+          borderBottom: '1px solid var(--vkui--color_separator_primary)',
+          color: 'var(--vkui--color_text_secondary)',
+          fontSize: 14,
+          lineHeight: 1.4
+        }}>
+          {tripDescription}
+        </div>
+      )}
       
       <div style={{ padding: 10, paddingBottom: 80 }}>
         {posts.length === 0 ? (
