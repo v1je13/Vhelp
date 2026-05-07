@@ -9,9 +9,10 @@ import {
   Text,
   Textarea,
   Card,
-  Input
+  Input,
+  Banner
 } from '@vkontakte/vkui';
-import { Icon24Add, Icon24Camera } from '@vkontakte/icons';
+import { Icon24Add, Icon24Camera, Icon24DeleteOutline } from '@vkontakte/icons';
 import { api } from '../api/client';
 import { vk } from '../lib/vk';
 
@@ -76,6 +77,21 @@ export function TripNotes({ tripId, onBack, user, onOpenPost, onOpenNoteEdit, re
       await vk.showNotification('❌', 'Не удалось обновить путешествие', 'error');
     } finally {
       setUpdating(false);
+    }
+  };
+
+  // 🔥 Удаление заметки
+  const handleDeleteNote = async (noteId, e) => {
+    e.stopPropagation();
+    
+    try {
+      await api.deletePost(noteId);
+      setNotes(prev => prev.filter(n => n.id !== noteId));
+      await vk.showNotification('✅', 'Заметка удалена', 'success');
+    } catch (err) {
+      console.error('Delete note error:', err);
+      await vk.showNotification('❌', 'Не удалось удалить заметку', 'error');
+      await loadNotes();
     }
   };
 
@@ -146,16 +162,12 @@ export function TripNotes({ tripId, onBack, user, onOpenPost, onOpenNoteEdit, re
         {tripName || 'Путешествие'}
       </PanelHeader>
       {tripDescription && (
-        <div style={{ 
-          padding: '10px 16px', 
-          background: 'var(--vkui--color_background_secondary)', 
-          borderBottom: '1px solid var(--vkui--color_separator_primary)',
-          color: 'var(--vkui--color_text_secondary)',
-          fontSize: 14,
-          lineHeight: 1.4
-        }}>
-          {tripDescription}
-        </div>
+        <Banner
+          before={<Avatar size={24} style={{ background: 'var(--vkui--color_accent_green)' }}>📝</Avatar>}
+          header="Описание"
+          subheader={tripDescription}
+          style={{ margin: 0, padding: '12px 16px' }}
+        />
       )}
 
       <div style={{ padding: 10, paddingBottom: 80 }}>
@@ -221,8 +233,17 @@ export function TripNotes({ tripId, onBack, user, onOpenPost, onOpenNoteEdit, re
                   minHeight: 150, display: 'flex', flexDirection: 'column', justifyContent: 'space-between'
                 }}>
                   <div>
-                    <div style={{ fontSize: 16, fontWeight: 600, marginBottom: 4 }}>
-                      {note.text ? note.text.substring(0, 50) + (note.text.length > 50 ? '...' : '') : 'Без текста'}
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 4 }}>
+                      <div style={{ fontSize: 16, fontWeight: 600, flex: 1 }}>
+                        {note.text ? note.text.substring(0, 50) + (note.text.length > 50 ? '...' : '') : 'Без текста'}
+                      </div>
+                      <Button
+                        mode="tertiary"
+                        size="s"
+                        before={<Icon24DeleteOutline />}
+                        onClick={(e) => handleDeleteNote(note.id, e)}
+                        style={{ marginLeft: 8, color: 'white' }}
+                      />
                     </div>
                     <div style={{ fontSize: 13, opacity: 0.8 }}>
                       {note.description || (note.created_at && !isNaN(new Date(note.created_at)) ? new Date(note.created_at).toLocaleDateString('ru-RU') : 'Без описания')}
