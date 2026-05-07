@@ -75,7 +75,8 @@ posts.post('/', auth, async (c) => {
       content: postContent,
       description: description || '',
       images: images || [],
-      location: location || ''
+      location: location || '',
+      tripId: trip_id || null
     });
 
     await post.save();
@@ -150,6 +151,20 @@ posts.get('/user/:userId', async (c) => {
     return c.json(posts);
   } catch (error) {
     console.error('Get user posts error:', error);
+    return c.json({ message: 'Server error' }, 500);
+  }
+});
+
+// Get posts by trip ID
+posts.get('/trip/:tripId', async (c) => {
+  try {
+    const posts = await Post.find({ tripId: c.req.param('tripId') })
+      .populate('author', 'vkId firstName lastName avatar')
+      .sort({ createdAt: -1 });
+
+    return c.json({ notes: posts });
+  } catch (error) {
+    console.error('Get trip posts error:', error);
     return c.json({ message: 'Server error' }, 500);
   }
 });

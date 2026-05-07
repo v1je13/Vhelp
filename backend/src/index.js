@@ -123,6 +123,15 @@ const routes = {
       await pool.query(`
         UPDATE posts SET likes_count = 0 WHERE likes_count IS NULL
       `);
+      // Add description column to posts table if it doesn't exist
+      await pool.query(`
+        ALTER TABLE posts
+        ADD COLUMN IF NOT EXISTS description TEXT DEFAULT ''
+      `);
+      // Update existing posts to have description = '' if NULL
+      await pool.query(`
+        UPDATE posts SET description = '' WHERE description IS NULL
+      `);
       sendJson(res, { success: true, message: 'Migration completed' });
     } catch (err) {
       sendJson(res, { error: err.message }, 500);
@@ -261,7 +270,7 @@ const routes = {
       const secret = getSecret();
       const decoded = await jwt.verify(token, secret);
 
-      const { text, images, tags = [], trip_id = null } = await parseBody(req);
+      const { text, description = '', images, tags = [], trip_id = null } = await parseBody(req);
 
       if (!text || text.trim().length < 3) {
         return sendJson(res, { error: 'Text required (min 3 chars)' }, 400);
@@ -269,9 +278,9 @@ const routes = {
 
       const postId = randomUUID();
       await pool.query(`
-        INSERT INTO posts (id, user_id, text, images, tags, trip_id, location, likes_count)
-        VALUES ($1, $2, $3, $4, $5, $6, $7, 0)
-      `, [postId, decoded.payload.userId, text.trim(), JSON.stringify(images || []),
+        INSERT INTO posts (id, user_id, text, description, images, tags, trip_id, location, likes_count)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 0)
+      `, [postId, decoded.payload.userId, text.trim(), description || '', JSON.stringify(images || []),
           JSON.stringify(tags), trip_id, JSON.stringify(null)]);
 
       const post = (await pool.query(`

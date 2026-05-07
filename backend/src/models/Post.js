@@ -36,6 +36,10 @@ const postSchema = new mongoose.Schema({
   commentsCount: {
     type: Number,
     default: 0
+  },
+  tripId: {
+    type: String,
+    default: null
   }
 }, {
   timestamps: true
