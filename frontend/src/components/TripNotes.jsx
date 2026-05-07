@@ -138,7 +138,7 @@ export function TripNotes({ tripId, onBack, user, onOpenPost, onOpenNoteEdit, re
     <Panel id="trip-notes">
       <PanelHeader 
         left={<Button mode="secondary" onClick={onBack} size="s" className="vh-btn">← Назад</Button>}
-        aside={<Button mode="secondary" size="s" onClick={() => setShowEditModal(true)} className="vh-btn">✏️</Button>}
+        aside={<Button mode="secondary" size="s" before={<Icon24Edit />} onClick={() => setShowEditModal(true)} className="vh-btn" />}
       >
         {tripName || 'Путешествие'}
       </PanelHeader>
