@@ -887,11 +887,21 @@ const routes = {
 
 // Vercel Node.js serverless function handler
 export default async function handler(req, res) {
-  const origin = req.headers['origin'] || 'https://frontend-roan-eight-57.vercel.app';
+  const allowedOrigins = [
+    'https://frontend-roan-eight-57.vercel.app',
+    'https://vk.com',
+    'https://dev.vk.com',
+    'http://localhost:3000',
+    'http://localhost:5173'
+  ];
+  
+  const origin = req.headers['origin'];
+  const isAllowedOrigin = allowedOrigins.includes(origin);
+  const corsOrigin = isAllowedOrigin ? origin : allowedOrigins[0];
 
   // Handle OPTIONS requests
   if (req.method === 'OPTIONS') {
-    res.setHeader('Access-Control-Allow-Origin', origin);
+    res.setHeader('Access-Control-Allow-Origin', corsOrigin);
     res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, PATCH, OPTIONS');
     res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Accept, Origin, X-VK-Sign');
     res.setHeader('Access-Control-Allow-Credentials', 'true');
@@ -903,7 +913,7 @@ export default async function handler(req, res) {
   }
 
   // Add CORS headers to all responses
-  res.setHeader('Access-Control-Allow-Origin', origin);
+  res.setHeader('Access-Control-Allow-Origin', corsOrigin);
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, PATCH, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Accept, Origin, X-VK-Sign');
   res.setHeader('Access-Control-Allow-Credentials', 'true');
