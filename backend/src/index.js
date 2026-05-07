@@ -132,6 +132,11 @@ const routes = {
       await pool.query(`
         UPDATE posts SET description = '' WHERE description IS NULL
       `);
+      // Add updated_at column to posts table if it doesn't exist
+      await pool.query(`
+        ALTER TABLE posts
+        ADD COLUMN IF NOT EXISTS updated_at BIGINT DEFAULT 0
+      `);
       sendJson(res, { success: true, message: 'Migration completed' });
     } catch (err) {
       sendJson(res, { error: err.message }, 500);
