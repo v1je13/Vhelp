@@ -225,7 +225,7 @@ export function TripNotes({ tripId, onBack, user, onOpenPost, onOpenNoteEdit, re
                       {note.text ? note.text.substring(0, 50) + (note.text.length > 50 ? '...' : '') : 'Без текста'}
                     </div>
                     <div style={{ fontSize: 13, opacity: 0.8 }}>
-                      {note.description || new Date(note.created_at).toLocaleDateString('ru-RU')}
+                      {note.description || (note.created_at && !isNaN(new Date(note.created_at)) ? new Date(note.created_at).toLocaleDateString('ru-RU') : 'Без описания')}
                     </div>
                   </div>
 
