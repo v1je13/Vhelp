@@ -95,7 +95,7 @@ function App() {
           console.log('App: Attempting auto-auth...');
           try {
             let response;
-            for (let i = 0; i < 2; i++) {
+            for (let i = 0; i < 3; i++) {
               try {
                 response = await api.vkAuth({
                   vk_user_id: initData.userData.vk_user_id,
@@ -106,8 +106,10 @@ function App() {
                 });
                 break;
               } catch (e) {
-                if (i === 1) throw e;
-                await new Promise(r => setTimeout(r, 2000));
+                console.log(`Retrying /auth/vk, attempts left: ${2 - i}`);
+                if (i === 2) throw e;
+                // Exponential backoff for mobile networks
+                await new Promise(r => setTimeout(r, 2000 * Math.pow(2, i)));
               }
             }
             
@@ -117,7 +119,16 @@ function App() {
             console.log('App: Auto-auth success');
           } catch (err) {
             console.error('App: Auto-auth failed', err);
-            setAuthError(err.message || 'Не удалось автоматически авторизоваться');
+            // More user-friendly error messages for mobile
+            let errorMsg = 'Не удалось автоматически авторизоваться';
+            if (err.message?.includes('Network') || err.message?.includes('fetch')) {
+              errorMsg = 'Проблемы с интернет-соединением. Проверьте сеть и попробуйте снова.';
+            } else if (err.message?.includes('timeout')) {
+              errorMsg = 'Медленное соединение. Попробуйте обновить страницу.';
+            } else if (err.status === 500) {
+              errorMsg = 'Сервер перегружен. Попробуйте через минуту.';
+            }
+            setAuthError(errorMsg);
             setActivePanel('auth'); 
           }
         } else {

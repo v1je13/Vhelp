@@ -12,7 +12,7 @@ const apiFetch = async (endpoint, options = {}, retries = 2) => {
 
   // Mobile: increased timeout and retry
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 30000); // 30s timeout
+  const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 second timeout for mobile
 
   try {
     const response = await fetch(url, {
@@ -31,6 +31,10 @@ const apiFetch = async (endpoint, options = {}, retries = 2) => {
     return response.json();
   } catch (err) {
     clearTimeout(timeoutId);
+
+    if (err.name === 'AbortError') {
+      throw new Error('timeout');
+    }
 
     // Retry on network errors
     if (retries > 0 && (err.name === 'AbortError' || err.message.includes('fetch'))) {
