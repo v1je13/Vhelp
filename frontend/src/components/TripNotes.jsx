@@ -11,7 +11,7 @@ import {
   Card,
   Input
 } from '@vkontakte/vkui';
-import { Icon24Add, Icon24Camera, Icon24Edit } from '@vkontakte/icons';
+import { Icon24Add, Icon24Camera } from '@vkontakte/icons';
 import { api } from '../api/client';
 import { vk } from '../lib/vk';
 
@@ -138,7 +138,7 @@ export function TripNotes({ tripId, onBack, user, onOpenPost, onOpenNoteEdit, re
     <Panel id="trip-notes">
       <PanelHeader 
         left={<Button mode="secondary" onClick={onBack} size="s" className="vh-btn">← Назад</Button>}
-        aside={<Button mode="secondary" size="s" before={<Icon24Edit />} onClick={() => setShowEditModal(true)} className="vh-btn" />}
+        aside={<Button mode="secondary" size="s" onClick={() => setShowEditModal(true)} className="vh-btn">✏️</Button>}
       >
         {tripName || 'Путешествие'}
       </PanelHeader>
