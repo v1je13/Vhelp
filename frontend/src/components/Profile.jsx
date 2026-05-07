@@ -142,7 +142,7 @@ export function Profile({ userId, user, onBack, onOpenPost }) {
         background: backgroundImage ? `url(${backgroundImage}) center/cover` : 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
         padding: '30px 20px',
         textAlign: 'center',
-        color: 'black',
+        color: 'white',
         position: 'relative'
       }}>
         {isOwnProfile && (

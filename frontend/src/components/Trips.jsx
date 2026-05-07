@@ -147,12 +147,12 @@ export function Trips({ user, onOpenTrip, onTripCreated, newTrip }) {
 
                   {/* Контент */}
                   <div style={{
-                    position: 'relative', zIndex: 2, padding: 15, color: 'black',
+                    position: 'relative', zIndex: 2, padding: 15, color: 'white',
                     minHeight: 150, display: 'flex', flexDirection: 'column', justifyContent: 'space-between'
                   }}>
                     <div>
-                      <div style={{ fontSize: 20, fontWeight: 600, marginBottom: 4, color: 'black' }}>{trip.name}</div>
-                      <div style={{ fontSize: 13, opacity: 0.8, color: 'black' }}>{trip.notes_count || 0} заметок</div>
+                      <div style={{ fontSize: 20, fontWeight: 600, marginBottom: 4 }}>{trip.name}</div>
+                      <div style={{ fontSize: 13, opacity: 0.8 }}>{trip.notes_count || 0} заметок</div>
                     </div>
 
                     <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>

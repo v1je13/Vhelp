@@ -235,12 +235,12 @@ export function TripNotes({ tripId, onBack, user, onOpenPost, onOpenNoteEdit, re
 
                 {/* Контент */}
                 <div style={{
-                  position: 'relative', zIndex: 2, padding: 15, color: 'black',
+                  position: 'relative', zIndex: 2, padding: 15, color: 'white',
                   minHeight: 150, display: 'flex', flexDirection: 'column', justifyContent: 'space-between'
                 }}>
                   <div>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 4 }}>
-                      <div style={{ fontSize: 16, fontWeight: 600, flex: 1, color: 'black' }}>
+                      <div style={{ fontSize: 16, fontWeight: 600, flex: 1 }}>
                         {note.text ? note.text.substring(0, 50) + (note.text.length > 50 ? '...' : '') : 'Без текста'}
                       </div>
                       <Button
@@ -248,10 +248,10 @@ export function TripNotes({ tripId, onBack, user, onOpenPost, onOpenNoteEdit, re
                         size="s"
                         before={<Icon24DeleteOutline />}
                         onClick={(e) => handleDeleteNote(note.id, e)}
-                        style={{ marginLeft: 8, color: 'black' }}
+                        style={{ marginLeft: 8, color: 'white' }}
                       />
                     </div>
-                    <div style={{ fontSize: 13, opacity: 0.8, color: 'black' }}>
+                    <div style={{ fontSize: 13, opacity: 0.8 }}>
                       {note.description || (note.created_at && !isNaN(new Date(note.created_at)) ? new Date(note.created_at).toLocaleDateString('ru-RU') : 'Без описания')}
                     </div>
                   </div>
