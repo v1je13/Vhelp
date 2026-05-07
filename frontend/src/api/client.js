@@ -3,7 +3,8 @@ const API_URL = 'https://vhelp-backend.vercel.app';
 const apiFetch = async (endpoint, options = {}, retries = 2) => {
   const url = `${API_URL}/api${endpoint}`;
 
-  const token = localStorage.getItem('vhelp_token');
+  const deviceId = localStorage.getItem('vhelp_device_id');
+  const token = deviceId ? localStorage.getItem(`vhelp_token_${deviceId}`) : localStorage.getItem('vhelp_token');
   const headers = {
     'Content-Type': 'application/json',
     ...(token && { 'Authorization': `Bearer ${token}` }),
@@ -70,5 +71,15 @@ export const api = {
   searchUsers: (q) => apiFetch(`/users/search?q=${encodeURIComponent(q)}`),
   searchPosts: (q) => apiFetch(`/posts/search?q=${encodeURIComponent(q)}`),
   getTagPosts: (tag) => apiFetch(`/tags/${encodeURIComponent(tag)}/posts`),
-  logout: () => { localStorage.removeItem('vhelp_token'); localStorage.removeItem('vhelp_user'); }
+  logout: () => { 
+    const deviceId = localStorage.getItem('vhelp_device_id');
+    if (deviceId) {
+      localStorage.removeItem(`vhelp_token_${deviceId}`);
+      localStorage.removeItem(`vhelp_user_${deviceId}`);
+    } else {
+      // Fallback to old keys
+      localStorage.removeItem('vhelp_token');
+      localStorage.removeItem('vhelp_user');
+    }
+  }
 };

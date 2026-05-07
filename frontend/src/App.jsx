@@ -67,9 +67,10 @@ function App() {
 
     const initApp = async () => {
       try {
-        // 1. Проверяем localStorage
-        const token = localStorage.getItem('vhelp_token');
-        const savedUser = localStorage.getItem('vhelp_user');
+        // 1. Проверяем localStorage с device-specific ключами
+        const deviceId = localStorage.getItem('vhelp_device_id') || generateDeviceId();
+        const token = localStorage.getItem(`vhelp_token_${deviceId}`);
+        const savedUser = localStorage.getItem(`vhelp_user_${deviceId}`);
         
         if (token && savedUser) {
           try { 
@@ -78,8 +79,16 @@ function App() {
             vk.init().catch(e => console.warn('Background bridge init failed:', e));
             return;
           } catch (e) { 
-            localStorage.removeItem('vhelp_user'); 
+            localStorage.removeItem(`vhelp_user_${deviceId}`); 
+            localStorage.removeItem(`vhelp_token_${deviceId}`);
           }
+        }
+
+        // Helper function to generate device ID
+        function generateDeviceId() {
+          const id = 'device_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+          localStorage.setItem('vhelp_device_id', id);
+          return id;
         }
 
         // 2. Если нет токена, пробуем авто-авторизацию через VK
@@ -113,8 +122,9 @@ function App() {
               }
             }
             
-            localStorage.setItem('vhelp_token', response.token);
-            localStorage.setItem('vhelp_user', JSON.stringify(response.user));
+            const deviceId = localStorage.getItem('vhelp_device_id') || generateDeviceId();
+            localStorage.setItem(`vhelp_token_${deviceId}`, response.token);
+            localStorage.setItem(`vhelp_user_${deviceId}`, JSON.stringify(response.user));
             setUser(response.user);
             console.log('App: Auto-auth success');
           } catch (err) {
@@ -149,10 +159,11 @@ function App() {
   }, []);
   
   const handleAuthSuccess = (response) => {
-    // Сохраняем данные при ручной авторизации
+    // Сохраняем данные при ручной авторизации с device-specific ключами
+    const deviceId = localStorage.getItem('vhelp_device_id') || generateDeviceId();
     if (response.token && response.user) {
-      localStorage.setItem('vhelp_token', response.token);
-      localStorage.setItem('vhelp_user', JSON.stringify(response.user));
+      localStorage.setItem(`vhelp_token_${deviceId}`, response.token);
+      localStorage.setItem(`vhelp_user_${deviceId}`, JSON.stringify(response.user));
       setUser(response.user);
     } else {
       setUser(response);
