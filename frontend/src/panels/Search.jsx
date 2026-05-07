@@ -418,15 +418,15 @@ export default function SearchPanel({ nav }) {
         .travel-card-title, .note-card-title {
           font-size: 22px;
           font-weight: 700;
-          color: #fff;
+          color: #000;
           margin: 0 0 4px 0;
-          text-shadow: 0 2px 4px rgba(0,0,0,0.5);
+          text-shadow: 0 2px 4px rgba(0,0,0,0.1);
         }
 
         .travel-notes-count, .note-description {
           font-size: 14px;
-          color: rgba(255,255,255,0.95);
-          text-shadow: 0 1px 2px rgba(0,0,0,0.5);
+          color: rgba(0,0,0,0.95);
+          text-shadow: 0 1px 2px rgba(255,255,255,0.5);
         }
 
         .travel-card-actions, .note-card-actions {
@@ -641,9 +641,9 @@ export default function SearchPanel({ nav }) {
           width: 32px;
           height: 32px;
           border-radius: 50%;
-          background-color: rgba(0,0,0,0.6);
+          background-color: rgba(255,255,255,0.8);
           border: none;
-          color: #fff;
+          color: #000;
           font-size: 20px;
           cursor: pointer;
           display: flex;
