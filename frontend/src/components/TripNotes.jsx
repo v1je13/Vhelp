@@ -11,7 +11,7 @@ import {
   Card,
   Input
 } from '@vkontakte/vkui';
-import { Icon24Add, Icon24Camera } from '@vkontakte/icons';
+import { Icon24Add, Icon24Camera, Icon24Edit } from '@vkontakte/icons';
 import { api } from '../api/client';
 import { vk } from '../lib/vk';
 
@@ -24,6 +24,10 @@ export function TripNotes({ tripId, onBack, user, onOpenPost, onOpenNoteEdit, re
   const [creating, setCreating] = useState(false);
   const [tripName, setTripName] = useState('');
   const [tripDescription, setTripDescription] = useState('');
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editTripName, setEditTripName] = useState('');
+  const [editTripDescription, setEditTripDescription] = useState('');
+  const [updating, setUpdating] = useState(false);
 
   useEffect(() => {
     loadNotes();
@@ -41,11 +45,36 @@ export function TripNotes({ tripId, onBack, user, onOpenPost, onOpenNoteEdit, re
       if (trip) {
         setTripName(trip.name);
         setTripDescription(trip.description || '');
+        setEditTripName(trip.name);
+        setEditTripDescription(trip.description || '');
       }
     } catch (err) {
       console.error('Failed to load notes:', err);
     } finally {
       setLoading(false);
+    }
+  };
+
+  // 🔥 Обновление информации о путешествии
+  const handleUpdateTrip = async () => {
+    if (!editTripName.trim()) return;
+
+    try {
+      setUpdating(true);
+      await api.updateTrip(tripId, {
+        name: editTripName.trim(),
+        description: editTripDescription.trim()
+      });
+      
+      setTripName(editTripName.trim());
+      setTripDescription(editTripDescription.trim());
+      setShowEditModal(false);
+      await vk.showNotification('✅', 'Путешествие обновлено', 'success');
+    } catch (err) {
+      console.error('Update trip error:', err);
+      await vk.showNotification('❌', 'Не удалось обновить путешествие', 'error');
+    } finally {
+      setUpdating(false);
     }
   };
 
@@ -107,7 +136,10 @@ export function TripNotes({ tripId, onBack, user, onOpenPost, onOpenNoteEdit, re
 
   return (
     <Panel id="trip-notes">
-      <PanelHeader left={<Button mode="secondary" onClick={onBack} size="s" className="vh-btn">← Назад</Button>}>
+      <PanelHeader 
+        left={<Button mode="secondary" onClick={onBack} size="s" className="vh-btn">← Назад</Button>}
+        aside={<Button mode="secondary" size="s" before={<Icon24Edit />} onClick={() => setShowEditModal(true)} className="vh-btn" />}
+      >
         {tripName || 'Путешествие'}
       </PanelHeader>
       {tripDescription && (
@@ -314,6 +346,76 @@ export function TripNotes({ tripId, onBack, user, onOpenPost, onOpenNoteEdit, re
                 className="vh-btn"
               >
                 Добавить
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Модальное окно редактирования путешествия */}
+      {showEditModal && (
+        <div
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: 'rgba(0, 0, 0, 0.7)',
+            zIndex: 3000,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: 20
+          }}
+          onClick={() => !updating && setShowEditModal(false)}
+        >
+          <div
+            className="vh-modal"
+            style={{
+              backgroundColor: '#FFFFFF',
+              borderRadius: 16,
+              padding: 24,
+              width: '100%',
+              maxWidth: 400,
+              boxShadow: '0 4px 24px rgba(0, 0, 0, 0.5)'
+            }}
+            onClick={e => e.stopPropagation()}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+              <h2 className="vh-modal__title" style={{ margin: 0 }}>Редактировать путешествие</h2>
+              <Button mode="secondary" size="s" disabled={updating} onClick={() => setShowEditModal(false)} className="vh-btn vh-modal__close-btn">✕</Button>
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+              <Input
+                className="vh-modal__input"
+                value={editTripName}
+                onChange={e => setEditTripName(e.target.value)}
+                placeholder="Название города"
+                disabled={updating}
+              />
+
+              <Input
+                className="vh-modal__input"
+                value={editTripDescription}
+                onChange={e => setEditTripDescription(e.target.value)}
+                placeholder="Описание путешествия"
+                disabled={updating}
+                multiline
+                rows={3}
+              />
+
+              <Button
+                mode="primary"
+                onClick={handleUpdateTrip}
+                disabled={updating || !editTripName.trim()}
+                loading={updating}
+                stretched
+                size="l"
+                className="vh-btn"
+              >
+                Сохранить
               </Button>
             </div>
           </div>

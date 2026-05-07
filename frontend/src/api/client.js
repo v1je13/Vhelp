@@ -59,6 +59,7 @@ export const api = {
   getComments: (id) => apiFetch(`/posts/${id}/comments`),
   createComment: (id, text) => apiFetch(`/posts/${id}/comments`, { method: 'POST', body: JSON.stringify({ text }) }),
   createTrip: (data) => apiFetch('/trips', { method: 'POST', body: JSON.stringify(data) }),
+  updateTrip: (id, data) => apiFetch(`/trips/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
   deleteTrip: (id) => apiFetch(`/trips/${id}`, { method: 'DELETE' }),
   getTripNotes: (id) => apiFetch(`/trips/${id}/notes`),
   updateProfileBackground: (userId, background) => apiFetch(`/users/${userId}/background`, { method: 'PUT', body: JSON.stringify({ background_image: background }) }),
