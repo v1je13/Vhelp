@@ -687,6 +687,31 @@ body {
   color: #000000 !important;
 }
 
+/* Force black text in all modals */
+.vh-modal input,
+.vh-modal textarea,
+.vh-modal .vkuiInput__el,
+.vh-modal .vkuiTextarea__el,
+.vh-modal h2,
+.vh-modal h3,
+.vh-modal h4,
+.vh-modal .vh-modal__title,
+.vh-modal .vkuiFormItem__label,
+.vh-modal .vkuiFormItem__children,
+.vh-modal .vkuiText,
+.vh-modal .vkuiPlaceholder__text,
+.vh-modal .vkuiPlaceholder__header {
+  color: #000000 !important;
+}
+
+/* Force black placeholder text */
+.vh-modal input::placeholder,
+.vh-modal textarea::placeholder,
+.vh-modal .vkuiInput__el::placeholder,
+.vh-modal .vkuiTextarea__el::placeholder {
+  color: #999999 !important;
+}
+
 .vh-modal__upload-area {
   width: 100%;
   height: 150px;
