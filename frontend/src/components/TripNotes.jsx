@@ -163,10 +163,16 @@ export function TripNotes({ tripId, onBack, user, onOpenPost, onOpenNoteEdit, re
       </PanelHeader>
       {tripDescription && (
         <Banner
-          before={<Avatar size={24} style={{ background: 'var(--vkui--color_accent_green)' }}>📝</Avatar>}
+          before={<Avatar size={24} style={{ background: 'var(--vkui--color_background_accent_tint)' }}>📝</Avatar>}
           header="Описание"
           subheader={tripDescription}
-          style={{ margin: 0, padding: '12px 16px' }}
+          style={{
+            margin: '8px 16px',
+            padding: '12px 16px',
+            background: 'var(--vkui--color_background_content)',
+            borderRadius: 12,
+            boxShadow: '0 1px 4px rgba(0,0,0,0.08)'
+          }}
         />
       )}
 

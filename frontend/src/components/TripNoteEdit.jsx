@@ -18,6 +18,7 @@ export function TripNoteEdit({ id, tripId, onBack, user }) {
   const [note, setNote] = useState(null);
   const [loading, setLoading] = useState(true);
   const [editText, setEditText] = useState('');
+  const [editDescription, setEditDescription] = useState('');
   const [editPhotos, setEditPhotos] = useState([]);
   const [saving, setSaving] = useState(false);
 
@@ -28,6 +29,7 @@ export function TripNoteEdit({ id, tripId, onBack, user }) {
         const postData = await api.getPostById(id);
         setNote(postData.post || postData);
         setEditText(postData.post?.text || postData.text || '');
+        setEditDescription(postData.post?.description || postData.description || '');
         setEditPhotos(
           postData.post?.images && typeof postData.post.images === 'string'
             ? JSON.parse(postData.post.images)
@@ -47,14 +49,15 @@ export function TripNoteEdit({ id, tripId, onBack, user }) {
   const handleSave = async () => {
     try {
       setSaving(true);
-      console.log('Saving note:', { id, editText, editPhotos });
+      console.log('Saving note:', { id, editText, editDescription, editPhotos });
       const result = await api.updatePost(id, {
         text: editText,
+        description: editDescription,
         images: editPhotos
       });
       console.log('Save result:', result);
 
-      setNote(prev => ({ ...prev, text: editText, images: JSON.stringify(editPhotos) }));
+      setNote(prev => ({ ...prev, text: editText, description: editDescription, images: JSON.stringify(editPhotos) }));
       setSaving(false);
       vk.showNotification('✅', 'Заметка обновлена', 'success');
       setTimeout(() => onBack(), 1000);
@@ -227,17 +230,32 @@ export function TripNoteEdit({ id, tripId, onBack, user }) {
           <input type="file" accept="image/*" onChange={handlePhotoUpload} style={{ display: 'none' }} id="note-photo-upload" />
         </div>
 
-        {/* Текст */}
+        {/* Текст заметки */}
         <div style={{ marginBottom: 20 }}>
           <Text weight="2" style={{ marginBottom: 8, fontSize: 15 }}>
-            Описание
+            Текст заметки
           </Text>
           <Textarea
             className="vh-modal__textarea"
             value={editText}
             onChange={e => setEditText(e.target.value)}
-            placeholder="Описание..."
+            placeholder="Расскажите о своём путешествии..."
             rows={6}
+            disabled={saving}
+          />
+        </div>
+
+        {/* Краткое описание */}
+        <div style={{ marginBottom: 20 }}>
+          <Text weight="2" style={{ marginBottom: 8, fontSize: 15 }}>
+            Краткое описание
+          </Text>
+          <Textarea
+            className="vh-modal__textarea"
+            value={editDescription}
+            onChange={e => setEditDescription(e.target.value)}
+            placeholder="Краткое описание (будет показано вместо даты в списке)"
+            rows={2}
             disabled={saving}
           />
         </div>
@@ -262,7 +280,7 @@ export function TripNoteEdit({ id, tripId, onBack, user }) {
             size="l"
             className="vh-btn"
           >
-            Сохранить изменения
+            Применить изменения
           </Button>
         </div>
       </div>
