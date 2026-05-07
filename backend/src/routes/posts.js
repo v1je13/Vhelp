@@ -63,15 +63,17 @@ posts.get('/:id', async (c) => {
 // Create post
 posts.post('/', auth, async (c) => {
   try {
-    const { content, images, location } = await c.req.json();
+    const { content, text, images, location, description, trip_id } = await c.req.json();
+    const postContent = content || text;
 
-    if (!content) {
+    if (!postContent) {
       return c.json({ message: 'Content is required' }, 400);
     }
 
     const post = new Post({
       author: c.get('user')._id,
-      content,
+      content: postContent,
+      description: description || '',
       images: images || [],
       location: location || ''
     });
@@ -99,9 +101,10 @@ posts.put('/:id', auth, async (c) => {
       return c.json({ message: 'Not authorized' }, 403);
     }
 
-    const { text, content, images, location } = await c.req.json();
+    const { text, content, images, location, description } = await c.req.json();
 
     post.content = text || content || post.content;
+    post.description = description !== undefined ? description : post.description;
     post.images = images || post.images;
     post.location = location || post.location;
     post.updatedAt = Date.now();
