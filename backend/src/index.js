@@ -732,6 +732,45 @@ const routes = {
     }
   },
 
+  'PUT /api/posts/:id': async (url, req, res) => {
+    try {
+      const authHeader = req.headers['authorization'];
+      if (!authHeader) return sendJson(res, { error: 'No token' }, 401);
+
+      const token = authHeader.replace('Bearer ', '');
+      const secret = getSecret();
+      const decoded = await jwt.verify(token, secret);
+
+      const postId = getPathParam(url, 2);
+      const { text, description, images } = await parseBody(req);
+
+      // Check if post exists and belongs to user
+      const post = (await pool.query('SELECT * FROM posts WHERE id = $1', [postId])).rows[0];
+
+      if (!post) return sendJson(res, { error: 'Post not found' }, 404);
+
+      if (post.user_id !== decoded.payload.userId) {
+        return sendJson(res, { error: 'Unauthorized' }, 403);
+      }
+
+      // Update post
+      await pool.query(`
+        UPDATE posts SET text = $1, description = $2, images = $3, updated_at = $4
+        WHERE id = $5
+      `, [text || post.text, description !== undefined ? description : post.description || '', 
+          JSON.stringify(images || JSON.parse(post.images || '[]')), Date.now(), postId]);
+
+      const updatedPost = (await pool.query(`
+        SELECT p.*, u.first_name, u.last_name, u.avatar
+        FROM posts p JOIN users u ON p.user_id = u.id WHERE p.id = $1
+      `, [postId])).rows[0];
+
+      sendJson(res, { post: updatedPost });
+    } catch (err) {
+      sendJson(res, { error: err.message }, 500);
+    }
+  },
+
   'DELETE /api/posts/:id': async (url, req, res) => {
     try {
       const authHeader = req.headers['authorization'];
@@ -892,6 +931,8 @@ export default async function handler(req, res) {
     return await routes['GET /api/posts/:id/comments'](url, req, res);
   } else if (pathname.startsWith('/api/posts/') && pathname.endsWith('/comments') && method === 'POST') {
     return await routes['POST /api/posts/:id/comments'](url, req, res);
+  } else if (pathname.startsWith('/api/posts/') && method === 'PUT' && pathname.split('/').length === 4) {
+    return await routes['PUT /api/posts/:id'](url, req, res);
   } else if (pathname.startsWith('/api/posts/') && method === 'DELETE' && pathname.split('/').length === 4) {
     return await routes['DELETE /api/posts/:id'](url, req, res);
   } else if (pathname.startsWith('/api/posts/') && method === 'GET' && pathname.split('/').length === 4) {
