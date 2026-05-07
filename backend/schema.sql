@@ -41,6 +41,20 @@ END $$;
 -- Migration: Update existing posts to have likes_count = 0 if NULL
 UPDATE posts SET likes_count = 0 WHERE likes_count IS NULL;
 
+-- Migration: Add description column to posts table
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM information_schema.columns
+    WHERE table_name = 'posts' AND column_name = 'description'
+  ) THEN
+    ALTER TABLE posts ADD COLUMN description TEXT DEFAULT '';
+  END IF;
+END $$;
+
+-- Migration: Update existing posts to have description = '' if NULL
+UPDATE posts SET description = '' WHERE description IS NULL;
+
 -- Likes table
 CREATE TABLE IF NOT EXISTS likes (
   id TEXT PRIMARY KEY,

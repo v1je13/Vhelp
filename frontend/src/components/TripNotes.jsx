@@ -11,7 +11,7 @@ import {
   Card,
   Input
 } from '@vkontakte/vkui';
-import { Icon24Add, Icon24Camera } from '@vkontakte/icons';
+import { Icon24Add, Icon24Camera, Icon24Pen } from '@vkontakte/icons';
 import { api } from '../api/client';
 import { vk } from '../lib/vk';
 
@@ -21,6 +21,7 @@ export function TripNotes({ tripId, onBack, user, onOpenPost, onOpenNoteEdit, re
   const [showModal, setShowModal] = useState(false);
   const [newNote, setNewNote] = useState('');
   const [selectedPhoto, setSelectedPhoto] = useState(null);
+  const [newNoteDescription, setNewNoteDescription] = useState('');
   const [creating, setCreating] = useState(false);
   const [tripName, setTripName] = useState('');
   const [tripDescription, setTripDescription] = useState('');
@@ -98,6 +99,7 @@ export function TripNotes({ tripId, onBack, user, onOpenPost, onOpenNoteEdit, re
       setCreating(true);
       const result = await api.createPost({
         text: newNote,
+        description: newNoteDescription,
         images: selectedPhoto ? [selectedPhoto] : [],
         trip_id: tripId
       });
@@ -108,6 +110,7 @@ export function TripNotes({ tripId, onBack, user, onOpenPost, onOpenNoteEdit, re
       }
 
       setNewNote('');
+      setNewNoteDescription('');
       setSelectedPhoto(null);
       setShowModal(false);
       await vk.showNotification('✅', 'Заметка добавлена', 'success');
@@ -138,7 +141,7 @@ export function TripNotes({ tripId, onBack, user, onOpenPost, onOpenNoteEdit, re
     <Panel id="trip-notes">
       <PanelHeader 
         left={<Button mode="secondary" onClick={onBack} size="s" className="vh-btn">← Назад</Button>}
-        aside={<Button mode="secondary" size="s" before={<Icon24Edit />} onClick={() => setShowEditModal(true)} className="vh-btn" />}
+        aside={<Button mode="secondary" size="s" before={<Icon24Pen />} onClick={() => setShowEditModal(true)} className="vh-btn" />}
       >
         {tripName || 'Путешествие'}
       </PanelHeader>
@@ -222,7 +225,7 @@ export function TripNotes({ tripId, onBack, user, onOpenPost, onOpenNoteEdit, re
                       {note.text ? note.text.substring(0, 50) + (note.text.length > 50 ? '...' : '') : 'Без текста'}
                     </div>
                     <div style={{ fontSize: 13, opacity: 0.8 }}>
-                      {new Date(note.created_at).toLocaleDateString('ru-RU')}
+                      {note.description || new Date(note.created_at).toLocaleDateString('ru-RU')}
                     </div>
                   </div>
 
@@ -239,6 +242,7 @@ export function TripNotes({ tripId, onBack, user, onOpenPost, onOpenNoteEdit, re
         before={<Icon24Add />}
         onClick={() => {
           setNewNote('');
+          setNewNoteDescription('');
           setSelectedPhoto(null);
           setCreating(false);
           setShowModal(true);
@@ -288,6 +292,15 @@ export function TripNotes({ tripId, onBack, user, onOpenPost, onOpenNoteEdit, re
                 onChange={e => setNewNote(e.target.value)}
                 placeholder="Расскажите о своём путешествии..."
                 rows={4}
+                disabled={creating}
+              />
+
+              <Textarea
+                className="vh-modal__textarea"
+                value={newNoteDescription}
+                onChange={e => setNewNoteDescription(e.target.value)}
+                placeholder="Краткое описание (будет показано вместо даты)"
+                rows={2}
                 disabled={creating}
               />
 

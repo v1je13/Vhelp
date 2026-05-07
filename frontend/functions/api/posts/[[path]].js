@@ -96,9 +96,9 @@ export async function onRequestPost(context) {
     // POST /api/posts — создать пост
     const postId = crypto.randomUUID();
     await db.prepare(`
-      INSERT INTO posts (id, user_id, text, images, tags, trip_id, location, likes_count)
-      VALUES (?, ?, ?, ?, ?, ?, ?, 0)
-    `).bind(postId, userId, body.text.trim(), JSON.stringify(body.images || []),
+      INSERT INTO posts (id, user_id, text, description, images, tags, trip_id, location, likes_count)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0)
+    `).bind(postId, userId, body.text.trim(), body.description || '', JSON.stringify(body.images || []),
             JSON.stringify(body.tags || []), body.trip_id || null, JSON.stringify(null)).run();
 
     const post = await db.prepare(`
@@ -137,9 +137,9 @@ export async function onRequestPut(context) {
 
       // Update post
       await db.prepare(`
-        UPDATE posts SET text = ?, images = ?, updated_at = ?
+        UPDATE posts SET text = ?, description = ?, images = ?, updated_at = ?
         WHERE id = ?
-      `).bind(body.text || post.text, JSON.stringify(body.images || post.images), Date.now(), postId).run();
+      `).bind(body.text || post.text, body.description || post.description || '', JSON.stringify(body.images || post.images), Date.now(), postId).run();
 
       const updatedPost = await db.prepare(`
         SELECT p.*, u.first_name, u.last_name, u.avatar
