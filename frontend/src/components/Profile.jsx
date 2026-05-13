@@ -43,7 +43,12 @@ export function Profile({ userId, user, onBack, onOpenPost }) {
         if (result.error) {
           console.error('loadFriends: error from vk.getFriends:', result.error);
         }
-        setFriends(result.friends || []);
+        const loadedFriends = result.friends || [];
+        setFriends(loadedFriends);
+        // Обновляем счётчик друзей в шапке профиля
+        if (loadedFriends.length > 0) {
+          setProfileData(prev => prev ? { ...prev, friends_count: loadedFriends.length } : prev);
+        }
       } catch (err) {
         console.error('Friends load error:', err);
         setFriends([]);
