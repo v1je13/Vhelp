@@ -202,5 +202,16 @@ export const vk = {
       console.error('VK photo upload error:', err);
       throw new Error('Failed to upload photo');
     }
+  },
+
+  async getFriends() {
+    try {
+      const currentBridge = window.VKBridge || bridge;
+      const result = await currentBridge.send('VKWebAppGetFriends', { multi: true });
+      return result.users || [];
+    } catch (err) {
+      console.error('Failed to get friends:', err);
+      return [];
+    }
   }
 };

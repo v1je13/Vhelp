@@ -10,6 +10,7 @@ import {
 } from '@vkontakte/vkui';
 import { Icon24Camera } from '@vkontakte/icons';
 import { api } from '../api/client';
+import { vk } from '../lib/vk';
 
 export function Profile({ userId, user, onBack, onOpenPost }) {
   const [profileData, setProfileData] = useState(null);
@@ -19,6 +20,8 @@ export function Profile({ userId, user, onBack, onOpenPost }) {
   const [activeTab, setActiveTab] = useState('posts'); // posts, friends, subscribers
   const [backgroundImage, setBackgroundImage] = useState(null);
   const [updatingBackground, setUpdatingBackground] = useState(false);
+  const [friends, setFriends] = useState([]);
+  const [friendsLoading, setFriendsLoading] = useState(false);
 
   useEffect(() => {
     // Load background from profile data when it changes
@@ -26,6 +29,31 @@ export function Profile({ userId, user, onBack, onOpenPost }) {
       setBackgroundImage(profileData.background_image);
     }
   }, [profileData?.background_image]);
+
+  const isOwnProfile = profileData?.id === user?.id;
+
+  useEffect(() => {
+    const loadFriends = async () => {
+      const own = profileData?.id === user?.id;
+      if (activeTab !== 'friends' || !own) return;
+      try {
+        setFriendsLoading(true);
+        let friendsData = await vk.getFriends();
+        if (!friendsData || friendsData.length === 0) {
+          // Fallback через backend
+          const backendFriends = await api.getFriends();
+          friendsData = backendFriends.friends || [];
+        }
+        setFriends(friendsData);
+      } catch (err) {
+        console.error('Friends load error:', err);
+      } finally {
+        setFriendsLoading(false);
+      }
+    };
+
+    loadFriends();
+  }, [activeTab, profileData?.id, user?.id]);
 
   useEffect(() => {
     // Увеличиваем до 40 секунд для мобильного интернета
@@ -132,8 +160,6 @@ export function Profile({ userId, user, onBack, onOpenPost }) {
       </Placeholder>
     );
   }
-
-  const isOwnProfile = profileData.id === user?.id;
 
   return (
     <div style={{ paddingBottom: 80 }}>
@@ -246,6 +272,49 @@ export function Profile({ userId, user, onBack, onOpenPost }) {
                       cursor: 'pointer'
                     }}
                   />
+                ))}
+              </div>
+            )}
+          </>
+        )}
+
+        {activeTab === 'friends' && (
+          <>
+            {friendsLoading ? (
+              <div style={{ display: 'flex', justifyContent: 'center', padding: 40 }}>
+                <Spinner size="regular" />
+              </div>
+            ) : friends.length === 0 ? (
+              <Placeholder header="Нет друзей">
+                {isOwnProfile
+                  ? 'Ваши друзья из ВКонтакте появятся здесь'
+                  : 'Друзья недоступны для чужого профиля'}
+              </Placeholder>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                {friends.map(friend => (
+                  <div
+                    key={friend.id}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 12,
+                      padding: '10px 12px',
+                      borderRadius: 12,
+                      backgroundColor: 'var(--vkui--color_background_content)',
+                      boxShadow: '0 1px 4px rgba(0,0,0,0.05)'
+                    }}
+                  >
+                    <Avatar
+                      src={friend.photo_100 || 'https://vk.com/images/camera_200.png'}
+                      size={48}
+                    />
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontWeight: 600, fontSize: 15, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        {friend.first_name} {friend.last_name}
+                      </div>
+                    </div>
+                  </div>
                 ))}
               </div>
             )}

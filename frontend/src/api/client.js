@@ -68,6 +68,7 @@ export const api = {
   deleteTrip: (id) => apiFetch(`/trips/${id}`, { method: 'DELETE' }),
   getTripNotes: (id) => apiFetch(`/trips/${id}/notes`),
   updateProfileBackground: (userId, background) => apiFetch(`/users/${userId}/background`, { method: 'PUT', body: JSON.stringify({ background_image: background }) }),
+  getFriends: () => apiFetch('/auth/me/friends'),
   searchUsers: (q) => apiFetch(`/users/search?q=${encodeURIComponent(q)}`),
   searchPosts: (q) => apiFetch(`/posts/search?q=${encodeURIComponent(q)}`),
   getTagPosts: (tag) => apiFetch(`/tags/${encodeURIComponent(tag)}/posts`),
