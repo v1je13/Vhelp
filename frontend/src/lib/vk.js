@@ -219,8 +219,9 @@ export const vk = {
       }
       if (!appId) {
         console.warn('getFriends: vk_app_id не найден в параметрах запуска');
-        return [];
+        return { friends: [], error: 'vk_app_id not found' };
       }
+      console.log('getFriends: app_id =', appId);
 
       // Запрашиваем токен с правом friends
       let tokenResult;
@@ -231,12 +232,13 @@ export const vk = {
         });
       } catch (e) {
         console.warn('getFriends: VKWebAppGetAuthToken отклонён:', e);
-        return [];
+        return { friends: [], error: 'VKWebAppGetAuthToken declined' };
       }
 
+      console.log('getFriends: tokenResult keys', Object.keys(tokenResult || {}));
       if (!tokenResult?.access_token) {
-        console.warn('getFriends: access_token не получен');
-        return [];
+        console.warn('getFriends: access_token не получен', tokenResult);
+        return { friends: [], error: 'no access_token' };
       }
 
       // Через backend, чтобы обойти CORS VK API
@@ -249,15 +251,20 @@ export const vk = {
 
       if (!response.ok) {
         const errData = await response.json().catch(() => ({}));
-        console.error('getFriends: backend error:', errData);
-        return [];
+        console.error('getFriends: backend HTTP error:', response.status, errData);
+        return { friends: [], error: errData.error || `HTTP ${response.status}` };
       }
 
       const data = await response.json();
-      return data.friends || [];
+      console.log('getFriends: backend response keys', Object.keys(data));
+      if (data.error) {
+        console.error('getFriends: backend returned error:', data.error);
+        return { friends: [], error: data.error };
+      }
+      return { friends: data.friends || [] };
     } catch (err) {
       console.error('getFriends: непредвиденная ошибка:', err);
-      return [];
+      return { friends: [], error: err.message };
     }
   }
 };

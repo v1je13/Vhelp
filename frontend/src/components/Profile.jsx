@@ -38,8 +38,12 @@ export function Profile({ userId, user, onBack, onOpenPost }) {
       if (activeTab !== 'friends' || !own) return;
       try {
         setFriendsLoading(true);
-        const friendsData = await vk.getFriends();
-        setFriends(friendsData);
+        const result = await vk.getFriends();
+        console.log('loadFriends: result keys', Object.keys(result || {}));
+        if (result.error) {
+          console.error('loadFriends: error from vk.getFriends:', result.error);
+        }
+        setFriends(result.friends || []);
       } catch (err) {
         console.error('Friends load error:', err);
         setFriends([]);
@@ -283,7 +287,7 @@ export function Profile({ userId, user, onBack, onOpenPost }) {
             ) : friends.length === 0 ? (
               <Placeholder header="Нет друзей">
                 {isOwnProfile
-                  ? 'Не удалось загрузить друзей. Убедитесь, что у приложения есть доступ к списку друзей ВКонтакте.'
+                  ? 'Не удалось загрузить друзей из ВКонтакте. Проверьте консоль (F12 → Console) и убедитесь, что приложению выдано право "friends" в настройках VK.'
                   : 'Друзья недоступны для чужого профиля'}
               </Placeholder>
             ) : (

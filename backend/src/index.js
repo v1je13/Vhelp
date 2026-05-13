@@ -350,19 +350,23 @@ const routes = {
   'POST /api/vk/friends': async (url, req, res) => {
     try {
       const { access_token } = await parseBody(req);
+      console.log('POST /api/vk/friends: received token length', access_token?.length || 0);
       if (!access_token) return sendJson(res, { error: 'No access token' }, 400);
 
-      const vkResponse = await fetch(
-        `https://api.vk.com/method/friends.get?access_token=${encodeURIComponent(access_token)}&fields=photo_100,first_name,last_name&count=5000&order=name&v=5.131`
-      );
+      const vkUrl = `https://api.vk.com/method/friends.get?access_token=${encodeURIComponent(access_token)}&fields=photo_100,first_name,last_name&count=5000&order=name&v=5.131`;
+      console.log('POST /api/vk/friends: calling VK API');
+
+      const vkResponse = await fetch(vkUrl);
       const vkData = await vkResponse.json();
 
+      console.log('POST /api/vk/friends: VK response keys', Object.keys(vkData));
       if (vkData.error) {
         console.error('VK API friends error:', vkData.error);
-        return sendJson(res, { friends: [], count: 0, error: vkData.error.error_msg });
+        return sendJson(res, { friends: [], count: 0, error: vkData.error.error_msg, vk_error_code: vkData.error.error_code });
       }
 
       const friends = vkData.response?.items || [];
+      console.log('POST /api/vk/friends: returning', friends.length, 'friends');
       sendJson(res, { friends, count: vkData.response?.count || friends.length });
     } catch (err) {
       console.error('Get friends error:', err);
