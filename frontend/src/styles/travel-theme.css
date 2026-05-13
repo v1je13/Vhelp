@@ -685,6 +685,9 @@ body {
   border: none !important;
   border-radius: 8px !important;
   color: #000000 !important;
+  white-space: normal !important;
+  overflow: visible !important;
+  text-overflow: clip !important;
 }
 
 /* Force black text in all modals */
