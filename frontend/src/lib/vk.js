@@ -241,27 +241,24 @@ export const vk = {
         return { friends: [], error: 'no access_token' };
       }
 
-      // Через backend, чтобы обойти CORS VK API
-      const apiUrl = 'https://vhelp-backend.vercel.app/api/vk/friends';
-      const response = await fetch(apiUrl, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ access_token: tokenResult.access_token })
+      // Вызываем VK API через bridge (через серверы VK, без CORS и IP-привязки)
+      const result = await currentBridge.send('VKWebAppCallAPIMethod', {
+        method: 'friends.get',
+        params: {
+          fields: 'photo_100,first_name,last_name',
+          count: 5000,
+          order: 'name',
+          v: '5.131'
+        }
       });
 
-      if (!response.ok) {
-        const errData = await response.json().catch(() => ({}));
-        console.error('getFriends: backend HTTP error:', response.status, errData);
-        return { friends: [], error: errData.error || `HTTP ${response.status}` };
+      console.log('getFriends: CallAPIMethod result keys', Object.keys(result || {}));
+      if (result.error) {
+        console.error('getFriends: CallAPIMethod error:', result.error);
+        return { friends: [], error: result.error.error_msg || 'CallAPIMethod failed' };
       }
 
-      const data = await response.json();
-      console.log('getFriends: backend response keys', Object.keys(data));
-      if (data.error) {
-        console.error('getFriends: backend returned error:', data.error);
-        return { friends: [], error: data.error };
-      }
-      return { friends: data.friends || [] };
+      return { friends: result.response?.items || [] };
     } catch (err) {
       console.error('getFriends: непредвиденная ошибка:', err);
       return { friends: [], error: err.message };
