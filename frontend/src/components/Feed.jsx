@@ -20,16 +20,29 @@ export function Feed({ user, onOpenPost, onCreateTrip, onPostCreated }) {
 
   const formatDate = (dateValue) => {
     if (!dateValue) return 'Только что';
-    const timestamp = typeof dateValue === 'number' ? dateValue : new Date(dateValue).getTime();
-    if (isNaN(timestamp) || timestamp < 0) return 'Только что';
-    
+
+    let timestamp = dateValue;
+    if (typeof timestamp === 'string') {
+      // Пробуем распарсить как число (BIGINT из D1 может прийти строкой)
+      const parsed = Number(timestamp);
+      if (!isNaN(parsed) && String(parsed) === timestamp.trim()) {
+        timestamp = parsed;
+      }
+    }
+    if (typeof timestamp !== 'number') {
+      timestamp = new Date(timestamp).getTime();
+    }
+    if (isNaN(timestamp) || timestamp <= 0) return 'Только что';
+
     const date = new Date(timestamp);
-    const diffMins = Math.floor((Date.now() - timestamp) / 60000);
-    
+    const diffMs = Date.now() - timestamp;
+    const diffMins = Math.floor(diffMs / 60000);
+
     if (diffMins < 1) return 'Только что';
     if (diffMins < 60) return `${diffMins} мин. назад`;
-    if (Math.floor(diffMins / 60) < 24) return `${Math.floor(diffMins / 60)} ч. назад`;
-    
+    const diffHours = Math.floor(diffMins / 60);
+    if (diffHours < 24) return `${diffHours} ч. назад`;
+
     return date.toLocaleString('ru-RU', {
       day: '2-digit', month: '2-digit', year: 'numeric',
       hour: '2-digit', minute: '2-digit'

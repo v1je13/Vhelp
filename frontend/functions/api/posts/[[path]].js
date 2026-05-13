@@ -94,12 +94,13 @@ export async function onRequestPost(context) {
     }
 
     // POST /api/posts — создать пост
+    const now = Date.now();
     const postId = crypto.randomUUID();
     await db.prepare(`
-      INSERT INTO posts (id, user_id, text, description, images, tags, trip_id, location, likes_count)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0)
+      INSERT INTO posts (id, user_id, text, description, images, tags, trip_id, location, likes_count, created_at, updated_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `).bind(postId, userId, body.text.trim(), body.description || '', JSON.stringify(body.images || []),
-            JSON.stringify(body.tags || []), body.trip_id || null, JSON.stringify(null)).run();
+            JSON.stringify(body.tags || []), body.trip_id || null, body.location || null, 0, now, now).run();
 
     const post = await db.prepare(`
       SELECT p.*, u.first_name, u.last_name, u.avatar
