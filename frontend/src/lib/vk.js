@@ -239,18 +239,22 @@ export const vk = {
         return [];
       }
 
-      // Вызываем VK API напрямую с токеном
-      const response = await fetch(
-        `https://api.vk.com/method/friends.get?access_token=${encodeURIComponent(tokenResult.access_token)}&fields=photo_100,first_name,last_name&count=5000&order=name&v=5.131`
-      );
-      const data = await response.json();
+      // Через backend, чтобы обойти CORS VK API
+      const apiUrl = 'https://vhelp-backend.vercel.app/api/vk/friends';
+      const response = await fetch(apiUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ access_token: tokenResult.access_token })
+      });
 
-      if (data.error) {
-        console.error('getFriends: ошибка VK API:', data.error);
+      if (!response.ok) {
+        const errData = await response.json().catch(() => ({}));
+        console.error('getFriends: backend error:', errData);
         return [];
       }
 
-      return data.response?.items || [];
+      const data = await response.json();
+      return data.friends || [];
     } catch (err) {
       console.error('getFriends: непредвиденная ошибка:', err);
       return [];

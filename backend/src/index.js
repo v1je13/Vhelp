@@ -347,6 +347,29 @@ const routes = {
     }
   },
 
+  'POST /api/vk/friends': async (url, req, res) => {
+    try {
+      const { access_token } = await parseBody(req);
+      if (!access_token) return sendJson(res, { error: 'No access token' }, 400);
+
+      const vkResponse = await fetch(
+        `https://api.vk.com/method/friends.get?access_token=${encodeURIComponent(access_token)}&fields=photo_100,first_name,last_name&count=5000&order=name&v=5.131`
+      );
+      const vkData = await vkResponse.json();
+
+      if (vkData.error) {
+        console.error('VK API friends error:', vkData.error);
+        return sendJson(res, { friends: [], count: 0, error: vkData.error.error_msg });
+      }
+
+      const friends = vkData.response?.items || [];
+      sendJson(res, { friends, count: vkData.response?.count || friends.length });
+    } catch (err) {
+      console.error('Get friends error:', err);
+      sendJson(res, { friends: [], count: 0, error: err.message }, 500);
+    }
+  },
+
   'GET /api/auth/me/friends': async (url, req, res) => {
     try {
       const authHeader = req.headers['authorization'];
@@ -941,6 +964,8 @@ export default async function handler(req, res) {
     return await routes['GET /api/auth/me'](url, req, res);
   } else if (pathname === '/api/auth/me' && method === 'PATCH') {
     return await routes['PATCH /api/auth/me'](url, req, res);
+  } else if (pathname === '/api/vk/friends' && method === 'POST') {
+    return await routes['POST /api/vk/friends'](url, req, res);
   } else if (pathname === '/api/auth/me/friends' && method === 'GET') {
     return await routes['GET /api/auth/me/friends'](url, req, res);
   } else if (pathname === '/api/posts' && method === 'GET') {
