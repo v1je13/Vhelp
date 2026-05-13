@@ -245,6 +245,7 @@ export const vk = {
       const result = await currentBridge.send('VKWebAppCallAPIMethod', {
         method: 'friends.get',
         params: {
+          access_token: tokenResult.access_token,
           fields: 'photo_100,first_name,last_name',
           count: 5000,
           order: 'name',
@@ -261,7 +262,7 @@ export const vk = {
       return { friends: result.response?.items || [] };
     } catch (err) {
       console.error('getFriends: непредвиденная ошибка:', err);
-      return { friends: [], error: err.message };
+      return { friends: [], error: err.message || err.error_data?.error_reason || String(err) };
     }
   }
 };
