@@ -207,10 +207,18 @@ export const vk = {
   async getFriends() {
     try {
       const currentBridge = window.VKBridge || bridge;
-      const result = await currentBridge.send('VKWebAppGetFriends', { multi: true });
-      return result.users || [];
+      const result = await currentBridge.send('VKWebAppCallAPIMethod', {
+        method: 'friends.get',
+        params: {
+          fields: 'photo_100,first_name,last_name,photo_50',
+          count: 5000,
+          order: 'name',
+          v: '5.131'
+        }
+      });
+      return result.response?.items || [];
     } catch (err) {
-      console.error('Failed to get friends:', err);
+      console.error('Failed to get friends via CallAPIMethod:', err);
       return [];
     }
   }
