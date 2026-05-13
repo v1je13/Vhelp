@@ -350,21 +350,27 @@ const routes = {
   'GET /api/auth/me/friends': async (url, req, res) => {
     try {
       const authHeader = req.headers['authorization'];
-      if (!authHeader) return sendJson(res, { error: 'No token' }, 401);
+      if (!authHeader) return sendJson(res, { friends: [], count: 0, error: 'No token' }, 401);
 
       const token = authHeader.replace('Bearer ', '');
       const secret = getSecret();
       const decoded = await jwt.verify(token, secret);
 
       const user = (await pool.query('SELECT * FROM users WHERE id = $1', [decoded.payload.userId])).rows[0];
-      if (!user) return sendJson(res, { error: 'User not found' }, 404);
+      if (!user) return sendJson(res, { friends: [], count: 0, error: 'User not found' }, 404);
+
+      const vkToken = process.env.VK_ACCESS_TOKEN;
+      if (!vkToken) {
+        return sendJson(res, { friends: [], count: 0, error: 'Backend VK token not configured' });
+      }
 
       // Fetch friends from VK API using the user's VK ID
-      const vkResponse = await fetch(`https://api.vk.com/method/friends.get?user_id=${user.vk_id}&fields=photo_100,first_name,last_name&access_token=${process.env.VK_ACCESS_TOKEN}&v=5.131`);
+      const vkResponse = await fetch(`https://api.vk.com/method/friends.get?user_id=${user.vk_id}&fields=photo_100,first_name,last_name&access_token=${vkToken}&v=5.131`);
       const vkData = await vkResponse.json();
 
       if (vkData.error) {
-        return sendJson(res, { error: vkData.error.error_msg }, 400);
+        console.error('VK API friends error:', vkData.error);
+        return sendJson(res, { friends: [], count: 0, error: vkData.error.error_msg });
       }
 
       const friends = vkData.response?.items || [];
@@ -377,7 +383,8 @@ const routes = {
 
       sendJson(res, { friends, count: friends.length });
     } catch (err) {
-      sendJson(res, { error: err.message }, 500);
+      console.error('Get friends error:', err);
+      sendJson(res, { friends: [], count: 0, error: err.message }, 500);
     }
   },
 

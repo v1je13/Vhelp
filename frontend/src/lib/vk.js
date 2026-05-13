@@ -207,18 +207,52 @@ export const vk = {
   async getFriends() {
     try {
       const currentBridge = window.VKBridge || bridge;
-      const result = await currentBridge.send('VKWebAppCallAPIMethod', {
-        method: 'friends.get',
-        params: {
-          fields: 'photo_100,first_name,last_name,photo_50',
-          count: 5000,
-          order: 'name',
-          v: '5.131'
-        }
-      });
-      return result.response?.items || [];
+
+      // Получаем app_id из параметров запуска
+      const params = new URLSearchParams(window.location.search);
+      let appId = params.get('vk_app_id');
+      if (!appId) {
+        const hash = window.location.hash.replace(/^#\/?/, '');
+        const hashPart = hash.includes('?') ? hash.split('?')[1] : hash;
+        const hashParams = new URLSearchParams(hashPart);
+        appId = hashParams.get('vk_app_id');
+      }
+      if (!appId) {
+        console.warn('getFriends: vk_app_id не найден в параметрах запуска');
+        return [];
+      }
+
+      // Запрашиваем токен с правом friends
+      let tokenResult;
+      try {
+        tokenResult = await currentBridge.send('VKWebAppGetAuthToken', {
+          app_id: Number(appId),
+          scope: 'friends'
+        });
+      } catch (e) {
+        console.warn('getFriends: VKWebAppGetAuthToken отклонён:', e);
+        return [];
+      }
+
+      if (!tokenResult?.access_token) {
+        console.warn('getFriends: access_token не получен');
+        return [];
+      }
+
+      // Вызываем VK API напрямую с токеном
+      const response = await fetch(
+        `https://api.vk.com/method/friends.get?access_token=${encodeURIComponent(tokenResult.access_token)}&fields=photo_100,first_name,last_name&count=5000&order=name&v=5.131`
+      );
+      const data = await response.json();
+
+      if (data.error) {
+        console.error('getFriends: ошибка VK API:', data.error);
+        return [];
+      }
+
+      return data.response?.items || [];
     } catch (err) {
-      console.error('Failed to get friends via CallAPIMethod:', err);
+      console.error('getFriends: непредвиденная ошибка:', err);
       return [];
     }
   }
