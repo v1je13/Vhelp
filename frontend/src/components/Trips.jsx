@@ -9,7 +9,7 @@ import {
   Avatar,
   Input
 } from '@vkontakte/vkui';
-import { Icon24DeleteOutline, Icon24Add, Icon24Camera } from '@vkontakte/icons';
+import { Icon24DeleteOutline, Icon24Add, Icon24Camera, Icon24Cancel } from '@vkontakte/icons';
 import { api } from '../api/client';
 import { vk } from '../lib/vk';
 
@@ -211,7 +211,7 @@ export function Trips({ user, onOpenTrip, onTripCreated, newTrip }) {
             >
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
                 <h2 className="vh-modal__title" style={{ margin: 0 }}>Новое путешествие</h2>
-                <Button mode="secondary" size="s" disabled={creating} onClick={() => setShowModal(false)} className="vh-btn vh-modal__close-btn">✕</Button>
+                <Button mode="secondary" size="s" disabled={creating} onClick={() => setShowModal(false)} className="vh-btn vh-modal__close-btn" before={<Icon24Cancel />} />
               </div>
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>

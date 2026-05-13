@@ -5,7 +5,7 @@ import {
   View, Panel, PanelHeader, Text, Spinner, Button,
   Textarea, Input
 } from '@vkontakte/vkui';
-import { Icon24Add, Icon24Camera, Icon24UserOutline, Icon24NewsfeedOutline, Icon24DocumentOutline } from '@vkontakte/icons';
+import { Icon24Add, Icon24Camera, Icon24UserOutline, Icon24NewsfeedOutline, Icon24DocumentOutline, Icon24Cancel } from '@vkontakte/icons';
 import '@vkontakte/vkui/dist/vkui.css';
 import './styles/travel-theme.css';
 
@@ -637,7 +637,7 @@ function App() {
             >
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
                 <h2 className="vh-modal__title" style={{ margin: 0 }}>Новый пост</h2>
-                <Button mode="secondary" size="s" disabled={feedCreating} onClick={() => setShowFeedModal(false)} className="vh-btn vh-modal__close-btn">✕</Button>
+                <Button mode="secondary" size="s" disabled={feedCreating} onClick={() => setShowFeedModal(false)} className="vh-btn vh-modal__close-btn" before={<Icon24Cancel />} />
               </div>
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
@@ -766,7 +766,7 @@ function App() {
             >
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
                 <h2 className="vh-modal__title" style={{ margin: 0 }}>Новое путешествие</h2>
-                <Button mode="secondary" size="s" disabled={tripsCreating} onClick={() => setShowTripsModal(false)} className="vh-btn vh-modal__close-btn">✕</Button>
+                <Button mode="secondary" size="s" disabled={tripsCreating} onClick={() => setShowTripsModal(false)} className="vh-btn vh-modal__close-btn" before={<Icon24Cancel />} />
               </div>
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>

@@ -12,7 +12,7 @@ import {
   Input,
   Banner
 } from '@vkontakte/vkui';
-import { Icon24Add, Icon24Camera, Icon24DeleteOutline } from '@vkontakte/icons';
+import { Icon24Add, Icon24Camera, Icon24DeleteOutline, Icon24Cancel } from '@vkontakte/icons';
 import { api } from '../api/client';
 import { vk } from '../lib/vk';
 
@@ -309,7 +309,7 @@ export function TripNotes({ tripId, onBack, user, onOpenPost, onOpenNoteEdit, re
           >
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
               <h2 className="vh-modal__title" style={{ margin: 0 }}>Новая заметка</h2>
-              <Button mode="secondary" size="s" disabled={creating} onClick={() => setShowModal(false)} className="vh-btn vh-modal__close-btn">✕</Button>
+              <Button mode="secondary" size="s" disabled={creating} onClick={() => setShowModal(false)} className="vh-btn vh-modal__close-btn" before={<Icon24Cancel />} />
             </div>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
@@ -345,9 +345,8 @@ export function TripNotes({ tripId, onBack, user, onOpenPost, onOpenNoteEdit, re
                     onClick={() => setSelectedPhoto(null)}
                     className="vh-btn"
                     style={{ position: 'absolute', top: 8, right: 8, background: 'rgba(0,0,0,0.7)' }}
-                  >
-                    ✕
-                  </Button>
+                    before={<Icon24Cancel />}
+                  />
                 </div>
               )}
 
@@ -424,7 +423,7 @@ export function TripNotes({ tripId, onBack, user, onOpenPost, onOpenNoteEdit, re
           >
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
               <h2 className="vh-modal__title" style={{ margin: 0 }}>Редактировать путешествие</h2>
-              <Button mode="secondary" size="s" disabled={updating} onClick={() => setShowEditModal(false)} className="vh-btn vh-modal__close-btn">✕</Button>
+              <Button mode="secondary" size="s" disabled={updating} onClick={() => setShowEditModal(false)} className="vh-btn vh-modal__close-btn" before={<Icon24Cancel />} />
             </div>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
