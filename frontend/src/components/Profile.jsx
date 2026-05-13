@@ -32,6 +32,25 @@ export function Profile({ userId, user, onBack, onOpenPost }) {
 
   const isOwnProfile = profileData?.id === user?.id;
 
+  // Загружаем счётчик друзей сразу при открытии профиля (фоново)
+  useEffect(() => {
+    const loadFriendsCount = async () => {
+      const own = profileData?.id === user?.id;
+      if (!own || !profileData) return;
+      try {
+        const result = await vk.getFriends();
+        const loadedFriends = result.friends || [];
+        setProfileData(prev => prev ? { ...prev, friends_count: loadedFriends.length } : prev);
+      } catch (err) {
+        console.error('Friends count load error:', err);
+      }
+    };
+
+    if (profileData?.id && user?.id) {
+      loadFriendsCount();
+    }
+  }, [profileData?.id, user?.id]);
+
   useEffect(() => {
     const loadFriends = async () => {
       const own = profileData?.id === user?.id;
@@ -45,10 +64,6 @@ export function Profile({ userId, user, onBack, onOpenPost }) {
         }
         const loadedFriends = result.friends || [];
         setFriends(loadedFriends);
-        // Обновляем счётчик друзей в шапке профиля
-        if (loadedFriends.length > 0) {
-          setProfileData(prev => prev ? { ...prev, friends_count: loadedFriends.length } : prev);
-        }
       } catch (err) {
         console.error('Friends load error:', err);
         setFriends([]);
