@@ -82,8 +82,9 @@ export async function onRequestPost(context) {
     // POST /api/posts/123/comments
     if (path.length === 2 && path[1] === 'comments') {
       const commentId = crypto.randomUUID();
-      await db.prepare('INSERT INTO comments (id, post_id, user_id, text) VALUES (?, ?, ?, ?)')
-        .bind(commentId, path[0], userId, body.text.trim()).run();
+      const now = Date.now();
+      await db.prepare('INSERT INTO comments (id, post_id, user_id, text, created_at) VALUES (?, ?, ?, ?, ?)')
+        .bind(commentId, path[0], userId, body.text.trim(), now).run();
 
       const comment = await db.prepare(`
         SELECT c.*, u.first_name, u.last_name, u.avatar
