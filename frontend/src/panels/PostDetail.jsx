@@ -277,7 +277,7 @@ export default function PostDetail({ nav, post, onBack, onLike, onComment, onSha
                 onChange={(e) => setNewComment(e.target.value)}
                 placeholder="Напишите комментарий..."
                 style={{
-                  width: "100%",
+                  width: "60%",
                   padding: "8px 12px",
                   border: "1px solid var(--vkui--color_separator_primary)",
                   borderRadius: 12,
@@ -291,7 +291,7 @@ export default function PostDetail({ nav, post, onBack, onLike, onComment, onSha
               />
               <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 8 }}>
                 <Button 
-                  size="s" 
+                  size="xs"
                   mode="primary" 
                   onClick={handleAddComment}
                   disabled={!newComment.trim()}
